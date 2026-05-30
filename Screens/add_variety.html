@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Signals - Add Variety</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --primary-light: #e8f5e9;
+            --primary-hover: #1b5e20;
+            --text-dark: #333;
+            --text-muted: #666;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --danger: #d32f2f;
+            --warning: #f57c00;
+            --info: #0288d1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--card-bg);
+            border-right: 1px solid #eaeaea;
+            padding: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-brand {
+            padding: 0 1.5rem 2rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            flex: 1;
+        }
+
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            gap: 15px;
+        }
+
+        .sidebar-menu li a:hover,
+        .sidebar-menu li.active a {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            border-right: 4px solid var(--primary-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            width: calc(100% - 260px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+        }
+
+        .user-profile img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-color);
+        }
+
+        .metric-card.warning::before {
+            background: var(--warning);
+        }
+
+        .metric-card.danger::before {
+            background: var(--danger);
+        }
+
+        .metric-card.info::before {
+            background: var(--info);
+        }
+
+        .metric-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .metric-icon {
+            position: absolute;
+            right: 1.5rem;
+            top: 1.5rem;
+            font-size: 2rem;
+            color: rgba(46, 125, 50, 0.1);
+        }
+
+        .warning .metric-icon {
+            color: rgba(245, 124, 0, 0.1);
+        }
+
+        .danger .metric-icon {
+            color: rgba(211, 47, 47, 0.1);
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            min-width: 0;
+            width: 100%;
+        }
+
+        .chart-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-logo {
+                display: inline-block !important;
+            }
+
+            .header h1 {
+                display: none !important;
+            }
+
+            .main-content {
+                padding-top: 0 !important;
+            }
+
+            .header {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background-color: var(--bg-color);
+                padding: 1.5rem 0 1rem 0;
+                margin-bottom: 1.5rem;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+            }
+
+            #menuToggle {
+                display: block !important;
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .chart-card {
+                padding: 1rem;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-leaf"></i> Farm Signals
+        </div>
+                <ul class="sidebar-menu">
+            <li class="sidebar-category" style="padding: 1rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">MAIN MENU</li>
+            <li class=""><a href="dashboard.html"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+            <li class=""><a href="field_intelligence.html"><i class="fa-solid fa-earth-americas"></i> Field Intelligence</a></li>
+            <li class=""><a href="analytics.html"><i class="fa-solid fa-chart-simple"></i> Analytics</a></li>
+            <li class=""><a href="ndvi_monitoring.html"><i class="fa-solid fa-satellite-dish"></i> NDVI Monitoring</a></li>
+            <li class=""><a href="scouting.html"><i class="fa-solid fa-clipboard-check"></i> Scouting</a></li>
+            <li class=""><a href="reports.html"><i class="fa-solid fa-triangle-exclamation"></i> Reports</a></li>
+            <li class=""><a href="officers.html"><i class="fa-solid fa-user-tie"></i> Officers</a></li>
+            <li class=""><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            
+            <li class="sidebar-category" style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">FARMER MANAGEMENT</li>
+            <li class=""><a href="users.html"><i class="fa-solid fa-users"></i> Farmers</a></li>
+            <li class=""><a href="villages.html"><i class="fa-solid fa-house-chimney"></i> Villages</a></li>
+            <li class=""><a href="sections.html"><i class="fa-solid fa-map"></i> Sections</a></li>
+            <li class="active"><a href="varieties.html"><i class="fa-solid fa-seedling"></i> Varieties</a></li>
+            <li class=""><a href="plots.html"><i class="fa-solid fa-map-location-dot"></i> Plots</a></li>
+            <li class="sidebar-category" style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">SURVEY MANAGEMENT</li>
+            <li class=""><a href="surveys.html"><i class="fa-solid fa-clipboard-list"></i> Surveys</a></li>
+
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+    <header class="header">
+        <div style="display: flex; align-items: center;">
+            <button id="menuToggle" style="display: none; background: none; border: none; font-size: 1.5rem; color: var(--primary-color); cursor: pointer; margin-right: 15px;"><i class="fa-solid fa-bars"></i></button>
+            <span class="mobile-logo" style="display: none; color: var(--primary-color); font-size: 1.4rem; font-weight: 700; margin-right: 10px;"><i class="fa-solid fa-leaf"></i> Farm Signals</span>
+            <h1>Add Variety</h1>
+        </div>
+        <div class="user-profile">
+            <img src="https://ui-avatars.com/api/?name=Farmer&background=2e7d32&color=fff" alt="User">
+            <span>Farmer</span>
+        </div>
+    </header>
+
+    <div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
+        <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Variety Details</h2>
+        <form>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Variety Code</label>
+                    <input type="text" placeholder="e.g. VAR-W02" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Crop Type</label>
+                    <input type="text" placeholder="e.g. Wheat, Cotton" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Variety Name</label>
+                    <input type="text" placeholder="Enter variety name" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Season</label>
+                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                        <option value="" disabled selected>Select Season</option>
+                        <option value="rabi">Rabi</option>
+                        <option value="kharif">Kharif</option>
+                        <option value="zaid">Zaid</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="button" onclick="window.location.href='varieties.html'" style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
+                <button type="button" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Save Variety</button>
+            </div>
+        </form>
+    </div>
+</main>
+
+    <script>
+        // Chart default settings
+        Chart.defaults.font.family = "'Outfit', sans-serif";
+        Chart.defaults.color = "#666";
+
+        // NDVI Trend Chart (Line)
+        const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
+        new Chart(ctxNdvi, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Average NDVI',
+                    data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
+                    borderColor: '#2e7d32',
+                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 1 }
+                }
+            }
+        });
+
+        // Crop Health Chart (Doughnut)
+        const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
+        new Chart(ctxHealth, {
+            type: 'doughnut',
+            data: {
+                labels: ['Healthy', 'Moderate', 'Poor'],
+                datasets: [{
+                    data: [65, 25, 10],
+                    backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Scout Status Chart (Bar)
+        const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
+        new Chart(ctxScout, {
+            type: 'bar',
+            data: {
+                labels: ['Completed', 'Pending', 'Overdue'],
+                datasets: [{
+                    label: 'Scouts',
+                    data: [42, 15, 8],
+                    backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
+        const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
+        new Chart(ctxSurvey, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Remaining'],
+                datasets: [{
+                    data: [78, 22],
+                    backgroundColor: ['#0288d1', '#e0e0e0'],
+                    borderWidth: 0,
+                    circumference: 180,
+                    rotation: 270
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '80%',
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { enabled: false }
+                }
+            },
+            plugins: [{
+                id: 'textCenter',
+                beforeDraw: function (chart) {
+                    var width = chart.width,
+                        height = chart.height,
+                        ctx = chart.ctx;
+                    ctx.restore();
+                    var fontSize = (height / 114).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em Outfit";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#333";
+                    var text = "78%",
+                        textX = Math.round((width - ctx.measureText(text).width) / 2),
+                        textY = height / 1.5;
+                    ctx.fillText(text, textX, textY);
+                    ctx.save();
+                }
+            }]
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function () {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

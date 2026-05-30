@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Signals - Scouting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --primary-light: #e8f5e9;
+            --primary-hover: #1b5e20;
+            --text-dark: #333;
+            --text-muted: #666;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --danger: #d32f2f;
+            --warning: #f57c00;
+            --info: #0288d1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--card-bg);
+            border-right: 1px solid #eaeaea;
+            padding: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-brand {
+            padding: 0 1.5rem 2rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            flex: 1;
+        }
+
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            gap: 15px;
+        }
+
+        .sidebar-menu li a:hover, .sidebar-menu li.active a {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            border-right: 4px solid var(--primary-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            width: calc(100% - 260px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            font-weight: 600;
+        }
+
+        .user-profile img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-color);
+        }
+
+        .metric-card.warning::before { background: var(--warning); }
+        .metric-card.danger::before { background: var(--danger); }
+        .metric-card.info::before { background: var(--info); }
+
+        .metric-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .metric-icon {
+            position: absolute;
+            right: 1.5rem;
+            top: 1.5rem;
+            font-size: 2rem;
+            color: rgba(46, 125, 50, 0.1);
+        }
+        
+        .warning .metric-icon { color: rgba(245, 124, 0, 0.1); }
+        .danger .metric-icon { color: rgba(211, 47, 47, 0.1); }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+
+        .chart-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-logo {
+                display: inline-block !important;
+            }
+            .header h1 {
+                display: none !important;
+            }
+
+            .main-content {
+                padding-top: 0 !important;
+            }
+            .header {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background-color: var(--bg-color);
+                padding: 1.5rem 0 1rem 0;
+                margin-bottom: 1.5rem;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+            }
+            #menuToggle {
+                display: block !important;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            .main-content {
+                padding: 1rem;
+            }
+            .header h1 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-leaf"></i> Farm Signals
+        </div>
+                <ul class="sidebar-menu">
+            <li class="sidebar-category" style="padding: 1rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">MAIN MENU</li>
+            <li class=""><a href="dashboard.html"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+            <li class=""><a href="field_intelligence.html"><i class="fa-solid fa-earth-americas"></i> Field Intelligence</a></li>
+            <li class=""><a href="analytics.html"><i class="fa-solid fa-chart-simple"></i> Analytics</a></li>
+            <li class=""><a href="ndvi_monitoring.html"><i class="fa-solid fa-satellite-dish"></i> NDVI Monitoring</a></li>
+            <li class="active"><a href="scouting.html"><i class="fa-solid fa-clipboard-check"></i> Scouting</a></li>
+            <li class=""><a href="reports.html"><i class="fa-solid fa-triangle-exclamation"></i> Reports</a></li>
+            <li class=""><a href="officers.html"><i class="fa-solid fa-user-tie"></i> Officers</a></li>
+            <li class=""><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            
+            <li class="sidebar-category" style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">FARMER MANAGEMENT</li>
+            <li class=""><a href="users.html"><i class="fa-solid fa-users"></i> Farmers</a></li>
+            <li class=""><a href="villages.html"><i class="fa-solid fa-house-chimney"></i> Villages</a></li>
+            <li class=""><a href="sections.html"><i class="fa-solid fa-map"></i> Sections</a></li>
+            <li class=""><a href="varieties.html"><i class="fa-solid fa-seedling"></i> Varieties</a></li>
+            <li class=""><a href="plots.html"><i class="fa-solid fa-map-location-dot"></i> Plots</a></li>
+            <li class="sidebar-category" style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">SURVEY MANAGEMENT</li>
+            <li class=""><a href="surveys.html"><i class="fa-solid fa-clipboard-list"></i> Surveys</a></li>
+
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+    <header class="header">
+        <div style="display: flex; align-items: center;"><button id="menuToggle" style="display: none; background: none; border: none; font-size: 1.5rem; color: var(--primary-color); cursor: pointer; margin-right: 15px;"><i class="fa-solid fa-bars"></i></button>
+                    <span class="mobile-logo" style="display: none; color: var(--primary-color); font-size: 1.4rem; font-weight: 700; margin-right: 10px;"><i class="fa-solid fa-leaf"></i> Farm Signals</span><h1>Scouting & Field Tasks</h1></div>
+        <div class="user-profile">
+            <img src="https://ui-avatars.com/api/?name=Farmer&background=2e7d32&color=fff" alt="User">
+            <span>Farmer</span>
+        </div>
+    </header>
+
+    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        <!-- Tasks List -->
+        <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Upcoming Tasks</h3>
+                <button style="background: var(--primary-light); color: var(--primary-color); border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600;"><i class="fa-solid fa-filter"></i> Filter</button>
+            </div>
+            
+            <div style="background: #fff8e1; border-left: 4px solid var(--warning); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="color: #333; margin-bottom: 0.3rem;">Pest Inspection</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-location-dot"></i> Plot #P-102 &bull; Due: Today</p>
+                <span style="background: #ffe082; color: #ff8f00; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">High Priority</span>
+            </div>
+            
+            <div style="background: #e3f2fd; border-left: 4px solid var(--info); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="color: #333; margin-bottom: 0.3rem;">Soil Moisture Check</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-location-dot"></i> Plot #P-101 &bull; Due: Tomorrow</p>
+                <span style="background: #bbdefb; color: #1976d2; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Routine</span>
+            </div>
+        </div>
+
+        <!-- Log Form -->
+        <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+            <h3>Log New Observation</h3>
+            <form style="margin-top: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Select Plot</label>
+                    <select style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                        <option>#P-101 (Wheat)</option>
+                        <option>#P-102 (Cotton)</option>
+                        <option>#P-103 (Sugarcane)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Observation Type</label>
+                    <select style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                        <option>Pest / Disease</option>
+                        <option>Water Stress</option>
+                        <option>Nutrient Deficiency</option>
+                        <option>General Health</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Notes</label>
+                    <textarea rows="4" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; resize: none; font-family: 'Outfit';" placeholder="Enter details..."></textarea>
+                </div>
+                <button type="button" style="width: 100%; background: var(--primary-color); color: white; border: none; padding: 0.8rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; font-family: 'Outfit'; font-size: 1rem;" onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary-color)'">Submit Report</button>
+            </form>
+        </div>
+    </div>
+</main>
+
+    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if(menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
