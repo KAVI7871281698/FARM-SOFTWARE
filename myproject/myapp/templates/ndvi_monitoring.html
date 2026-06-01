@@ -1,3 +1,4 @@
+{% load static %}
 {% extends 'base.html' %}
 
 {% block title %}Ndvi Monitoring{% endblock %}
@@ -28,7 +29,7 @@
             <!-- Map Container -->
             <div style="position: relative; width: 100%; height: 500px; background: #000; overflow: hidden;">
                 <!-- Simulated Satellite Image with NDVI Overlay Filter -->
-                <img src="C:/Users/chiya/.gemini/antigravity-ide/brain/874cfcf3-a7bf-464c-a20b-68d186ef452e/real_farm_photo_1780036233209.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8; mix-blend-mode: luminosity;">
+                <img src="{% static 'real_bg.png' %}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8; mix-blend-mode: luminosity;">
                 <!-- Overlay Color Simulation -->
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(46,125,50,0.6) 0%, rgba(139,195,74,0.4) 50%, rgba(211,47,47,0.3) 100%); mix-blend-mode: color;"></div>
                 
