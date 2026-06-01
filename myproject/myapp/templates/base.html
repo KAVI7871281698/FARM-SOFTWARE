@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Signals - {% block title %}Dashboard{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --primary-light: #e8f5e9;
+            --primary-hover: #1b5e20;
+            --text-dark: #333;
+            --text-muted: #666;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --danger: #d32f2f;
+            --warning: #f57c00;
+            --info: #0288d1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--card-bg);
+            border-right: 1px solid #eaeaea;
+            padding: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-brand {
+            padding: 0 1.5rem 2rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            gap: 15px;
+        }
+
+        .sidebar-menu li a:hover,
+        .sidebar-menu li.active a {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            border-right: 4px solid var(--primary-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            width: calc(100% - 260px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+        }
+
+        .user-profile img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-color);
+        }
+
+        .metric-card.warning::before {
+            background: var(--warning);
+        }
+
+        .metric-card.danger::before {
+            background: var(--danger);
+        }
+
+        .metric-card.info::before {
+            background: var(--info);
+        }
+
+        .metric-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .metric-icon {
+            position: absolute;
+            right: 1.5rem;
+            top: 1.5rem;
+            font-size: 2rem;
+            color: rgba(46, 125, 50, 0.1);
+        }
+
+        .warning .metric-icon {
+            color: rgba(245, 124, 0, 0.1);
+        }
+
+        .danger .metric-icon {
+            color: rgba(211, 47, 47, 0.1);
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            min-width: 0;
+            width: 100%;
+        }
+
+        .chart-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+            {
+            % block extra_css %
+        }
+
+            {
+            % endblock %
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-logo {
+                display: inline-block !important;
+            }
+
+            .header h1 {
+                display: none !important;
+            }
+
+            .main-content {
+                padding-top: 0 !important;
+            }
+
+            .header {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background-color: var(--bg-color);
+                padding: 1.5rem 0 1rem 0;
+                margin-bottom: 1.5rem;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+            }
+
+            #menuToggle {
+                display: block !important;
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-leaf"></i> Farm Signals
+        </div>
+        <ul class="sidebar-menu">
+            <li class="sidebar-category"
+                style="padding: 1rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">
+                MAIN MENU</li>
+            {% if 'dashboard' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'dashboard' %}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+            {% endif %}
+            {% if 'field_intelligence' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'field_intelligence' %}"><i class="fa-solid fa-earth-americas"></i> Field
+                    Intelligence</a></li>
+            {% endif %}
+            {% if 'analytics' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'analytics' %}"><i class="fa-solid fa-chart-simple"></i> Analytics</a></li>
+            {% endif %}
+            {% if 'ndvi_monitoring' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'ndvi_monitoring' %}"><i class="fa-solid fa-satellite-dish"></i> NDVI
+                    Monitoring</a></li>
+            {% endif %}
+            {% if 'scouting' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'scouting' %}"><i class="fa-solid fa-clipboard-check"></i> Scouting</a></li>
+            {% endif %}
+            {% if 'reports' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'reports' %}"><i class="fa-solid fa-triangle-exclamation"></i> Reports</a></li>
+            {% endif %}
+            {% if 'officers' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'officers' %}"><i class="fa-solid fa-user-tie"></i> Officers</a></li>
+            {% endif %}
+            {% if 'settings' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'settings' %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            {% endif %}
+
+            <li class="sidebar-category"
+                style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">
+                FARMER MANAGEMENT</li>
+            {% if 'users' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'users' %}"><i class="fa-solid fa-users"></i> Farmers</a></li>
+            {% endif %}
+            {% if 'villages' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'villages' %}"><i class="fa-solid fa-house-chimney"></i> Villages</a></li>
+            {% endif %}
+            {% if 'sections' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'sections' %}"><i class="fa-solid fa-map"></i> Sections</a></li>
+            {% endif %}
+            {% if 'varieties' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'varieties' %}"><i class="fa-solid fa-seedling"></i> Varieties</a></li>
+            {% endif %}
+            {% if 'plots' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'plots' %}"><i class="fa-solid fa-map-location-dot"></i> Plots</a></li>
+            {% endif %}
+            <li class="sidebar-category"
+                style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">
+                SURVEY MANAGEMENT</li>
+            {% if 'surveys' in request.session.permissions or request.session.role_id == 2 %}
+            <li class=""><a href="{% url 'surveys' %}"><i class="fa-solid fa-clipboard-list"></i> Surveys</a></li>
+            {% endif %}
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <div style="display: flex; align-items: center;"><button id="menuToggle"
+                    style="display: none; background: none; border: none; font-size: 1.5rem; color: var(--primary-color); cursor: pointer; margin-right: 15px;"><i
+                        class="fa-solid fa-bars"></i></button>
+                <span class="mobile-logo"
+                    style="display: none; color: var(--primary-color); font-size: 1.4rem; font-weight: 700; margin-right: 10px;"><i
+                        class="fa-solid fa-leaf"></i> Farm Signals</span>
+                <h1>{% block header_title %}Dashboard{% endblock %}</h1>
+            </div>
+            <div class="user-profile" style="position: relative; cursor: pointer;" onclick="toggleDropdown()">
+                <img src="https://ui-avatars.com/api/?name={{ request.session.officer_name|default:'User'|urlencode }}&background=2e7d32&color=fff"
+                    alt="User">
+                <span>{{ request.session.officer_name|default:"User" }}</span>
+                <div id="userDropdown"
+                    style="display: none; position: absolute; top: 120%; right: 0; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 12px; min-width: 160px; z-index: 1000; padding: 0.5rem;">
+                    <a href="{% url 'logout' %}"
+                        style="display: flex; align-items: center; gap: 10px; padding: 0.8rem 1rem; color: var(--danger); text-decoration: none; font-weight: 600; border-radius: 8px; transition: background 0.2s;"
+                        onmouseover="this.style.background='#ffebee'" onmouseout="this.style.background='transparent'">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        {% block content %}
+        {% endblock %}
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function () {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+
+        function toggleDropdown() {
+            var dropdown = document.getElementById("userDropdown");
+            dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+        }
+
+        window.onclick = function (event) {
+            if (!event.target.closest('.user-profile')) {
+                var dropdown = document.getElementById("userDropdown");
+                if (dropdown && dropdown.style.display === "block") {
+                    dropdown.style.display = "none";
+                }
+            }
+        }
+    </script>
+    {% block scripts %}
+    {% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block header_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-title">Total Plots</div>
+                <div class="metric-value">124</div>
+                <i class="fa-solid fa-map metric-icon"></i>
+            </div>
+            <div class="metric-card info">
+                <div class="metric-title">GeoTagged Plots</div>
+                <div class="metric-value">98</div>
+                <i class="fa-solid fa-location-dot metric-icon"></i>
+            </div>
+            <div class="metric-card">
+                <div class="metric-title">Average NDVI</div>
+                <div class="metric-value">0.72</div>
+                <i class="fa-solid fa-satellite-dish metric-icon"></i>
+            </div>
+            <div class="metric-card warning">
+                <div class="metric-title">Need Attention</div>
+                <div class="metric-value">12</div>
+                <i class="fa-solid fa-circle-exclamation metric-icon"></i>
+            </div>
+            <div class="metric-card danger">
+                <div class="metric-title">Damage Reports</div>
+                <div class="metric-value">5</div>
+                <i class="fa-solid fa-file-circle-xmark metric-icon"></i>
+            </div>
+            <div class="metric-card warning">
+                <div class="metric-title">Overdue Scouts</div>
+                <div class="metric-value">8</div>
+                <i class="fa-solid fa-calendar-xmark metric-icon"></i>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- NDVI Trend -->
+            <div class="chart-card">
+                <h3>NDVI Trend (Last 6 Months)</h3>
+                <div class="chart-container">
+                    <canvas id="ndviTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Crop Health -->
+            <div class="chart-card">
+                <h3>Crop Health Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="cropHealthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Scout Status -->
+            <div class="chart-card">
+                <h3>Scout Status</h3>
+                <div class="chart-container">
+                    <canvas id="scoutStatusChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Survey Completion -->
+            <div class="chart-card">
+                <h3>Survey Completion</h3>
+                <div class="chart-container">
+                    <canvas id="surveyCompletionChart"></canvas>
+                </div>
+            </div>
+        </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        // Chart default settings
+        Chart.defaults.font.family = "'Outfit', sans-serif";
+        Chart.defaults.color = "#666";
+
+        // NDVI Trend Chart (Line)
+        const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
+        new Chart(ctxNdvi, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Average NDVI',
+                    data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
+                    borderColor: '#2e7d32',
+                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 1 }
+                }
+            }
+        });
+
+        // Crop Health Chart (Doughnut)
+        const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
+        new Chart(ctxHealth, {
+            type: 'doughnut',
+            data: {
+                labels: ['Healthy', 'Moderate', 'Poor'],
+                datasets: [{
+                    data: [65, 25, 10],
+                    backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Scout Status Chart (Bar)
+        const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
+        new Chart(ctxScout, {
+            type: 'bar',
+            data: {
+                labels: ['Completed', 'Pending', 'Overdue'],
+                datasets: [{
+                    label: 'Scouts',
+                    data: [42, 15, 8],
+                    backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
+        const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
+        new Chart(ctxSurvey, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Remaining'],
+                datasets: [{
+                    data: [78, 22],
+                    backgroundColor: ['#0288d1', '#e0e0e0'],
+                    borderWidth: 0,
+                    circumference: 180,
+                    rotation: 270
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '80%',
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { enabled: false }
+                }
+            },
+            plugins: [{
+                id: 'textCenter',
+                beforeDraw: function (chart) {
+                    var width = chart.width,
+                        height = chart.height,
+                        ctx = chart.ctx;
+                    ctx.restore();
+                    var fontSize = (height / 114).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em Outfit";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#333";
+                    var text = "78%",
+                        textX = Math.round((width - ctx.measureText(text).width) / 2),
+                        textY = height / 1.5;
+                    ctx.fillText(text, textX, textY);
+                    ctx.save();
+                }
+            }]
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function () {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+    </script>
+{% endblock %}

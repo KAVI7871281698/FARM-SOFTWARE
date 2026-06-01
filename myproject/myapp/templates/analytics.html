@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics{% endblock %}
+{% block header_title %}Analytics{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+    <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Date Range</label>
+                <input type="date" style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none;">
+                <span style="color: var(--text-muted); margin: 0 0.5rem;">to</span>
+                <input type="date" style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Plot</label>
+                <select style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none; background: white; min-width: 150px;">
+                    <option value="all">All Plots</option>
+                    <option value="p101">#P-101</option>
+                    <option value="p102">#P-102</option>
+                </select>
+            </div>
+        </div>
+        <button style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: 600; font-family: 'Outfit'; cursor: pointer;"><i class="fa-solid fa-filter"></i> Apply Filters</button>
+    </div>
+
+    <!-- Charts Grid Row 1 -->
+    <div class="charts-grid" style="margin-bottom: 2rem;">
+        <!-- NDVI Trend -->
+        <div class="chart-card" style="grid-column: 1 / -1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3><i class="fa-solid fa-satellite" style="color: var(--primary-color); margin-right: 8px;"></i> NDVI Trend Over Season</h3>
+                <span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">+5% vs Last Season</span>
+            </div>
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="ndviTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Grid Row 2 -->
+    <div class="charts-grid" style="margin-bottom: 2rem;">
+        <!-- Health Analysis -->
+        <div class="chart-card">
+            <h3><i class="fa-solid fa-heart-pulse" style="color: var(--danger); margin-right: 8px;"></i> Crop Health Analysis</h3>
+            <div class="chart-container">
+                <canvas id="healthAnalysisChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Scout Performance -->
+        <div class="chart-card">
+            <h3><i class="fa-solid fa-clipboard-check" style="color: var(--info); margin-right: 8px;"></i> Scout Performance (Issues Found)</h3>
+            <div class="chart-container">
+                <canvas id="scoutPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Grid Row 3 -->
+    <div class="charts-grid" style="margin-bottom: 2rem;">
+        <!-- Yield Analysis -->
+        <div class="chart-card" style="grid-column: 1 / -1;">
+            <h3><i class="fa-solid fa-wheat-awn" style="color: var(--warning); margin-right: 8px;"></i> Yield Analysis: Projected vs Actual</h3>
+            <div class="chart-container">
+                <canvas id="yieldAnalysisChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Division Comparison -->
+    <div class="charts-grid" style="margin-bottom: 2rem;">
+        <div class="chart-card" style="grid-column: 1 / -1;">
+            <h3><i class="fa-solid fa-map" style="color: #9c27b0; margin-right: 8px;"></i> Division Comparison (Average Health Score)</h3>
+            <div class="chart-container">
+                <canvas id="divisionComparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (menuToggle && sidebar) {
+            menuToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('open');
+            });
+        }
+
+        Chart.defaults.font.family = "'Outfit', sans-serif";
+        Chart.defaults.color = "#666";
+        
+        // 1. NDVI Trend (Line)
+        const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
+        new Chart(ctxNdvi, {
+            type: 'line',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+                datasets: [{
+                    label: 'Current Season NDVI',
+                    data: [0.35, 0.42, 0.55, 0.68, 0.76, 0.81, 0.83, 0.79],
+                    borderColor: '#2e7d32',
+                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#2e7d32',
+                    pointRadius: 4
+                },
+                {
+                    label: 'Previous Season NDVI',
+                    data: [0.32, 0.40, 0.48, 0.59, 0.68, 0.73, 0.75, 0.72],
+                    borderColor: '#bdbdbd',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 1, title: { display: true, text: 'NDVI Index' } }
+                }
+            }
+        });
+
+        // 2. Health Analysis (Doughnut)
+        const ctxHealth = document.getElementById('healthAnalysisChart').getContext('2d');
+        new Chart(ctxHealth, {
+            type: 'doughnut',
+            data: {
+                labels: ['Healthy (NDVI > 0.6)', 'Moderate (0.3 - 0.6)', 'Poor (NDVI < 0.3)'],
+                datasets: [{
+                    data: [72, 20, 8],
+                    backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // 3. Yield Analysis (Bar)
+        const ctxYield = document.getElementById('yieldAnalysisChart').getContext('2d');
+        new Chart(ctxYield, {
+            type: 'bar',
+            data: {
+                labels: ['Plot #101', 'Plot #102', 'Plot #103', 'Plot #104', 'Plot #105'],
+                datasets: [
+                    {
+                        label: 'Projected Yield (Tons)',
+                        data: [4.5, 5.2, 3.8, 6.0, 4.1],
+                        backgroundColor: '#e0e0e0',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Actual Yield (Tons)',
+                        data: [4.2, 5.4, 3.5, 6.1, 4.0],
+                        backgroundColor: '#0288d1',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Yield (Tons/Acre)' } }
+                }
+            }
+        });
+
+        // 4. Scout Performance (Radar)
+        const ctxScout = document.getElementById('scoutPerformanceChart').getContext('2d');
+        new Chart(ctxScout, {
+            type: 'radar',
+            data: {
+                labels: ['Pests Found', 'Diseases Detected', 'Surveys Completed', 'Response Time', 'Accuracy'],
+                datasets: [{
+                    label: 'Average Scout Team',
+                    data: [65, 59, 90, 81, 75],
+                    fill: true,
+                    backgroundColor: 'rgba(2, 136, 209, 0.2)',
+                    borderColor: '#0288d1',
+                    pointBackgroundColor: '#0288d1',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#0288d1'
+                }, {
+                    label: 'Top Performing Team',
+                    data: [85, 80, 95, 92, 88],
+                    fill: true,
+                    backgroundColor: 'rgba(46, 125, 50, 0.2)',
+                    borderColor: '#2e7d32',
+                    pointBackgroundColor: '#2e7d32',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#2e7d32'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { display: false },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }
+            }
+        });
+
+        // 5. Division Comparison (Grouped Bar)
+        const ctxDiv = document.getElementById('divisionComparisonChart').getContext('2d');
+        new Chart(ctxDiv, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                datasets: [
+                    {
+                        label: 'North Zone',
+                        data: [70, 75, 72, 80, 85],
+                        backgroundColor: '#9c27b0',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'East Zone',
+                        data: [65, 68, 70, 75, 78],
+                        backgroundColor: '#2e7d32',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'South Zone',
+                        data: [75, 78, 82, 85, 88],
+                        backgroundColor: '#f57c00',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: { beginAtZero: true, max: 100, title: { display: true, text: 'Average Health Score' } }
+                }
+            }
+        });
+
+    });
+</script>
+{% endblock %}

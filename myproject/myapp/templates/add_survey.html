@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Survey{% endblock %}
+{% block header_title %}Add Survey{% endblock %}
+
+{% block content %}
+<div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
+        <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Survey Details</h2>
+        <form>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey Title</label>
+                    <input type="text" placeholder="e.g. Q3 Crop Health Assessment" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Select Plot / Farmer</label>
+                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                        <option value="" disabled selected>Select Plot</option>
+                        <option value="p101">#P-101 (John Doe)</option>
+                        <option value="p102">#P-102 (Ramesh Kumar)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Officer</label>
+                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                        <option value="" disabled selected>Select Officer</option>
+                        <option value="suresh">Suresh VP</option>
+                        <option value="anita">Anita R&D</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey Stage</label>
+                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                        <option value="pre-planting">Pre-Planting</option>
+                        <option value="growing">Growing</option>
+                        <option value="harvest">Harvest</option>
+                        <option value="post-harvest">Post-Harvest</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Due Date</label>
+                    <input type="date" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                
+                <div style="grid-column: 1 / -1;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey Description</label>
+                    <textarea rows="4" placeholder="Objectives and specific instructions for this survey..." style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;"></textarea>
+                </div>
+            </div>
+            
+            <div style="text-align: right;">
+                <button type="button" onclick="window.location.href='{% url 'surveys' %}'" style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
+                <button type="button" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Create Survey</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        // Chart default settings
+        Chart.defaults.font.family = "'Outfit', sans-serif";
+        Chart.defaults.color = "#666";
+
+        // NDVI Trend Chart (Line)
+        const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
+        new Chart(ctxNdvi, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Average NDVI',
+                    data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
+                    borderColor: '#2e7d32',
+                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 1 }
+                }
+            }
+        });
+
+        // Crop Health Chart (Doughnut)
+        const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
+        new Chart(ctxHealth, {
+            type: 'doughnut',
+            data: {
+                labels: ['Healthy', 'Moderate', 'Poor'],
+                datasets: [{
+                    data: [65, 25, 10],
+                    backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Scout Status Chart (Bar)
+        const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
+        new Chart(ctxScout, {
+            type: 'bar',
+            data: {
+                labels: ['Completed', 'Pending', 'Overdue'],
+                datasets: [{
+                    label: 'Scouts',
+                    data: [42, 15, 8],
+                    backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
+        const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
+        new Chart(ctxSurvey, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Remaining'],
+                datasets: [{
+                    data: [78, 22],
+                    backgroundColor: ['#0288d1', '#e0e0e0'],
+                    borderWidth: 0,
+                    circumference: 180,
+                    rotation: 270
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '80%',
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { enabled: false }
+                }
+            },
+            plugins: [{
+                id: 'textCenter',
+                beforeDraw: function (chart) {
+                    var width = chart.width,
+                        height = chart.height,
+                        ctx = chart.ctx;
+                    ctx.restore();
+                    var fontSize = (height / 114).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em Outfit";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#333";
+                    var text = "78%",
+                        textX = Math.round((width - ctx.measureText(text).width) / 2),
+                        textY = height / 1.5;
+                    ctx.fillText(text, textX, textY);
+                    ctx.save();
+                }
+            }]
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function () {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+    </script>
+{% endblock %}

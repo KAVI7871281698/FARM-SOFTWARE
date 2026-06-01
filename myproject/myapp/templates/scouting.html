@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Scouting{% endblock %}
+{% block header_title %}Scouting{% endblock %}
+
+{% block content %}
+<div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        <!-- Tasks List -->
+        <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Upcoming Tasks</h3>
+                <button style="background: var(--primary-light); color: var(--primary-color); border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600;"><i class="fa-solid fa-filter"></i> Filter</button>
+            </div>
+            
+            <div style="background: #fff8e1; border-left: 4px solid var(--warning); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="color: #333; margin-bottom: 0.3rem;">Pest Inspection</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-location-dot"></i> Plot #P-102 &bull; Due: Today</p>
+                <span style="background: #ffe082; color: #ff8f00; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">High Priority</span>
+            </div>
+            
+            <div style="background: #e3f2fd; border-left: 4px solid var(--info); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="color: #333; margin-bottom: 0.3rem;">Soil Moisture Check</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-location-dot"></i> Plot #P-101 &bull; Due: Tomorrow</p>
+                <span style="background: #bbdefb; color: #1976d2; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Routine</span>
+            </div>
+        </div>
+
+        <!-- Log Form -->
+        <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+            <h3>Log New Observation</h3>
+            <form style="margin-top: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Select Plot</label>
+                    <select style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                        <option>#P-101 (Wheat)</option>
+                        <option>#P-102 (Cotton)</option>
+                        <option>#P-103 (Sugarcane)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Observation Type</label>
+                    <select style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                        <option>Pest / Disease</option>
+                        <option>Water Stress</option>
+                        <option>Nutrient Deficiency</option>
+                        <option>General Health</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Notes</label>
+                    <textarea rows="4" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; resize: none; font-family: 'Outfit';" placeholder="Enter details..."></textarea>
+                </div>
+                <button type="button" style="width: 100%; background: var(--primary-color); color: white; border: none; padding: 0.8rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; font-family: 'Outfit'; font-size: 1rem;" onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary-color)'">Submit Report</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if(menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+    </script>
+{% endblock %}

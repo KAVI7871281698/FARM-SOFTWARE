@@ -1,0 +1,29 @@
+from django.urls import path
+from . import views 
+
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('officers/', views.officers, name='officers'),
+    path('field_intelligence/', views.field_intelligence, name='field_intelligence'),
+    path('analytics/', views.analytics, name='analytics'),
+    path('ndvi_monitoring/', views.ndvi_monitoring, name='ndvi_monitoring'),
+    path('scouting/', views.scouting, name='scouting'),
+    path('reports/', views.reports, name='reports'),
+    path('settings/', views.settings, name='settings'),
+    path('users/', views.users, name='users'),
+    path('villages/', views.villages, name='villages'),
+    path('sections/', views.sections, name='sections'),
+    path('varieties/', views.varieties, name='varieties'),
+    path('plots/', views.plots, name='plots'),
+    path('surveys/', views.surveys, name='surveys'),
+    path('add_farmer/', views.add_farmer, name='add_farmer'),
+    path('add_officer/', views.add_officer, name='add_officer'),
+    path('logout/', views.logout_view, name='logout'),
+    path('add_plots/', views.add_plots, name='add_plots'),
+    path('add_section/', views.add_section, name='add_section'),
+    path('add_survey/', views.add_survey, name='add_survey'),
+    path('add_user/', views.add_user, name='add_user'),
+    path('add_variety/', views.add_variety, name='add_variety'),
+    path('add_village/', views.add_village, name='add_village'),
+]

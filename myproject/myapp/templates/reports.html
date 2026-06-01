@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports{% endblock %}
+{% block header_title %}Reports{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <i class="fa-solid fa-file-pdf" style="font-size: 3rem; color: var(--danger); margin-bottom: 1rem;"></i>
+            <h3 style="font-size: 1.1rem; color: #333;">Weekly Crop Health</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Generated on May 28, 2026</p>
+        </div>
+        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <i class="fa-solid fa-file-excel" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+            <h3 style="font-size: 1.1rem; color: #333;">Plot Yield Estimates</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Generated on May 15, 2026</p>
+        </div>
+        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <i class="fa-solid fa-file-contract" style="font-size: 3rem; color: var(--info); margin-bottom: 1rem;"></i>
+            <h3 style="font-size: 1.1rem; color: #333;">Scouting Summary</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Generated on May 01, 2026</p>
+        </div>
+    </div>
+
+    <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
+            <h3>Recent Damage Reports</h3>
+            <button style="background: none; border: 1px solid #ddd; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 500; font-family: 'Outfit';">Export All</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 600px;">
+                <thead style="background: var(--primary-light); color: var(--primary-color);">
+                    <tr>
+                        <th style="padding: 1rem;">Date</th>
+                        <th style="padding: 1rem;">Plot ID</th>
+                        <th style="padding: 1rem;">Issue Type</th>
+                        <th style="padding: 1rem;">Severity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 1rem;">27 May 2026</td>
+                        <td style="padding: 1rem;">#P-102</td>
+                        <td style="padding: 1rem;">Aphid Infestation</td>
+                        <td style="padding: 1rem;"><span style="color: var(--danger); font-weight: bold;">High</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 1rem;">22 May 2026</td>
+                        <td style="padding: 1rem;">#P-103</td>
+                        <td style="padding: 1rem;">Water Logging</td>
+                        <td style="padding: 1rem;"><span style="color: var(--warning); font-weight: bold;">Medium</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if(menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        });
+    </script>
+{% endblock %}
