@@ -15,23 +15,37 @@
                     <tr>
                         <th style="padding: 1rem;">Village Code</th>
                         <th style="padding: 1rem;">Village Name</th>
+                        <th style="padding: 1rem;">Taluk</th>
+                        <th style="padding: 1rem;">District</th>
+                        <th style="padding: 1rem;">State</th>
                         <th style="padding: 1rem;">Section (Zone)</th>
                         <th style="padding: 1rem;">Status</th>
+                        <th style="padding: 1rem;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for village in villages %}
                     <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 1rem; font-weight: 500;">VIL-001</td>
-                        <td style="padding: 1rem;">Green Valley</td>
-                        <td style="padding: 1rem;">North Zone</td>
-                        <td style="padding: 1rem;"><span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Active</span></td>
+                        <td style="padding: 1rem; font-weight: 500;">{{ village.village_code }}</td>
+                        <td style="padding: 1rem;">{{ village.village_name }}</td>
+                        <td style="padding: 1rem;">{{ village.taluk|default:"-" }}</td>
+                        <td style="padding: 1rem;">{{ village.district|default:"-" }}</td>
+                        <td style="padding: 1rem;">{{ village.state|default:"-" }}</td>
+                        <td style="padding: 1rem;">{{ village.section.section_name }}</td>
+                        <td style="padding: 1rem;">
+                            <span style="background: {% if village.status == 'active' %}#e8f5e9{% else %}#ffebee{% endif %}; color: {% if village.status == 'active' %}#2e7d32{% else %}#c62828{% endif %}; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
+                                {{ village.status|title }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem;">
+                            <a href="{% url 'edit_village' village.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        </td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 1rem; font-weight: 500;">VIL-002</td>
-                        <td style="padding: 1rem;">Sunny Plains</td>
-                        <td style="padding: 1rem;">East Zone</td>
-                        <td style="padding: 1rem;"><span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Active</span></td>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="padding: 1rem; text-align: center; color: var(--text-muted);">No villages available.</td>
                     </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

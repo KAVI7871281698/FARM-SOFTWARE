@@ -296,55 +296,68 @@
             <li class="sidebar-category"
                 style="padding: 1rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">
                 MAIN MENU</li>
-            {% if 'dashboard' in request.session.permissions or request.session.role_id == 2 %}
+            <li class="sidebar-dropdown">
+                <a href="#" onclick="toggleMasterMenu(event)" style="color: var(--primary-color);">
+                    <i class="fa-solid fa-database"></i> Master <i class="fa-solid fa-chevron-down" id="masterChevron"
+                        style="margin-left: auto; transition: transform 0.3s ease;"></i>
+                </a>
+                <ul id="masterSubmenu" class="submenu"
+                    style="display: none; list-style: none; background-color: rgba(46, 125, 50, 0.03);">
+                    {% if 'officers' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'officers' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-user-tie"></i> Officers</a></li>
+                    {% endif %}
+                    {% if 'users' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'users' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-users"></i> Farmers</a></li>
+                    {% endif %}
+                    {% if 'villages' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'villages' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-house-chimney"></i> Villages</a></li>
+                    {% endif %}
+                    {% if 'sections' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'sections' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-map"></i> Sections</a></li>
+                    {% endif %}
+                    {% if 'varieties' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'varieties' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-seedling"></i> Varieties</a></li>
+                    {% endif %}
+                    {% if 'plots' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'plots' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-map-location-dot"></i> Plots</a></li>
+                    {% endif %}
+                </ul>
+            </li>
+            {% if 'dashboard' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'dashboard' %}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
             {% endif %}
-            {% if 'field_intelligence' in request.session.permissions or request.session.role_id == 2 %}
+            {% if 'field_intelligence' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'field_intelligence' %}"><i class="fa-solid fa-earth-americas"></i> Field
                     Intelligence</a></li>
             {% endif %}
-            {% if 'analytics' in request.session.permissions or request.session.role_id == 2 %}
+            {% if 'analytics' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'analytics' %}"><i class="fa-solid fa-chart-simple"></i> Analytics</a></li>
             {% endif %}
-            {% if 'ndvi_monitoring' in request.session.permissions or request.session.role_id == 2 %}
+            {% if 'ndvi_monitoring' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'ndvi_monitoring' %}"><i class="fa-solid fa-satellite-dish"></i> NDVI
                     Monitoring</a></li>
             {% endif %}
-            {% if 'scouting' in request.session.permissions or request.session.role_id == 2 %}
+            {% if 'scouting' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'scouting' %}"><i class="fa-solid fa-clipboard-check"></i> Scouting</a></li>
             {% endif %}
-            {% if 'reports' in request.session.permissions or request.session.role_id == 2 %}
+            {% if 'reports' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'reports' %}"><i class="fa-solid fa-triangle-exclamation"></i> Reports</a></li>
             {% endif %}
-            {% if 'officers' in request.session.permissions or request.session.role_id == 2 %}
-            <li class=""><a href="{% url 'officers' %}"><i class="fa-solid fa-user-tie"></i> Officers</a></li>
-            {% endif %}
-            {% if 'settings' in request.session.permissions or request.session.role_id == 2 %}
-            <li class=""><a href="{% url 'settings' %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
-            {% endif %}
 
-            <li class="sidebar-category"
-                style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">
-                FARMER MANAGEMENT</li>
-            {% if 'users' in request.session.permissions or request.session.role_id == 2 %}
-            <li class=""><a href="{% url 'users' %}"><i class="fa-solid fa-users"></i> Farmers</a></li>
-            {% endif %}
-            {% if 'villages' in request.session.permissions or request.session.role_id == 2 %}
-            <li class=""><a href="{% url 'villages' %}"><i class="fa-solid fa-house-chimney"></i> Villages</a></li>
-            {% endif %}
-            {% if 'sections' in request.session.permissions or request.session.role_id == 2 %}
-            <li class=""><a href="{% url 'sections' %}"><i class="fa-solid fa-map"></i> Sections</a></li>
-            {% endif %}
-            {% if 'varieties' in request.session.permissions or request.session.role_id == 2 %}
-            <li class=""><a href="{% url 'varieties' %}"><i class="fa-solid fa-seedling"></i> Varieties</a></li>
-            {% endif %}
-            {% if 'plots' in request.session.permissions or request.session.role_id == 2 %}
-            <li class=""><a href="{% url 'plots' %}"><i class="fa-solid fa-map-location-dot"></i> Plots</a></li>
+
+            {% if 'settings' in request.session.permissions or request.session.role_id == 1 %}
+            <li class=""><a href="{% url 'settings' %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
             {% endif %}
             <li class="sidebar-category"
                 style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">
                 SURVEY MANAGEMENT</li>
-            {% if 'surveys' in request.session.permissions or request.session.role_id == 2 %}
+            {% if 'surveys' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'surveys' %}"><i class="fa-solid fa-clipboard-list"></i> Surveys</a></li>
             {% endif %}
         </ul>
@@ -395,6 +408,19 @@
         function toggleDropdown() {
             var dropdown = document.getElementById("userDropdown");
             dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+        }
+
+        function toggleMasterMenu(event) {
+            event.preventDefault();
+            var submenu = document.getElementById("masterSubmenu");
+            var chevron = document.getElementById("masterChevron");
+            if (submenu.style.display === "none") {
+                submenu.style.display = "block";
+                chevron.style.transform = "rotate(180deg)";
+            } else {
+                submenu.style.display = "none";
+                chevron.style.transform = "rotate(0deg)";
+            }
         }
 
         window.onclick = function (event) {

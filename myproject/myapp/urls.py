@@ -26,4 +26,9 @@ urlpatterns = [
     path('add_user/', views.add_user, name='add_user'),
     path('add_variety/', views.add_variety, name='add_variety'),
     path('add_village/', views.add_village, name='add_village'),
+    path('edit_officer/<int:id>/', views.edit_officer, name='edit_officer'),
+    path('edit_farmer/<int:id>/', views.edit_farmer, name='edit_farmer'),
+    path('edit_village/<int:id>/', views.edit_village, name='edit_village'),
+    path('edit_section/<int:id>/', views.edit_section, name='edit_section'),
+    path('edit_variety/<int:id>/', views.edit_variety, name='edit_variety'),
 ]

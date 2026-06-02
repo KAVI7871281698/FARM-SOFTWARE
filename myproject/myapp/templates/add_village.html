@@ -6,40 +6,54 @@
 {% block content %}
 <div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
         <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Village Details</h2>
-        <form>
+        <form method="POST" action="{% url 'add_village' %}">
+            {% csrf_token %}
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Village Code</label>
-                    <input type="text" placeholder="e.g. VIL-003" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                    <input type="text" name="village_code" placeholder="Auto-generated (e.g. VIL-001)" disabled style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background-color: #f9f9f9;">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Village Name</label>
-                    <input type="text" placeholder="Enter village name" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                    <input type="text" name="village_name" placeholder="Enter village name" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Taluk</label>
+                    <input type="text" name="taluk" placeholder="Enter taluk" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">District</label>
+                    <input type="text" name="district" placeholder="Enter district" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">State</label>
+                    <input type="text" name="state" placeholder="Enter state" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Section / Zone</label>
-                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <input type="text" id="sectionSearch" placeholder="Search section..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSections()">
+                    <select name="section_id" id="sectionSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;">
                         <option value="" disabled selected>Select Section</option>
-                        <option value="north">North Zone</option>
-                        <option value="east">East Zone</option>
-                        <option value="south">South Zone</option>
+                        {% for section in sections %}
+                        <option value="{{ section.id }}">{{ section.section_name }} ({{ section.section_code }})</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Status</label>
-                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <select name="status" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
                 </div>
                 <div style="grid-column: 1 / -1;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Description (Optional)</label>
-                    <textarea rows="3" placeholder="Additional details about this village..." style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;"></textarea>
+                    <textarea name="description" rows="3" placeholder="Additional details about this village..." style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;"></textarea>
                 </div>
             </div>
             <div style="text-align: right;">
                 <button type="button" onclick="window.location.href='{% url 'villages' %}'" style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
-                <button type="button" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Save Village</button>
+                <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Save Village</button>
             </div>
         </form>
     </div>
@@ -177,5 +191,14 @@
                 });
             }
         });
+
+        function filterSections() {
+            let input = document.getElementById('sectionSearch').value.toLowerCase();
+            let options = document.getElementById('sectionSelect').options;
+            for (let i = 1; i < options.length; i++) {
+                let text = options[i].text.toLowerCase();
+                options[i].style.display = text.includes(input) ? '' : 'none';
+            }
+        }
     </script>
 {% endblock %}

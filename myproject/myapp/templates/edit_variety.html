@@ -1,58 +1,73 @@
 {% extends 'base.html' %}
 
-{% block title %}Users{% endblock %}
-{% block header_title %}Users{% endblock %}
+{% block title %}Edit Variety{% endblock %}
+{% block header_title %}Edit Variety{% endblock %}
 
 {% block content %}
-<div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3>Registered Farmers</h3>
-        <button onclick="window.location.href='{% url 'add_farmer' %}'"
-            style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
-                class="fa-solid fa-plus"></i> Add User</button>
-    </div>
-    <div style="overflow-x: auto; width: 100%;">
-        <table style="width: 100%; min-width: 800px; border-collapse: collapse; text-align: left;">
-            <thead style="background: var(--primary-light); color: var(--primary-color);">
-                <tr>
-                    <th style="padding: 1rem;">Farmer Code</th>
-                    <th style="padding: 1rem;">Name</th>
-                    <th style="padding: 1rem;">Father Name</th>
-                    <th style="padding: 1rem;">Phone</th>
-                    <th style="padding: 1rem;">Division</th>
-                    <th style="padding: 1rem;">Section</th>
-                    <th style="padding: 1rem;">Village</th>
-                    <th style="padding: 1rem;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for farmer in farmers %}
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 1rem; font-weight: 500;">{{ farmer.farmer_code }}</td>
-                    <td style="padding: 1rem;">{{ farmer.name }}</td>
-                    <td style="padding: 1rem;">{{ farmer.father_name|default:"-" }}</td>
-                    <td style="padding: 1rem;">{{ farmer.phone|default:"-" }}</td>
-                    <td style="padding: 1rem;">{{ farmer.division|default:"-" }}</td>
-                    <td style="padding: 1rem;">{{ farmer.section.section_name|default:"-" }}</td>
-                    <td style="padding: 1rem;">{{ farmer.village.village_name|default:"-" }}</td>
-                    <td style="padding: 1rem;">
-                        <a href="{% url 'edit_farmer' farmer.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" style="padding: 1rem; text-align: center; color: var(--text-muted);">No farmers
-                        registered yet.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div
+    style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
+    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Variety Details
+    </h2>
+    <form method="POST" action="{% url 'edit_variety' variety.id %}">
+        {% csrf_token %}
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Variety
+                    Code</label>
+                <input type="text" name="variety_code" value="{{ variety.variety_code }}" placeholder="Auto-generated (e.g. VAR-001)" disabled
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background-color: #f9f9f9;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Crop
+                    Type</label>
+                <input type="text" name="crop_type" value="{{ variety.crop_type }}" placeholder="e.g. Wheat, Cotton" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Variety
+                    Name</label>
+                <input type="text" name="variety_name" value="{{ variety.variety_name }}" placeholder="Enter variety name" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Season</label>
+                <input type="text" id="seasonSearch" placeholder="Search season..."
+                    style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;"
+                    onkeyup="filterSelect('seasonSearch', 'seasonSelect')">
+                <select name="season" id="seasonSelect" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;">
+                    <option value="" disabled selected>Select Season</option>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}" {% if variety.season and variety.season.id == section.id %}selected{% endif %}>{{ section.section_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <button type="button" onclick="window.location.href='{% url 'varieties' %}'"
+                style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
+            <button type="submit"
+                style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Save
+                Variety</button>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    function filterSelect(inputId, selectId) {
+        let input = document.getElementById(inputId).value.toLowerCase();
+        let options = document.getElementById(selectId).options;
+        for (let i = 1; i < options.length; i++) {
+            let text = options[i].text.toLowerCase();
+            options[i].style.display = text.includes(input) ? '' : 'none';
+        }
+    }
     // Chart default settings
     Chart.defaults.font.family = "'Outfit', sans-serif";
     Chart.defaults.color = "#666";

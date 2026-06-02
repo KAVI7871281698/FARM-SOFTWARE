@@ -20,6 +20,7 @@
                             <th style="padding: 1rem;">Role</th>
                             <th style="padding: 1rem;">Mobile</th>
                             <th style="padding: 1rem;">Email</th>
+                            <th style="padding: 1rem;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -31,10 +32,13 @@
                             </td>
                             <td style="padding: 1rem;">{{ officer.mobile }}</td>
                             <td style="padding: 1rem;">{{ officer.email }}</td>
+                            <td style="padding: 1rem;">
+                                <a href="{% url 'edit_officer' officer.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr style="border-bottom: 1px solid #eee;">
-                            <td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No officers registered yet.</td>
+                            <td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">No officers registered yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
