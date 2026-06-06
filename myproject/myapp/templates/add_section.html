@@ -17,6 +17,15 @@
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Section Name</label>
                     <input type="text" name="section_name" placeholder="Enter section name" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
                 </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Division</label>
+                    <select name="division_id" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                        <option value="">Select Division</option>
+                        {% for division in divisions %}
+                        <option value="{{ division.id }}">{{ division.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div style="grid-column: 1 / -1;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Description (Optional)</label>
                     <textarea name="description" rows="3" placeholder="Additional details about this section..." style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;"></textarea>

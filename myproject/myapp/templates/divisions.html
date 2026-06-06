@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Divisions{% endblock %}
+{% block header_title %}Divisions{% endblock %}
+
+{% block content %}
+<div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3>Divisions</h3>
+        <button onclick="window.location.href='{% url 'add_division' %}'"
+            style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
+                class="fa-solid fa-plus"></i> Add Division</button>
+    </div>
+    <div style="overflow-x: auto; width: 100%;">
+        <table style="width: 100%; min-width: 800px; border-collapse: collapse; text-align: left;">
+            <thead style="background: var(--primary-light); color: var(--primary-color);">
+                <tr>
+                    <th style="padding: 1rem;">Division Code</th>
+                    <th style="padding: 1rem;">Division Name</th>
+                    <th style="padding: 1rem;">Factory Name</th>
+                    <th style="padding: 1rem;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for division in divisions %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem; font-weight: 500;">{{ division.code }}</td>
+                    <td style="padding: 1rem;">{{ division.name }}</td>
+                    <td style="padding: 1rem;">{{ division.factory_name.name|default:"-" }}</td>
+                    <td style="padding: 1rem;">
+                        <a href="{% url 'edit_division' division.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No divisions available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

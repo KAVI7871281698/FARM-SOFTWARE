@@ -4,180 +4,187 @@
 {% block header_title %}Officers{% endblock %}
 
 {% block content %}
-<div
-            style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3>Registered Officers</h3>
-                <button onclick="window.location.href='{% url 'add_officer' %}'"
-                    style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
-                        class="fa-solid fa-plus"></i> Add Officer</button>
-            </div>
-            <div style="overflow-x: auto; width: 100%;">
-                <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: left;">
-                    <thead style="background: var(--primary-light); color: var(--primary-color);">
-                        <tr>
-                            <th style="padding: 1rem;">Name</th>
-                            <th style="padding: 1rem;">Role</th>
-                            <th style="padding: 1rem;">Mobile</th>
-                            <th style="padding: 1rem;">Email</th>
-                            <th style="padding: 1rem;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for officer in officers %}
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 1rem; font-weight: 500;">{{ officer.name }}</td>
-                            <td style="padding: 1rem;"><span
-                                    style="background: var(--primary-light); color: var(--primary-color); padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">{{ officer.role.name|default:"Unassigned" }}</span>
-                            </td>
-                            <td style="padding: 1rem;">{{ officer.mobile }}</td>
-                            <td style="padding: 1rem;">{{ officer.email }}</td>
-                            <td style="padding: 1rem;">
-                                <a href="{% url 'edit_officer' officer.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">No officers registered yet.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3>Registered Officers</h3>
+        <button onclick="window.location.href='{% url 'add_officer' %}'"
+            style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
+                class="fa-solid fa-plus"></i> Add Officer</button>
+    </div>
+    <div style="overflow-x: auto; width: 100%;">
+        <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: left;">
+            <thead style="background: var(--primary-light); color: var(--primary-color);">
+                <tr>
+                    <th style="padding: 1rem;">Name</th>
+                    <th style="padding: 1rem;">Role</th>
+                    <th style="padding: 1rem;">Division</th>
+                    <th style="padding: 1rem;">Mobile</th>
+                    <th style="padding: 1rem;">Email</th>
+                    <th style="padding: 1rem;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for officer in officers %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem; font-weight: 500;">{{ officer.name }}</td>
+                    <td style="padding: 1rem;">
+                        <span
+                            style="background: var(--primary-light); color: var(--primary-color); padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
+                            {{ officer.role_name|default:"Unassigned" }}
+                        </span>
+                    </td>
+                    <td style="padding: 1rem;">{{ officer.display_divisions }}</td>
+                    <td style="padding: 1rem;">{{ officer.mobile }}</td>
+                    <td style="padding: 1rem;">{{ officer.email }}</td>
+                    <td style="padding: 1rem;">
+                        <a href="{% url 'edit_officer' officer.id %}"
+                            style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i
+                                class="fa-solid fa-pen-to-square"></i> Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td colspan="6" style="padding: 1rem; text-align: center; color: var(--text-muted);">No officers
+                        registered yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-        // Chart default settings
-        Chart.defaults.font.family = "'Outfit', sans-serif";
-        Chart.defaults.color = "#666";
+    // Chart default settings
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.color = "#666";
 
-        // NDVI Trend Chart (Line)
-        const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
-        new Chart(ctxNdvi, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Average NDVI',
-                    data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
-                    borderColor: '#2e7d32',
-                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, max: 1 }
-                }
-            }
-        });
-
-        // Crop Health Chart (Doughnut)
-        const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
-        new Chart(ctxHealth, {
-            type: 'doughnut',
-            data: {
-                labels: ['Healthy', 'Moderate', 'Poor'],
-                datasets: [{
-                    data: [65, 25, 10],
-                    backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
-            }
-        });
-
-        // Scout Status Chart (Bar)
-        const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
-        new Chart(ctxScout, {
-            type: 'bar',
-            data: {
-                labels: ['Completed', 'Pending', 'Overdue'],
-                datasets: [{
-                    label: 'Scouts',
-                    data: [42, 15, 8],
-                    backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
-
-        // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
-        const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
-        new Chart(ctxSurvey, {
-            type: 'doughnut',
-            data: {
-                labels: ['Completed', 'Remaining'],
-                datasets: [{
-                    data: [78, 22],
-                    backgroundColor: ['#0288d1', '#e0e0e0'],
-                    borderWidth: 0,
-                    circumference: 180,
-                    rotation: 270
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '80%',
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: { enabled: false }
-                }
-            },
-            plugins: [{
-                id: 'textCenter',
-                beforeDraw: function (chart) {
-                    var width = chart.width,
-                        height = chart.height,
-                        ctx = chart.ctx;
-                    ctx.restore();
-                    var fontSize = (height / 114).toFixed(2);
-                    ctx.font = "bold " + fontSize + "em Outfit";
-                    ctx.textBaseline = "middle";
-                    ctx.fillStyle = "#333";
-                    var text = "78%",
-                        textX = Math.round((width - ctx.measureText(text).width) / 2),
-                        textY = height / 1.5;
-                    ctx.fillText(text, textX, textY);
-                    ctx.save();
-                }
+    // NDVI Trend Chart (Line)
+    const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
+    new Chart(ctxNdvi, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Average NDVI',
+                data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
+                borderColor: '#2e7d32',
+                backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true
             }]
-        });
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const menuToggle = document.getElementById('menuToggle');
-            const sidebar = document.querySelector('.sidebar');
-            if (menuToggle && sidebar) {
-                menuToggle.addEventListener('click', function () {
-                    sidebar.classList.toggle('open');
-                });
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 1 }
             }
-        });
-    </script>
+        }
+    });
+
+    // Crop Health Chart (Doughnut)
+    const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
+    new Chart(ctxHealth, {
+        type: 'doughnut',
+        data: {
+            labels: ['Healthy', 'Moderate', 'Poor'],
+            datasets: [{
+                data: [65, 25, 10],
+                backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Scout Status Chart (Bar)
+    const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
+    new Chart(ctxScout, {
+        type: 'bar',
+        data: {
+            labels: ['Completed', 'Pending', 'Overdue'],
+            datasets: [{
+                label: 'Scouts',
+                data: [42, 15, 8],
+                backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
+    const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
+    new Chart(ctxSurvey, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Remaining'],
+            datasets: [{
+                data: [78, 22],
+                backgroundColor: ['#0288d1', '#e0e0e0'],
+                borderWidth: 0,
+                circumference: 180,
+                rotation: 270
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '80%',
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { enabled: false }
+            }
+        },
+        plugins: [{
+            id: 'textCenter',
+            beforeDraw: function (chart) {
+                var width = chart.width,
+                    height = chart.height,
+                    ctx = chart.ctx;
+                ctx.restore();
+                var fontSize = (height / 114).toFixed(2);
+                ctx.font = "bold " + fontSize + "em Outfit";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "#333";
+                var text = "78%",
+                    textX = Math.round((width - ctx.measureText(text).width) / 2),
+                    textY = height / 1.5;
+                ctx.fillText(text, textX, textY);
+                ctx.save();
+            }
+        }]
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (menuToggle && sidebar) {
+            menuToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('open');
+            });
+        }
+    });
+</script>
 {% endblock %}

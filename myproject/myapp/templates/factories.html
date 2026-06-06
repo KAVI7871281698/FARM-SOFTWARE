@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Factories{% endblock %}
+{% block header_title %}Factories{% endblock %}
+
+{% block content %}
+<div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3>Factories</h3>
+        <button onclick="window.location.href='{% url 'add_factory' %}'"
+            style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
+                class="fa-solid fa-plus"></i> Add Factory</button>
+    </div>
+    <div style="overflow-x: auto; width: 100%;">
+        <table style="width: 100%; min-width: 800px; border-collapse: collapse; text-align: left;">
+            <thead style="background: var(--primary-light); color: var(--primary-color);">
+                <tr>
+                    <th style="padding: 1rem;">Factory Code</th>
+                    <th style="padding: 1rem;">Factory Name</th>
+                    <th style="padding: 1rem;">Group Name</th>
+                    <th style="padding: 1rem;">Location (Lat/Long)</th>
+                    <th style="padding: 1rem;">Crushing Capacity</th>
+                    <th style="padding: 1rem;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for factory in factories %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem; font-weight: 500;">{{ factory.code }}</td>
+                    <td style="padding: 1rem;">{{ factory.name }}</td>
+                    <td style="padding: 1rem;">{{ factory.group.name|default:"-" }}</td>
+                    <td style="padding: 1rem;">{{ factory.location_LatLong|default:"-" }}</td>
+                    <td style="padding: 1rem;">{{ factory.crushing_capacity|default:"-" }}</td>
+                    <td style="padding: 1rem;">
+                        <a href="{% url 'edit_factory' factory.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 1rem; text-align: center; color: var(--text-muted);">No factories
+                        available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

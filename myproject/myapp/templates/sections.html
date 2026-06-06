@@ -17,6 +17,7 @@
                 <tr>
                     <th style="padding: 1rem;">Section Code</th>
                     <th style="padding: 1rem;">Section Name</th>
+                    <th style="padding: 1rem;">Division</th>
                     <th style="padding: 1rem;">Total Villages</th>
                     <th style="padding: 1rem;">Action</th>
                 </tr>
@@ -26,6 +27,7 @@
                 <tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 1rem; font-weight: 500;">{{ section.section_code }}</td>
                     <td style="padding: 1rem;">{{ section.section_name }}</td>
+                    <td style="padding: 1rem;">{{ section.division.name|default:"-" }}</td>
                     <td style="padding: 1rem;">{{ section.villages.count }}</td>
                     <td style="padding: 1rem;">
                         <a href="{% url 'edit_section' section.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
@@ -33,7 +35,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No sections
+                    <td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">No sections
                         available.</td>
                 </tr>
                 {% endfor %}

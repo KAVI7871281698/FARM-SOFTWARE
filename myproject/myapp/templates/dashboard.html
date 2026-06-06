@@ -1,45 +1,181 @@
 {% extends 'base.html' %}
 
 {% block title %}Dashboard{% endblock %}
-{% block header_title %}Dashboard{% endblock %}
+{% block header_title %}
+<span style="display: flex; align-items: center; gap: 30px;">
+    Dashboard
+    <form method="GET" action="{% url 'dashboard' %}" style="margin: 0;">
+        <select name="group" onchange="this.form.submit()"
+            style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: white; outline: none; cursor: pointer;">
+            <option value="all" {% if all_selected %}selected{% endif %}>All Groups</option>
+            {% for group in groups %}
+            <option value="{{ group.id }}" {% if group.is_selected %}selected{% endif %}>{{ group.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</span>
+{% endblock %}
 
 {% block content %}
+{% if not all_selected %}
+<!-- Advanced Filters (Landscape) -->
+<div class="advanced-filters"
+    style="display: flex; margin-bottom: 20px; align-items: center; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+    <form method="GET" action="{% url 'dashboard' %}"
+        style="display: flex; width: 100%; gap: 15px; align-items: flex-end; margin: 0; flex-wrap: wrap;">
+        <!-- Preserve selected group -->
+        <input type="hidden" name="group" value="{{ request.GET.group|default:'all' }}">
+
+        <!-- Factory Dropdown & Search -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 600; color: #555; margin-left: 2px;">Factory</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <select name="factory"
+                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif;">
+                    <option value="all" {% if all_factories_selected %}selected{% endif %}>All Factories</option>
+                    {% for f in factories %}
+                    <option value="{{ f.id }}" {% if f.is_selected %}selected{% endif %}>{{ f.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit"
+                    style="padding: 8px 12px; border-radius: 6px; border: none; background: #2E7D32; color: white; cursor: pointer; transition: 0.2s;"
+                    onmouseover="this.style.background='#1b5e20'" onmouseout="this.style.background='#2E7D32'"><i
+                        class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+        </div>
+
+        <!-- Division Dropdown & Search -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 600; color: #555; margin-left: 2px;">Division</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <select name="division"
+                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif;">
+                    <option value="all" {% if all_divisions_selected %}selected{% endif %}>All Divisions</option>
+                    {% for d in divisions %}
+                    <option value="{{ d.id }}" {% if d.is_selected %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit"
+                    style="padding: 8px 12px; border-radius: 6px; border: none; background: #2E7D32; color: white; cursor: pointer; transition: 0.2s;"
+                    onmouseover="this.style.background='#1b5e20'" onmouseout="this.style.background='#2E7D32'"><i
+                        class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+        </div>
+
+        <!-- Section Dropdown & Search -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 600; color: #555; margin-left: 2px;">Section</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <select name="section"
+                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif;">
+                    <option value="all" {% if all_sections_selected %}selected{% endif %}>All Sections</option>
+                    {% for s in sections %}
+                    <option value="{{ s.id }}" {% if s.is_selected %}selected{% endif %}>{{ s.section_name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit"
+                    style="padding: 8px 12px; border-radius: 6px; border: none; background: #2E7D32; color: white; cursor: pointer; transition: 0.2s;"
+                    onmouseover="this.style.background='#1b5e20'" onmouseout="this.style.background='#2E7D32'"><i
+                        class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+        </div>
+
+        <!-- Overall Search Button -->
+        <button type="submit"
+            style="margin-left: auto; padding: 8px 16px; border-radius: 6px; border: none; background: #0288D1; color: white; cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif; transition: 0.2s;"
+            onmouseover="this.style.background='#01579b'" onmouseout="this.style.background='#0288D1'"><i
+                class="fa-solid fa-filter"></i> Apply All</button>
+    </form>
+</div>
+{% endif %}
+
 <!-- Metrics Grid -->
 <div class="metrics-grid">
     <div class="metric-card">
         <div class="metric-title">Total Plots</div>
-        <div class="metric-value">124</div>
+        <div class="metric-value">{{ total_plots|default:"124" }}</div>
         <i class="fa-solid fa-map metric-icon"></i>
     </div>
     <div class="metric-card info">
         <div class="metric-title">Mapped</div>
-        <div class="metric-value">98</div>
+        <div class="metric-value">{{ mapped|default:"98" }}</div>
         <i class="fa-solid fa-location-dot metric-icon"></i>
     </div>
     <div class="metric-card info">
         <div class="metric-title">UnMapped</div>
-        <div class="metric-value">18</div>
+        <div class="metric-value">{{ unmapped|default:"18" }}</div>
         <i class="fa-solid fa-location-dot metric-icon"></i>
     </div>
     <div class="metric-card">
         <div class="metric-title">Average NDVI</div>
-        <div class="metric-value">0.72</div>
+        <div class="metric-value">{{ avg_ndvi|default:"0.72" }}</div>
         <i class="fa-solid fa-satellite-dish metric-icon"></i>
     </div>
     <div class="metric-card warning">
         <div class="metric-title">Need Attention</div>
-        <div class="metric-value">12</div>
+        <div class="metric-value">{{ need_attention|default:"12" }}</div>
         <i class="fa-solid fa-circle-exclamation metric-icon"></i>
     </div>
     <div class="metric-card danger">
         <div class="metric-title">Damage Reports</div>
-        <div class="metric-value">5</div>
+        <div class="metric-value">{{ damage_reports|default:"5" }}</div>
         <i class="fa-solid fa-file-circle-xmark metric-icon"></i>
     </div>
     <div class="metric-card warning">
         <div class="metric-title">Overdue Scouts</div>
-        <div class="metric-value">8</div>
+        <div class="metric-value">{{ overdue_scouts|default:"8" }}</div>
         <i class="fa-solid fa-calendar-xmark metric-icon"></i>
+    </div>
+</div>
+
+<!-- Hierarchy Breakdown -->
+<div class="hierarchy-breakdown" style="margin-top: 30px;">
+    <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; color: #2c3e50; margin-bottom: 15px;">
+        Hierarchy Breakdown</h2>
+    <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e0e0e0;">
+        {% for group in hierarchy_data %}
+        <details style="margin-bottom: 10px;">
+            <summary style="font-family: 'Outfit', sans-serif; font-size: 1.1rem; color: #2E7D32; font-weight: 600; cursor: pointer; padding: 10px; background: #f9fbe7; border-radius: 8px; list-style: none;">
+                <i class="fa-solid fa-folder-open" style="margin-right: 8px;"></i> {{ group.name }} 
+                <span style="font-size: 0.85rem; color: #666; font-weight: normal; margin-left: 10px;">({{ group.factories_count }} Factories)</span>
+            </summary>
+            <div style="margin-left: 20px; padding-top: 10px; border-left: 2px solid #e0e0e0; padding-left: 15px;">
+                {% for factory in group.factories %}
+                <details style="margin-bottom: 8px;">
+                    <summary style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; color: #1565c0; font-weight: 600; cursor: pointer; padding: 8px; background: #e3f2fd; border-radius: 6px; list-style: none;">
+                        <i class="fa-solid fa-industry" style="margin-right: 8px;"></i> {{ factory.name }}
+                        <span style="font-size: 0.85rem; color: #666; font-weight: normal; margin-left: 10px;">({{ factory.divisions_count }} Divisions)</span>
+                    </summary>
+                    <div style="margin-left: 20px; padding-top: 8px; border-left: 2px solid #e0e0e0; padding-left: 15px;">
+                        {% for division in factory.divisions %}
+                        <details style="margin-bottom: 6px;">
+                            <summary style="font-family: 'Outfit', sans-serif; font-size: 1rem; color: #ef6c00; font-weight: 600; cursor: pointer; padding: 6px; background: #fff3e0; border-radius: 6px; list-style: none;">
+                                <i class="fa-solid fa-network-wired" style="margin-right: 8px;"></i> {{ division.name }}
+                                <span style="font-size: 0.85rem; color: #666; font-weight: normal; margin-left: 10px;">({{ division.sections_count }} Sections)</span>
+                            </summary>
+                            <ul style="margin-left: 20px; margin-top: 8px; padding-left: 15px; border-left: 2px solid #e0e0e0; list-style: none;">
+                                {% for section in division.sections %}
+                                <li style="padding: 4px 0; font-size: 0.95rem; color: #c62828;">
+                                    <i class="fa-solid fa-puzzle-piece" style="margin-right: 8px; font-size: 0.85rem;"></i> {{ section.name }}
+                                </li>
+                                {% empty %}
+                                <li style="padding: 4px 0; font-size: 0.95rem; color: #999; font-style: italic;">No sections</li>
+                                {% endfor %}
+                            </ul>
+                        </details>
+                        {% empty %}
+                        <div style="padding: 4px 0; font-size: 0.95rem; color: #999; font-style: italic;">No divisions</div>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% empty %}
+                <div style="padding: 8px 0; font-size: 0.95rem; color: #999; font-style: italic;">No factories</div>
+                {% endfor %}
+            </div>
+        </details>
+        {% empty %}
+        <div style="padding: 20px; text-align: center; color: #999;">No hierarchy data available for the current selection.</div>
+        {% endfor %}
     </div>
 </div>
 

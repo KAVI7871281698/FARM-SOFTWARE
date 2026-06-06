@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Factory{% endblock %}
+{% block header_title %}Edit Factory{% endblock %}
+
+{% block content %}
+<div
+    style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
+    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Edit Factory
+    </h2>
+    <form method="POST" action="{% url 'edit_factory' factory.id %}">
+        {% csrf_token %}
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Factory
+                    Code</label>
+                <input type="text" name="code" value="{{ factory.code }}" disabled
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background-color: #f9f9f9;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Group
+                    Name</label>
+                <select name="group_id" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background-color: white;">
+                    <option value="">Select Group</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}" {% if factory.group_id==group.id %}selected{% endif %}>{{ group.name
+                        }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Factory
+                    Name</label>
+                <input type="text" name="name" value="{{ factory.name }}" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Location
+                    (Lat/Long)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="locationInput" name="location_LatLong" value="{{ factory.location_LatLong|default:'' }}"
+                        readonly placeholder="Fetching location..."
+                        style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background-color: #f9f9f9;">
+                    <button type="button" onclick="getLocation()" title="Get Current Location" style="background: var(--primary-light); color: var(--primary-color); border: 1px solid var(--primary-color); padding: 0 1rem; border-radius: 8px; cursor: pointer;"><i class="fa-solid fa-location-crosshairs"></i></button>
+                </div>
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Crushing
+                    Capacity</label>
+                <input type="text" name="crushing_capacity" value="{{ factory.crushing_capacity|default:'' }}"
+                    placeholder="e.g. 5000 TCD"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <button type="button" onclick="window.location.href='{% url 'factories' %}'"
+                style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
+            <button type="submit"
+                style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Update
+                Factory</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function getLocation() {
+        const locInput = document.getElementById('locationInput');
+        locInput.placeholder = "Fetching location...";
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                locInput.value = position.coords.latitude.toFixed(6) + ", " + position.coords.longitude.toFixed(6);
+            }, function(error) {
+                locInput.placeholder = "Location access denied/failed.";
+                alert("Please enable location access to automatically fetch Lat/Long.");
+            });
+        } else {
+            locInput.placeholder = "Geolocation is not supported.";
+        }
+    }
+    // Auto fetch on load if empty
+    document.addEventListener('DOMContentLoaded', function() {
+        const locInput = document.getElementById('locationInput');
+        if (!locInput.value) {
+            getLocation();
+        }
+    });
+</script>
+{% endblock %}

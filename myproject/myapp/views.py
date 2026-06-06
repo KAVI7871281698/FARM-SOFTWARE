@@ -1,6 +1,20 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import Role, Officer, Section, Village, Farmer, Variety
+from django.http import JsonResponse
+from .models import Role, Officer, Section, Village, Farmer, Variety, Group, Factory, Division
+
+import json
+
+def parse_legacy_field(val):
+    if not val: return []
+    val = str(val).strip()
+    if val.startswith('[') and val.endswith(']'):
+        try:
+            val = val.replace("'", '"')
+            return [str(x) for x in json.loads(val)]
+        except:
+            pass
+    return [x.strip() for x in val.split(',')] if val else []
 
 def index(request):
     if request.method == 'POST':
@@ -14,6 +28,8 @@ def index(request):
             request.session['officer_name'] = user.name
             request.session['permissions'] = user.permissions or []
             request.session['role_id'] = user.role_id
+            request.session['group_id'] = user.group_id if user.group else None
+            request.session['role_name'] = user.role.name if user.role else ''
             return redirect('dashboard')
         else:
             messages.error(request, 'Invalid User ID or password.')
@@ -26,10 +42,194 @@ def logout_view(request):
     return redirect('index')
 
 def dashboard(request):
-    return render(request, 'dashboard.html')
+    logged_group_id = request.session.get('group_id')
+    role_name = request.session.get('role_name', '').lower()
+    is_superadmin = (role_name == 'superadmin')
+    
+    try:
+        if is_superadmin or not logged_group_id:
+            groups = list(Group.objects.all())
+        else:
+            groups = list(Group.objects.filter(id=logged_group_id))
+    except Exception as e:
+        groups = []
+        
+    if not is_superadmin and logged_group_id:
+        selected_group_id = str(logged_group_id)
+        all_selected = False
+    else:
+        selected_group_id = request.GET.get('group', 'all')
+        all_selected = (selected_group_id == 'all')
+    for group in groups:
+        group.is_selected = (str(group.id) == selected_group_id)
+        
+    factories = []
+    divisions = []
+    sections = []
+
+    selected_factory_id = request.GET.get('factory', 'all')
+    selected_division_id = request.GET.get('division', 'all')
+    selected_section_id = request.GET.get('section', 'all')
+
+    if not all_selected:
+        factories = list(Factory.objects.filter(group_id=selected_group_id))
+        
+        if selected_factory_id != 'all' and not any(str(f.id) == selected_factory_id for f in factories):
+            selected_factory_id = 'all'
+
+        if selected_factory_id != 'all':
+            divisions = list(Division.objects.filter(factory_name_id=selected_factory_id))
+        else:
+            divisions = list(Division.objects.filter(factory_name__group_id=selected_group_id))
+            
+        if selected_division_id != 'all' and not any(str(d.id) == selected_division_id for d in divisions):
+            selected_division_id = 'all'
+            
+        if selected_division_id != 'all':
+            sections = list(Section.objects.filter(division_id=selected_division_id))
+        else:
+            if selected_factory_id != 'all':
+                sections = list(Section.objects.filter(division__factory_name_id=selected_factory_id))
+            else:
+                sections = list(Section.objects.filter(division__factory_name__group_id=selected_group_id))
+                
+        if selected_section_id != 'all' and not any(str(s.id) == selected_section_id for s in sections):
+            selected_section_id = 'all'
+
+    for f in factories:
+        f.is_selected = (str(f.id) == selected_factory_id)
+    for d in divisions:
+        d.is_selected = (str(d.id) == selected_division_id)
+    for s in sections:
+        s.is_selected = (str(s.id) == selected_section_id)
+
+    all_factories_selected = (selected_factory_id == 'all')
+    all_divisions_selected = (selected_division_id == 'all')
+    all_sections_selected = (selected_section_id == 'all')
+    
+    if not all_selected:
+        # Dynamic counts for selected group
+        factories_count = len(factories)
+        divisions_count = len(divisions)
+        sections_count = len(sections)
+        
+        if selected_section_id != 'all':
+            farmers_count = Farmer.objects.filter(section_id=selected_section_id).count()
+        else:
+            farmers_count = Farmer.objects.filter(section__in=sections).count()
+            
+        if selected_division_id != 'all':
+            officers_count = sum(1 for o in Officer.objects.all() if str(selected_division_id) in (o.division_ids or "").split(','))
+        else:
+            valid_div_ids = set(str(d.id) for d in divisions)
+            officers_count = sum(1 for o in Officer.objects.all() if any(div_id in valid_div_ids for div_id in (o.division_ids or "").split(',')))
+            
+        groups_count = 1
+        
+        context = {
+            'groups': groups,
+            'all_selected': all_selected,
+            'total_plots': 45,
+            'mapped': 30,
+            'unmapped': 15,
+            'avg_ndvi': 0.65,
+            'need_attention': 4,
+            'damage_reports': 1,
+            'overdue_scouts': 2,
+            'groups_count': groups_count,
+            'factories_count': factories_count,
+            'divisions_count': divisions_count,
+            'sections_count': sections_count,
+            'farmers_count': farmers_count,
+            'officers_count': officers_count,
+            'factories': factories,
+            'divisions': divisions,
+            'sections': sections,
+            'all_factories_selected': all_factories_selected,
+            'all_divisions_selected': all_divisions_selected,
+            'all_sections_selected': all_sections_selected,
+        }
+    else:
+        # Dynamic counts for all groups
+        factories = list(Factory.objects.all())
+        divisions = list(Division.objects.all())
+        sections = list(Section.objects.all())
+        
+        groups_count = len(groups)
+        factories_count = len(factories)
+        divisions_count = len(divisions)
+        sections_count = len(sections)
+        farmers_count = Farmer.objects.count()
+        officers_count = Officer.objects.count()
+
+        context = {
+            'groups': groups,
+            'all_selected': all_selected,
+            'total_plots': 124,
+            'mapped': 98,
+            'unmapped': 18,
+            'avg_ndvi': 0.72,
+            'need_attention': 12,
+            'damage_reports': 5,
+            'overdue_scouts': 8,
+            'groups_count': groups_count,
+            'factories_count': factories_count,
+            'divisions_count': divisions_count,
+            'sections_count': sections_count,
+            'farmers_count': farmers_count,
+            'officers_count': officers_count,
+            'factories': factories,
+            'divisions': divisions,
+            'sections': sections,
+            'all_factories_selected': True,
+            'all_divisions_selected': True,
+            'all_sections_selected': True,
+        }
+    hierarchy_data = []
+    active_groups = groups if all_selected else [g for g in groups if str(g.id) == selected_group_id]
+    
+    for g in active_groups:
+        group_factories = [f for f in factories if f.group_id == g.id]
+        group_data = {
+            'name': g.name,
+            'factories_count': len(group_factories),
+            'factories': []
+        }
+        for f in group_factories:
+            factory_divisions = [d for d in divisions if d.factory_name_id == f.id]
+            factory_data = {
+                'name': f.name,
+                'divisions_count': len(factory_divisions),
+                'divisions': []
+            }
+            for d in factory_divisions:
+                division_sections = [s for s in sections if s.division_id == d.id]
+                division_data = {
+                    'name': d.name,
+                    'sections_count': len(division_sections),
+                    'sections': [{'name': s.section_name} for s in division_sections]
+                }
+                factory_data['divisions'].append(division_data)
+            group_data['factories'].append(factory_data)
+        hierarchy_data.append(group_data)
+        
+    context['hierarchy_data'] = hierarchy_data
+
+    return render(request, 'dashboard.html', context)
 
 def officers(request):
-    officers_list = Officer.objects.all()
+    logged_group_id = request.session.get('group_id')
+    role_name = request.session.get('role_name', '').lower()
+    is_superadmin = (role_name == 'superadmin')
+
+    if is_superadmin or not logged_group_id:
+        officers_list = Officer.objects.all()
+    else:
+        officers_list = Officer.objects.filter(group_id=logged_group_id)
+
+    for officer in officers_list:
+        display_divs = parse_legacy_field(officer.division_names)
+        officer.display_divisions = ", ".join(display_divs) if display_divs else "-"
     return render(request, 'officers.html', {'officers': officers_list})
 
 def field_intelligence(request):
@@ -102,28 +302,59 @@ def add_farmer(request):
     })
 
 def add_officer(request):
+    logged_group_id = request.session.get('group_id')
+    role_name = request.session.get('role_name', '').lower()
+    is_superadmin = (role_name == 'superadmin')
+
     if request.method == 'POST':
         name = request.POST.get('name')
         mobile = request.POST.get('mobile')
         email = request.POST.get('email')
-        password = request.POST.get('password', 'default123') # We don't have password field in UI yet, but model requires it
+        password = request.POST.get('password', 'default123')
         role_id = request.POST.get('role')
+        if not is_superadmin and logged_group_id:
+            group_id = logged_group_id
+        else:
+            group_id = request.POST.get('group_id')
+        factory_ids = request.POST.getlist('factories') or request.POST.getlist('factories[]')
+        division_ids = request.POST.getlist('divisions') or request.POST.getlist('divisions[]')
+        section_ids = request.POST.getlist('sections') or request.POST.getlist('sections[]')
         permissions = request.POST.getlist('permissions[]')
         
         role = Role.objects.filter(id=role_id).first() if role_id else None
+        group = Group.objects.filter(id=group_id).first() if group_id else None
         
-        Officer.objects.create(
+        factory_names = list(Factory.objects.filter(id__in=factory_ids).values_list('name', flat=True)) if factory_ids else []
+        division_names = list(Division.objects.filter(id__in=division_ids).values_list('name', flat=True)) if division_ids else []
+        section_names = list(Section.objects.filter(id__in=section_ids).values_list('section_name', flat=True)) if section_ids else []
+        
+        officer = Officer.objects.create(
             name=name,
             mobile=mobile,
             email=email,
             password=password,
             role=role,
-            permissions=permissions
+            group=group,
+            permissions=permissions,
+            factory_ids=",".join(factory_ids) if factory_ids else "",
+            factory_names=",".join(factory_names) if factory_names else "",
+            division_ids=",".join(division_ids) if division_ids else "",
+            division_names=",".join(division_names) if division_names else "",
+            section_ids=",".join(section_ids) if section_ids else "",
+            section_names=",".join(section_names) if section_names else ""
         )
+            
         return redirect('officers')
 
     roles = Role.objects.all()
-    return render(request, 'add_officer.html', {'roles': roles})
+    divisions = Division.objects.all()
+    if is_superadmin or not logged_group_id:
+        groups = Group.objects.all()
+    else:
+        groups = Group.objects.filter(id=logged_group_id)
+    superadmin_role = Role.objects.filter(name__iexact='superadmin').first()
+    superadmin_role_id = str(superadmin_role.id) if superadmin_role else "1"
+    return render(request, 'add_officer.html', {'roles': roles, 'divisions': divisions, 'groups': groups, 'superadmin_role_id': superadmin_role_id, 'is_superadmin': is_superadmin})
 
 def add_plots(request):
     return render(request, 'add_plots.html')
@@ -132,14 +363,18 @@ def add_section(request):
     if request.method == 'POST':
         section_name = request.POST.get('section_name')
         description = request.POST.get('description')
+        division_id = request.POST.get('division_id')
+        division = Division.objects.filter(id=division_id).first() if division_id else None
         
         Section.objects.create(
             section_name=section_name,
-            description=description
+            description=description,
+            division=division
         )
         return redirect('sections')
 
-    return render(request, 'add_section.html')
+    divisions = Division.objects.all()
+    return render(request, 'add_section.html', {'divisions': divisions})
 
 def add_survey(request):
     return render(request, 'add_survey.html')
@@ -201,15 +436,59 @@ def edit_officer(request, id):
         officer.email = request.POST.get('email')
         role_id = request.POST.get('role')
         officer.role = Role.objects.filter(id=role_id).first() if role_id else None
+        group_id = request.POST.get('group_id')
+        officer.group = Group.objects.filter(id=group_id).first() if group_id else None
+        
+        factory_ids = request.POST.getlist('factories') or request.POST.getlist('factories[]')
+        division_ids = request.POST.getlist('divisions') or request.POST.getlist('divisions[]')
+        section_ids = request.POST.getlist('sections') or request.POST.getlist('sections[]')
+        
+        factory_names = list(Factory.objects.filter(id__in=factory_ids).values_list('name', flat=True)) if factory_ids else []
+        division_names = list(Division.objects.filter(id__in=division_ids).values_list('name', flat=True)) if division_ids else []
+        section_names = list(Section.objects.filter(id__in=section_ids).values_list('section_name', flat=True)) if section_ids else []
+        
+        officer.factory_ids = ",".join(factory_ids) if factory_ids else ""
+        officer.factory_names = ",".join(factory_names) if factory_names else ""
+        officer.division_ids = ",".join(division_ids) if division_ids else ""
+        officer.division_names = ",".join(division_names) if division_names else ""
+        officer.section_ids = ",".join(section_ids) if section_ids else ""
+        officer.section_names = ",".join(section_names) if section_names else ""
+        
         officer.permissions = request.POST.getlist('permissions[]')
         password = request.POST.get('password')
         if password:
             officer.password = password
         officer.save()
+        
         return redirect('officers')
     
     roles = Role.objects.all()
-    return render(request, 'edit_officer.html', {'officer': officer, 'roles': roles})
+    divisions = Division.objects.all()
+    groups = Group.objects.all()
+    superadmin_role = Role.objects.filter(name__iexact='superadmin').first()
+    superadmin_role_id = str(superadmin_role.id) if superadmin_role else "1"
+    
+    officer_factory_ids = parse_legacy_field(officer.factory_ids)
+    officer_factory_names = parse_legacy_field(officer.factory_names)
+    officer_division_ids = parse_legacy_field(officer.division_ids)
+    officer_division_names = parse_legacy_field(officer.division_names)
+    officer_section_ids = parse_legacy_field(officer.section_ids)
+    officer_section_names = parse_legacy_field(officer.section_names)
+
+    officer_factories = zip(officer_factory_ids, officer_factory_names)
+    officer_divisions = zip(officer_division_ids, officer_division_names)
+    officer_sections = zip(officer_section_ids, officer_section_names)
+    
+    return render(request, 'edit_officer.html', {
+        'officer': officer, 
+        'roles': roles, 
+        'divisions': divisions, 
+        'groups': groups, 
+        'superadmin_role_id': superadmin_role_id,
+        'officer_factories': officer_factories,
+        'officer_divisions': officer_divisions,
+        'officer_sections': officer_sections
+    })
 
 def edit_farmer(request, id):
     from django.shortcuts import get_object_or_404
@@ -259,10 +538,13 @@ def edit_section(request, id):
     if request.method == 'POST':
         section.section_name = request.POST.get('section_name')
         section.description = request.POST.get('description')
+        division_id = request.POST.get('division_id')
+        section.division = Division.objects.filter(id=division_id).first() if division_id else None
         section.save()
         return redirect('sections')
 
-    return render(request, 'edit_section.html', {'section': section})
+    divisions = Division.objects.all()
+    return render(request, 'edit_section.html', {'section': section, 'divisions': divisions})
 
 def edit_variety(request, id):
     from django.shortcuts import get_object_or_404
@@ -277,3 +559,141 @@ def edit_variety(request, id):
     
     sections_list = Section.objects.all()
     return render(request, 'edit_variety.html', {'variety': variety, 'sections': sections_list})
+
+def roles(request):
+    roles_list = Role.objects.all()
+    return render(request, 'roles.html', {'roles': roles_list})
+
+def add_role(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        Role.objects.create(name=name)
+        return redirect('roles')
+    return render(request, 'add_role.html')
+
+def edit_role(request, id):
+    from django.shortcuts import get_object_or_404
+    role = get_object_or_404(Role, id=id)
+    if request.method == 'POST':
+        role.name = request.POST.get('name')
+        role.save()
+        return redirect('roles')
+    return render(request, 'edit_role.html', {'role': role})
+
+def groups(request):
+    groups_list = Group.objects.all()
+    return render(request, 'groups.html', {'groups': groups_list})
+
+def add_group(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        
+        Group.objects.create(
+            name=name
+        )
+        return redirect('groups')
+
+    return render(request, 'add_group.html')
+
+def edit_group(request, id):
+    from django.shortcuts import get_object_or_404
+    group = get_object_or_404(Group, id=id)
+    if request.method == 'POST':
+        group.name = request.POST.get('name')
+        group.save()
+        return redirect('groups')
+
+    return render(request, 'edit_group.html', {'group': group})
+
+def factories(request):
+    factories_list = Factory.objects.all()
+    return render(request, 'factories.html', {'factories': factories_list})
+
+def add_factory(request):
+    if request.method == 'POST':
+        group_id = request.POST.get('group_id')
+        name = request.POST.get('name')
+        location_LatLong = request.POST.get('location_LatLong')
+        crushing_capacity = request.POST.get('crushing_capacity')
+        
+        group = Group.objects.get(id=group_id) if group_id else None
+        
+        Factory.objects.create(
+            group=group,
+            name=name,
+            location_LatLong=location_LatLong,
+            crushing_capacity=crushing_capacity
+        )
+        return redirect('factories')
+
+    groups_list = Group.objects.all()
+    return render(request, 'add_factory.html', {'groups': groups_list})
+
+def edit_factory(request, id):
+    from django.shortcuts import get_object_or_404
+    factory = get_object_or_404(Factory, id=id)
+    if request.method == 'POST':
+        group_id = request.POST.get('group_id')
+        factory.group = Group.objects.get(id=group_id) if group_id else None
+        factory.name = request.POST.get('name')
+        factory.location_LatLong = request.POST.get('location_LatLong')
+        factory.crushing_capacity = request.POST.get('crushing_capacity')
+        factory.save()
+        return redirect('factories')
+
+    groups_list = Group.objects.all()
+    return render(request, 'edit_factory.html', {'factory': factory, 'groups': groups_list})
+
+def divisions(request):
+    divisions_list = Division.objects.all()
+    return render(request, 'divisions.html', {'divisions': divisions_list})
+
+def add_division(request):
+    if request.method == 'POST':
+        factory_id = request.POST.get('factory_id')
+        name = request.POST.get('name')
+        
+        factory = Factory.objects.get(id=factory_id) if factory_id else None
+        
+        Division.objects.create(
+            factory_name=factory,
+            name=name
+        )
+        return redirect('divisions')
+
+    factories_list = Factory.objects.all()
+    return render(request, 'add_division.html', {'factories': factories_list})
+
+def edit_division(request, id):
+    from django.shortcuts import get_object_or_404
+    division = get_object_or_404(Division, id=id)
+    if request.method == 'POST':
+        factory_id = request.POST.get('factory_id')
+        division.factory_name = Factory.objects.get(id=factory_id) if factory_id else None
+        division.name = request.POST.get('name')
+        division.save()
+        return redirect('divisions')
+
+    factories_list = Factory.objects.all()
+    return render(request, 'edit_division.html', {'division': division, 'factories': factories_list})
+
+def get_factories_by_group(request):
+    group_id = request.GET.get('group_id')
+    if group_id:
+        factories = list(Factory.objects.filter(group_id=group_id).values('id', 'name'))
+        return JsonResponse({'factories': factories})
+    return JsonResponse({'factories': []})
+
+def get_divisions_by_factories(request):
+    factory_ids = request.GET.getlist('factory_ids') or request.GET.getlist('factory_ids[]')
+    if factory_ids:
+        divisions = list(Division.objects.filter(factory_name_id__in=factory_ids).values('id', 'name'))
+        return JsonResponse({'divisions': divisions})
+    return JsonResponse({'divisions': []})
+
+def get_sections_by_divisions(request):
+    division_ids = request.GET.getlist('division_ids') or request.GET.getlist('division_ids[]')
+    if division_ids:
+        sections = list(Section.objects.filter(division_id__in=division_ids).values('id', 'section_name'))
+        return JsonResponse({'sections': sections})
+    return JsonResponse({'sections': []})

@@ -240,9 +240,7 @@
             .charts-grid {
                 grid-template-columns: 1fr;
             }
-        }
 
-        @media (max-width: 768px) {
             .mobile-logo {
                 display: inline-block !important;
             }
@@ -253,6 +251,8 @@
 
             .main-content {
                 padding-top: 0 !important;
+                margin-left: 0;
+                width: 100%;
             }
 
             .header {
@@ -275,11 +275,6 @@
 
             #menuToggle {
                 display: block !important;
-            }
-
-            .main-content {
-                margin-left: 0;
-                width: 100%;
             }
         }
     </style>
@@ -307,6 +302,10 @@
                     <li class=""><a href="{% url 'officers' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-user-tie"></i> Officers</a></li>
                     {% endif %}
+                    {% if request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'roles' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-user-shield"></i> Roles</a></li>
+                    {% endif %}
                     {% if 'users' in request.session.permissions or request.session.role_id == 1 %}
                     <li class=""><a href="{% url 'users' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-users"></i> Farmers</a></li>
@@ -326,6 +325,18 @@
                     {% if 'plots' in request.session.permissions or request.session.role_id == 1 %}
                     <li class=""><a href="{% url 'plots' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-map-location-dot"></i> Plots</a></li>
+                    {% endif %}
+                    {% if 'groups' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'groups' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-layer-group"></i> Groups</a></li>
+                    {% endif %}
+                    {% if 'factories' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'factories' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-industry"></i> Factories</a></li>
+                    {% endif %}
+                    {% if 'divisions' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'divisions' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-building-user"></i> Divisions</a></li>
                     {% endif %}
                 </ul>
             </li>

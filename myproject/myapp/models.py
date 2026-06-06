@@ -3,6 +3,9 @@ from django.db import models
 class Role(models.Model):
     name = models.CharField(max_length=50, unique=True)
 
+    class Meta:
+        db_table = "role"
+
     def __str__(self):
         return self.name
 
@@ -30,6 +33,16 @@ class Officer(models.Model):
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True)
     role_name = models.CharField(max_length=50, null=True, blank=True)
     permissions = models.JSONField(default=list, blank=True, null=True)
+    group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
+    factory_ids = models.CharField(max_length=255, blank=True, null=True)
+    factory_names = models.CharField(max_length=500, blank=True, null=True)
+    division_ids = models.CharField(max_length=255, blank=True, null=True)
+    division_names = models.CharField(max_length=500, blank=True, null=True)
+    section_ids = models.CharField(max_length=255, blank=True, null=True)
+    section_names = models.CharField(max_length=500, blank=True, null=True)
+
+    class Meta:
+        db_table = "officer"
 
     def save(self, *args, **kwargs):
         if self.role and self.role.name:
@@ -54,6 +67,10 @@ class Section(models.Model):
     section_code = models.CharField(max_length=50, unique=True, blank=True)
     section_name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
+    division = models.ForeignKey('Division', on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        db_table = "section"
 
     def save(self, *args, **kwargs):
         if not self.section_code:
@@ -78,6 +95,9 @@ class Village(models.Model):
     status = models.CharField(max_length=20, default="active")
     description = models.TextField(blank=True, null=True)
 
+    class Meta:
+        db_table = "village"
+
     def save(self, *args, **kwargs):
         if not self.village_code:
             last_village = Village.objects.all().order_by('id').last()
@@ -100,6 +120,9 @@ class Farmer(models.Model):
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, related_name="farmers")
     village = models.ForeignKey(Village, on_delete=models.SET_NULL, null=True, related_name="farmers")
 
+    class Meta:
+        db_table = "farmer"
+
     def save(self, *args, **kwargs):
         if not self.farmer_code:
             last_farmer = Farmer.objects.all().order_by('id').last()
@@ -119,6 +142,9 @@ class Variety(models.Model):
     variety_name = models.CharField(max_length=150)
     season = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True)
 
+    class Meta:
+        db_table = "variety"
+
     def save(self, *args, **kwargs):
         if not self.variety_code:
             last_variety = Variety.objects.all().order_by('id').last()
@@ -131,3 +157,67 @@ class Variety(models.Model):
 
     def __str__(self):
         return f"{self.variety_code} - {self.variety_name}"
+
+class Group(models.Model):
+    code = models.CharField(max_length=50, unique=True, blank=True)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "group_master"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            last_group = Group.objects.all().order_by('id').last()
+            if last_group:
+                last_id = last_group.id
+                self.code = f"GRP-{last_id + 1:03d}"
+            else:
+                self.code = "GRP-001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+class Factory(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="factories")
+    code = models.CharField(max_length=50, unique=True, blank=True)
+    name = models.CharField(max_length=100)
+    location_LatLong = models.CharField(max_length=200, blank=True, null=True)
+    crushing_capacity = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        db_table = "factory"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            last_factory = Factory.objects.all().order_by('id').last()
+            if last_factory:
+                last_id = last_factory.id
+                self.code = f"FAC-{last_id + 1:03d}"
+            else:
+                self.code = "FAC-001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+class Division(models.Model):
+    factory_name = models.ForeignKey(Factory, on_delete=models.CASCADE, related_name="divisions")
+    code = models.CharField(max_length=50, unique=True, blank=True)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "division"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            last_division = Division.objects.all().order_by('id').last()
+            if last_division:
+                last_id = last_division.id
+                self.code = f"DIV-{last_id + 1:03d}"
+            else:
+                self.code = "DIV-001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"

@@ -4,238 +4,501 @@
 {% block header_title %}Edit Officer{% endblock %}
 
 {% block content %}
-<div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
-        <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Officer Details & Permissions</h2>
-        
-        <form method="POST" action="{% url 'edit_officer' officer.id %}">
-            {% csrf_token %}
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Full Name</label>
-                    <input type="text" name="name" value="{{ officer.name }}" placeholder="Enter full name" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';" required>
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Mobile Number</label>
-                    <input type="tel" name="mobile" value="{{ officer.mobile }}" placeholder="Enter mobile number" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';" required>
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Email Address</label>
-                    <input type="email" name="email" value="{{ officer.email }}" placeholder="Enter email" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';" required>
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Role</label>
-                    <select name="role" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;" required>
-                        <option value="" disabled selected>Select Role</option>
-                        {% for role in roles %}
-                        <option value="{{ role.id }}" {% if officer.role and officer.role.id == role.id %}selected{% endif %}>{{ role.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Initial Password</label>
-                    <input type="password" name="password" placeholder="Enter new password to change" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';" required>
-                </div>
+<div
+    style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
+    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Officer Details
+        & Permissions</h2>
+
+    <form method="POST" action="{% url 'edit_officer' officer.id %}">
+        {% csrf_token %}
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Full
+                    Name</label>
+                <input type="text" name="name" value="{{ officer.name }}" placeholder="Enter full name"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';"
+                    required>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Mobile
+                    Number</label>
+                <input type="tel" name="mobile" value="{{ officer.mobile }}" placeholder="Enter mobile number"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';"
+                    required>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Email
+                    Address</label>
+                <input type="email" name="email" value="{{ officer.email }}" placeholder="Enter email"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';"
+                    required>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
+                    Role</label>
+                <select name="role"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;"
+                    required>
+                    <option value="" disabled selected>Select Role</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}" {% if officer.role and officer.role.id==role.id %}selected{% endif %}>
+                        {{ role.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
-            <h3 style="margin-bottom: 1rem; color: #333;">Module Access / Permissions</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; background: var(--bg-color); padding: 1.5rem; border-radius: 8px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="dashboard" {% if 'dashboard' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Dashboard</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="field_intelligence" {% if 'field_intelligence' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Field Intelligence</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="analytics" {% if 'analytics' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Analytics</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="ndvi_monitoring" {% if 'ndvi_monitoring' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">NDVI Monitoring</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="scouting" {% if 'scouting' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Scouting</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="reports" {% if 'reports' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Reports</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="officers" {% if 'officers' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Officers</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="settings" {% if 'settings' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Settings</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="users" {% if 'users' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Farmers</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="villages" {% if 'villages' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Villages</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="sections" {% if 'sections' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Sections</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="varieties" {% if 'varieties' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Varieties</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="plots" {% if 'plots' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Plots</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="permissions[]" value="surveys" {% if 'surveys' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                    <span style="font-weight: 500; color: #444;">Surveys</span>
-                </label>
+            {% if 'groups' in request.session.permissions or request.session.role_id == 1 %}
+            <div id="group_container">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
+                    Group</label>
+                <select name="group_id"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="">Select Group</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}" {% if officer.group and officer.group.id==group.id %}selected{% endif
+                        %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
-            <div style="text-align: right;">
-                <button type="button" onclick="window.location.href='{% url 'officers' %}'" style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
-                <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Update Officer</button>
+            <div id="factories_container" style="display: none;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
+                    Factories</label>
+                <select name="factories" id="factories_select" multiple
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
+                    <!-- Pre-filled in edit form if needed, or fetched via JS -->
+                    {% for id, name in officer_factories %}
+                    <option value="{{ id }}" selected>{{ name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-        </form>
-    </div>
+            <div id="divisions_container" style="display: none;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
+                    Divisions</label>
+                <select name="divisions" id="divisions_select" multiple
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
+                    {% for id, name in officer_divisions %}
+                    <option value="{{ id }}" selected>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="sections_container" style="display: none;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
+                    Sections</label>
+                <select name="sections" id="sections_select" multiple
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
+                    {% for id, name in officer_sections %}
+                    <option value="{{ id }}" selected>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Initial
+                    Password</label>
+                <input type="password" name="password" placeholder="Enter new password to change"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';"
+                    required>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; color: #333;">Module Access / Permissions</h3>
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; background: var(--bg-color); padding: 1.5rem; border-radius: 8px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="dashboard" {% if 'dashboard' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Dashboard</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="field_intelligence" {% if 'field_intelligence' in
+                    officer.permissions %}checked{% endif %}
+                    style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Field Intelligence</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="analytics" {% if 'analytics' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Analytics</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="ndvi_monitoring" {% if 'ndvi_monitoring' in
+                    officer.permissions %}checked{% endif %}
+                    style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">NDVI Monitoring</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="scouting" {% if 'scouting' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Scouting</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="reports" {% if 'reports' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Reports</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="officers" {% if 'officers' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Officers</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="settings" {% if 'settings' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Settings</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="users" {% if 'users' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Farmers</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="master" id="master-checkbox" {% if 'groups' in
+                    officer.permissions or 'factories' in officer.permissions or 'divisions' in officer.permissions
+                    or 'sections' in officer.permissions or 'villages' in officer.permissions or 'varieties' in
+                    officer.permissions or 'master' in officer.permissions %}checked{% endif %}
+                    style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Master</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="plots" {% if 'plots' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Plots</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="permissions[]" value="surveys" {% if 'surveys' in officer.permissions
+                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <span style="font-weight: 500; color: #444;">Surveys</span>
+            </label>
+        </div>
+
+        <!-- Master Permission Modal -->
+        <div id="masterModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+            <div
+                style="background: white; padding: 2rem; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                <h3 style="margin-bottom: 1.5rem; color: #333; font-family: 'Outfit';">Master Permissions</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="groups" {% if 'groups' in officer.permissions
+                            %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Groups</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="factories" {% if 'factories' in
+                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Factories</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="divisions" {% if 'divisions' in
+                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Divisions</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="sections" {% if 'sections' in
+                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Sections</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="villages" {% if 'villages' in
+                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Villages</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="varieties" {% if 'varieties' in
+                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Varieties</span>
+                    </label>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" id="closeMasterModal"
+                        style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Done</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: right;">
+            <button type="button" onclick="window.location.href='{% url 'officers' %}'"
+                style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
+            <button type="submit"
+                style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Update
+                Officer</button>
+        </div>
+    </form>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-        // Chart default settings
-        Chart.defaults.font.family = "'Outfit', sans-serif";
-        Chart.defaults.color = "#666";
+    // Chart default settings
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.color = "#666";
 
-        // NDVI Trend Chart (Line)
-        const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
-        new Chart(ctxNdvi, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Average NDVI',
-                    data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
-                    borderColor: '#2e7d32',
-                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, max: 1 }
-                }
-            }
-        });
-
-        // Crop Health Chart (Doughnut)
-        const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
-        new Chart(ctxHealth, {
-            type: 'doughnut',
-            data: {
-                labels: ['Healthy', 'Moderate', 'Poor'],
-                datasets: [{
-                    data: [65, 25, 10],
-                    backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
-            }
-        });
-
-        // Scout Status Chart (Bar)
-        const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
-        new Chart(ctxScout, {
-            type: 'bar',
-            data: {
-                labels: ['Completed', 'Pending', 'Overdue'],
-                datasets: [{
-                    label: 'Scouts',
-                    data: [42, 15, 8],
-                    backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
-
-        // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
-        const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
-        new Chart(ctxSurvey, {
-            type: 'doughnut',
-            data: {
-                labels: ['Completed', 'Remaining'],
-                datasets: [{
-                    data: [78, 22],
-                    backgroundColor: ['#0288d1', '#e0e0e0'],
-                    borderWidth: 0,
-                    circumference: 180,
-                    rotation: 270
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '80%',
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: { enabled: false }
-                }
-            },
-            plugins: [{
-                id: 'textCenter',
-                beforeDraw: function (chart) {
-                    var width = chart.width,
-                        height = chart.height,
-                        ctx = chart.ctx;
-                    ctx.restore();
-                    var fontSize = (height / 114).toFixed(2);
-                    ctx.font = "bold " + fontSize + "em Outfit";
-                    ctx.textBaseline = "middle";
-                    ctx.fillStyle = "#333";
-                    var text = "78%",
-                        textX = Math.round((width - ctx.measureText(text).width) / 2),
-                        textY = height / 1.5;
-                    ctx.fillText(text, textX, textY);
-                    ctx.save();
-                }
+    // NDVI Trend Chart (Line)
+    const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
+    new Chart(ctxNdvi, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Average NDVI',
+                data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
+                borderColor: '#2e7d32',
+                backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true
             }]
-        });
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const menuToggle = document.getElementById('menuToggle');
-            const sidebar = document.querySelector('.sidebar');
-            if (menuToggle && sidebar) {
-                menuToggle.addEventListener('click', function () {
-                    sidebar.classList.toggle('open');
-                });
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 1 }
             }
-        });
-    </script>
+        }
+    });
+
+    // Crop Health Chart (Doughnut)
+    const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
+    new Chart(ctxHealth, {
+        type: 'doughnut',
+        data: {
+            labels: ['Healthy', 'Moderate', 'Poor'],
+            datasets: [{
+                data: [65, 25, 10],
+                backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Scout Status Chart (Bar)
+    const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
+    new Chart(ctxScout, {
+        type: 'bar',
+        data: {
+            labels: ['Completed', 'Pending', 'Overdue'],
+            datasets: [{
+                label: 'Scouts',
+                data: [42, 15, 8],
+                backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
+    const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
+    new Chart(ctxSurvey, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Remaining'],
+            datasets: [{
+                data: [78, 22],
+                backgroundColor: ['#0288d1', '#e0e0e0'],
+                borderWidth: 0,
+                circumference: 180,
+                rotation: 270
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '80%',
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { enabled: false }
+            }
+        },
+        plugins: [{
+            id: 'textCenter',
+            beforeDraw: function (chart) {
+                var width = chart.width,
+                    height = chart.height,
+                    ctx = chart.ctx;
+                ctx.restore();
+                var fontSize = (height / 114).toFixed(2);
+                ctx.font = "bold " + fontSize + "em Outfit";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "#333";
+                var text = "78%",
+                    textX = Math.round((width - ctx.measureText(text).width) / 2),
+                    textY = height / 1.5;
+                ctx.fillText(text, textX, textY);
+                ctx.save();
+            }
+        }]
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (menuToggle && sidebar) {
+            menuToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('open');
+            });
+        }
+
+        // Master Modal Logic
+        const masterCheckbox = document.getElementById('master-checkbox');
+        const masterModal = document.getElementById('masterModal');
+        const closeMasterModal = document.getElementById('closeMasterModal');
+        const subCheckboxes = document.querySelectorAll('.master-sub-checkbox');
+
+        if (masterCheckbox && masterModal) {
+            masterCheckbox.addEventListener('change', function () {
+                if (this.checked) {
+                    masterModal.style.display = 'flex';
+                } else {
+                    // Uncheck all sub-permissions when master is unchecked
+                    subCheckboxes.forEach(cb => cb.checked = false);
+                }
+            });
+
+            closeMasterModal.addEventListener('click', function () {
+                masterModal.style.display = 'none';
+                // If no sub-menus are checked, uncheck the Master checkbox automatically
+                const isAnyChecked = Array.from(subCheckboxes).some(cb => cb.checked);
+                if (!isAnyChecked) {
+                    masterCheckbox.checked = false;
+                }
+            });
+        }
+
+        // Cascading Dropdowns Logic
+        const groupSelect = document.querySelector('select[name="group_id"]');
+        const factoriesContainer = document.getElementById('factories_container');
+        const factoriesSelect = document.getElementById('factories_select');
+
+        const divisionsContainer = document.getElementById('divisions_container');
+        const divisionsSelect = document.getElementById('divisions_select');
+
+        const sectionsContainer = document.getElementById('sections_container');
+        const sectionsSelect = document.getElementById('sections_select');
+
+        // Show containers if they have pre-selected values
+        if (factoriesSelect && factoriesSelect.options.length > 0) factoriesContainer.style.display = 'block';
+        if (divisionsSelect && divisionsSelect.options.length > 0) divisionsContainer.style.display = 'block';
+        if (sectionsSelect && sectionsSelect.options.length > 0) sectionsContainer.style.display = 'block';
+
+        if (groupSelect) {
+            groupSelect.addEventListener('change', function () {
+                const groupId = this.value;
+
+                // Reset down-stream
+                if (factoriesSelect) factoriesSelect.innerHTML = '';
+                if (factoriesContainer) factoriesContainer.style.display = 'none';
+                if (divisionsSelect) divisionsSelect.innerHTML = '';
+                if (divisionsContainer) divisionsContainer.style.display = 'none';
+                if (sectionsSelect) sectionsSelect.innerHTML = '';
+                if (sectionsContainer) sectionsContainer.style.display = 'none';
+
+                if (groupId) {
+                    fetch(`/api/get_factories/?group_id=${groupId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.factories && data.factories.length > 0) {
+                                data.factories.forEach(f => {
+                                    const option = document.createElement('option');
+                                    option.value = f.id;
+                                    option.textContent = f.name;
+                                    factoriesSelect.appendChild(option);
+                                });
+                                if (factoriesContainer) factoriesContainer.style.display = 'block';
+                            }
+                        });
+                }
+            });
+        }
+
+        if (factoriesSelect) {
+            factoriesSelect.addEventListener('change', function () {
+                const selectedOptions = Array.from(this.selectedOptions).map(opt => opt.value);
+
+                // Reset down-stream
+                if (divisionsSelect) divisionsSelect.innerHTML = '';
+                if (divisionsContainer) divisionsContainer.style.display = 'none';
+                if (sectionsSelect) sectionsSelect.innerHTML = '';
+                if (sectionsContainer) sectionsContainer.style.display = 'none';
+
+                if (selectedOptions.length > 0) {
+                    const params = new URLSearchParams();
+                    selectedOptions.forEach(id => params.append('factory_ids', id));
+
+                    fetch(`/api/get_divisions/?${params.toString()}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.divisions && data.divisions.length > 0) {
+                                data.divisions.forEach(d => {
+                                    const option = document.createElement('option');
+                                    option.value = d.id;
+                                    option.textContent = d.name;
+                                    divisionsSelect.appendChild(option);
+                                });
+                                if (divisionsContainer) divisionsContainer.style.display = 'block';
+                            }
+                        });
+                }
+            });
+        }
+
+        if (divisionsSelect) {
+            divisionsSelect.addEventListener('change', function () {
+                const selectedOptions = Array.from(this.selectedOptions).map(opt => opt.value);
+
+                // Reset down-stream
+                if (sectionsSelect) sectionsSelect.innerHTML = '';
+                if (sectionsContainer) sectionsContainer.style.display = 'none';
+
+                if (selectedOptions.length > 0) {
+                    const params = new URLSearchParams();
+                    selectedOptions.forEach(id => params.append('division_ids', id));
+
+                    fetch(`/api/get_sections/?${params.toString()}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.sections && data.sections.length > 0) {
+                                data.sections.forEach(s => {
+                                    const option = document.createElement('option');
+                                    option.value = s.id;
+                                    option.textContent = s.section_name;
+                                    sectionsSelect.appendChild(option);
+                                });
+                                if (sectionsContainer) sectionsContainer.style.display = 'block';
+                            }
+                        });
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
