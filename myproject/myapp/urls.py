@@ -43,6 +43,7 @@ urlpatterns = [
     path('roles/', views.roles, name='roles'),
     path('add_role/', views.add_role, name='add_role'),
     path('edit_role/<int:id>/', views.edit_role, name='edit_role'),
+    path('api/mobile/', views.mobile_api, name='mobile_api'),
     path('api/get_factories/', views.get_factories_by_group, name='get_factories'),
     path('api/get_divisions/', views.get_divisions_by_factories, name='get_divisions'),
     path('api/get_sections/', views.get_sections_by_divisions, name='get_sections'),

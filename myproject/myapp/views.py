@@ -16,30 +16,123 @@ def parse_legacy_field(val):
             pass
     return [x.strip() for x in val.split(',')] if val else []
 
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 def index(request):
     if request.method == 'POST':
-        user_id = request.POST.get('user_id')
-        password = request.POST.get('password')
+        keys = request.POST.keys()
         
-        user = Officer.objects.filter(user_id=user_id, password=password).first()
-        if user:
-            # Login successful, redirect to dashboard
-            request.session['user_id'] = user.user_id
-            request.session['officer_name'] = user.name
-            request.session['permissions'] = user.permissions or []
-            request.session['role_id'] = user.role_id
-            request.session['group_id'] = user.group_id if user.group else None
-            request.session['role_name'] = user.role.name if user.role else ''
-            return redirect('dashboard')
-        else:
-            messages.error(request, 'Invalid User ID or password.')
-            return redirect('index')
+        # 1. API: Add Farmer (Inferred if 'farmer_name' is passed)
+        if 'farmer_name' in keys:
+            farmer_name = request.POST.get('farmer_name')
+            mobile = request.POST.get('mobile')
+            # Add farmer logic here
+            return JsonResponse({'status': 'success', 'message': f'Farmer {farmer_name} added successfully'})
+            
+        # 2. API: Add Plot (Inferred if 'plot_name' is passed)
+        elif 'plot_name' in keys:
+            plot_name = request.POST.get('plot_name')
+            # Add plot logic here
+            return JsonResponse({'status': 'success', 'message': f'Plot {plot_name} added successfully'})
+            
+        # 3. API or Web Login
+        elif 'user_id' in keys and 'password' in keys:
+            user_id = request.POST.get('user_id')
+            password = request.POST.get('password')
+            
+            # Check if this is from Mobile App (e.g. they pass device_id, lt, or ln)
+            is_mobile = 'device_id' in keys or 'lt' in keys or 'ln' in keys
+            
+            user = Officer.objects.filter(user_id=user_id, password=password).first()
+            
+            if is_mobile:
+                if user:
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Login successful',
+                        'data': {
+                            'id': user.id,
+                            'user_id': user.user_id,
+                            'name': user.name,
+                            'mobile': user.mobile,
+                            'email': user.email,
+                            'role_name': user.role.name if user.role else None,
+                            'permissions': user.permissions or [],
+                            'device_id': request.POST.get('device_id'),
+                            'latitude': request.POST.get('lt'),
+                            'longitude': request.POST.get('ln')
+                        }
+                    })
+                else:
+                    return JsonResponse({'status': 'error', 'message': 'Invalid User ID or password.'}, status=401)
+            else:
+                # Web Login Logic
+                if user:
+                    request.session['user_id'] = user.user_id
+                    request.session['officer_name'] = user.name
+                    request.session['permissions'] = user.permissions or []
+                    request.session['role_id'] = user.role_id
+                    request.session['group_id'] = user.group_id if user.group else None
+                    request.session['role_name'] = user.role.name if user.role else ''
+                    return redirect('dashboard')
+                else:
+                    messages.error(request, 'Invalid User ID or password.')
+                    return redirect('index')
+                    
+        # Invalid API Request fallback
+        elif request.headers.get('Accept') == 'application/json':
+            return JsonResponse({'status': 'error', 'message': 'Unknown API request parameters'}, status=400)
 
+    # GET request: Web Login Page
     return render(request, 'index.html')
 
 def logout_view(request):
     request.session.flush()
     return redirect('index')
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def mobile_api(request):
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'login':
+            user_id = request.POST.get('user_id')
+            password = request.POST.get('password')
+            lt = request.POST.get('lt')
+            ln = request.POST.get('ln')
+            device_id = request.POST.get('device_id')
+            
+            user = Officer.objects.filter(user_id=user_id, password=password).first()
+            if user:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Login successful',
+                    'data': {
+                        'id': user.id,
+                        'user_id': user.user_id,
+                        'name': user.name,
+                        'mobile': user.mobile,
+                        'email': user.email,
+                        'role_name': user.role.name if user.role else None,
+                        'group_id': user.group_id if user.group else None,
+                        'permissions': user.permissions or [],
+                        'device_id': device_id,
+                        'latitude': lt,
+                        'longitude': ln
+                    }
+                })
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Invalid User ID or password.'}, status=401)
+                
+        # Add other actions here, e.g. elif action == 'get_dashboard':
+        
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid or missing action parameter'}, status=400)
+            
+    return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
 
 def dashboard(request):
     logged_group_id = request.session.get('group_id')
