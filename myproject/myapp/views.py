@@ -1377,7 +1377,7 @@ def api_add_plot(request):
         variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
 
         division = farmer.section.division if farmer.section and farmer.section.division else None
-        division_name = division.division_name if division else None
+        division_name = division.name if division else None
         section = farmer.section if farmer.section else None
         section_name = section.section_name if section else None
         village = farmer.village if farmer.village else None
@@ -1386,6 +1386,8 @@ def api_add_plot(request):
         group_name = farmer.group_name
         factory_obj = farmer.factory
         factory_name = farmer.factory_name
+        
+        land_image = request.FILES.get('land_image')
 
         plot = Plot.objects.create(
             farmer=farmer,
@@ -1400,6 +1402,7 @@ def api_add_plot(request):
             planting_date=planting_date,
             area_acre=area_acre,
             is_mapped=is_mapped,
+            land_image=land_image,
             latitude=lt,
             longitude=ln,
             device_id=device_id,
