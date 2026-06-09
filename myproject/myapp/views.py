@@ -24,21 +24,10 @@ def index(request):
         keys = request.POST.keys()
         
         # ==========================================
-        # 1. MOBILE API: Add Farmer
+        # 1. MOBILE API: Add Plot Delegation
         # ==========================================
-        if 'farmer_name' in keys:
-            farmer_name = request.POST.get('farmer_name')
-            mobile = request.POST.get('mobile')
-            # Add farmer logic here
-            return JsonResponse({'status': 'success', 'message': f'Farmer {farmer_name} added successfully'})
-            
-        # ==========================================
-        # 2. MOBILE API: Add Plot
-        # ==========================================
-        elif 'plot_name' in keys:
-            plot_name = request.POST.get('plot_name')
-            # Add plot logic here
-            return JsonResponse({'status': 'success', 'message': f'Plot {plot_name} added successfully'})
+        if 'farmer_name' in keys and 'officer_id' in keys:
+            return api_add_plot(request)
             
         # ==========================================
         # 3. MOBILE API & WEB: Login
