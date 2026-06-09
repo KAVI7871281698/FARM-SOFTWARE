@@ -1312,3 +1312,121 @@ def delete_crop(request, id):
     except Crop.DoesNotExist:
         pass
     return redirect('crops')
+
+@csrf_exempt
+def api_get_varieties(request):
+    crop_id = request.POST.get('crop_id') or request.GET.get('crop_id')
+    if crop_id:
+        varieties = Variety.objects.filter(crop_id=crop_id)
+    else:
+        varieties = Variety.objects.all()
+    
+    data = []
+    for v in varieties:
+        data.append({
+            'id': v.id,
+            'variety_name': v.variety_name,
+            'crop_id': v.crop_id,
+        })
+    return JsonResponse({'status': 'success', 'data': data})
+
+@csrf_exempt
+def api_get_farmers(request):
+    get_farmers = request.POST.get('get_farmers') or request.GET.get('get_farmers')
+    if str(get_farmers).lower() != 'true':
+        return JsonResponse({'status': 'error', 'message': 'get_farmers parameter must be true'}, status=400)
+        
+    group_id = request.POST.get('group_id') or request.GET.get('group_id')
+    lt = request.POST.get('lt') or request.GET.get('lt')
+    ln = request.POST.get('ln') or request.GET.get('ln')
+    device_id = request.POST.get('device_id') or request.GET.get('device_id')
+    
+    if group_id:
+        farmers = Farmer.objects.filter(group_id=group_id)
+    else:
+        farmers = Farmer.objects.all()
+        
+    data = []
+    for f in farmers:
+        village_name = f.village.village_name if f.village else ''
+        display_name = f"{f.name} - {village_name}" if village_name else f.name
+        data.append({
+            'id': f.id,
+            'name': display_name
+        })
+        
+    return JsonResponse({'status': 'success', 'data': data})
+
+@csrf_exempt
+def api_add_plot(request):
+    if request.method == 'POST':
+        farmer_input = request.POST.get('farmer_name')
+        crop_id = request.POST.get('crop_id')
+        variety_id = request.POST.get('variety_id')
+        area_acre = request.POST.get('area_acre')
+        planting_date = request.POST.get('planting_date')
+        is_mapped = request.POST.get('is_mapped', '').lower() == 'true'
+        lt = request.POST.get('lt')
+        ln = request.POST.get('ln')
+        device_id = request.POST.get('device_id')
+        officer_id = request.POST.get('officer_id')
+        land_image = request.FILES.get('land_image')
+
+        if not farmer_input or not officer_id:
+            return JsonResponse({"status": "error", "message": "farmer_name and officer_id are required"}, status=400)
+
+        try:
+            farmer = Farmer.objects.filter(id=farmer_input).first()
+        except ValueError:
+            farmer = Farmer.objects.filter(name=farmer_input).first()
+            
+        if not farmer:
+            return JsonResponse({"status": "error", "message": "Farmer not found"}, status=404)
+
+        officer = Officer.objects.filter(id=officer_id).first()
+        crop = Crop.objects.filter(id=crop_id).first() if crop_id else None
+        variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
+
+        division = farmer.section.division if farmer.section and farmer.section.division else None
+        division_name = division.division_name if division else None
+        section = farmer.section if farmer.section else None
+        section_name = section.section_name if section else None
+        village = farmer.village if farmer.village else None
+        village_name = village.village_name if village else None
+        group_obj = farmer.group
+        group_name = farmer.group_name
+        factory_obj = farmer.factory
+        factory_name = farmer.factory_name
+
+        plot = Plot.objects.create(
+            farmer=farmer,
+            division=division,
+            division_name=division_name,
+            section=section,
+            section_name=section_name,
+            village=village,
+            village_name=village_name,
+            crop_type=crop,
+            variety=variety,
+            planting_date=planting_date,
+            area_acre=area_acre,
+            is_mapped=is_mapped,
+            latitude=lt,
+            longitude=ln,
+            device_id=device_id,
+            group=group_obj,
+            group_name=group_name,
+            factory=factory_obj,
+            factory_name=factory_name,
+            officer=officer,
+            land_image=land_image
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Plot added successfully",
+            "plot_id": plot.id,
+            "plot_code": plot.plot_code
+        }, status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
