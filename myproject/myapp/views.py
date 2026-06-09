@@ -1410,8 +1410,7 @@ def api_add_plot(request):
             group_name=group_name,
             factory=factory_obj,
             factory_name=factory_name,
-            officer=officer,
-            land_image=land_image
+            officer=officer
         )
 
         return JsonResponse({
