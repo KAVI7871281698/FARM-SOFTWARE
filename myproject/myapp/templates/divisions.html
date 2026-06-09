@@ -28,7 +28,8 @@
                     <td style="padding: 1rem;">{{ division.name }}</td>
                     <td style="padding: 1rem;">{{ division.factory_name.name|default:"-" }}</td>
                     <td style="padding: 1rem;">
-                        <a href="{% url 'edit_division' division.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        <a href="{% url 'edit_division' division.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600; margin-right: 15px;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        <a href="{% url 'delete_division' division.id %}" style="color: #d32f2f; text-decoration: none; font-weight: 600;" onclick="return confirm('Are you sure you want to delete this division?');"><i class="fa-solid fa-trash"></i> Delete</a>
                     </td>
                 </tr>
                 {% empty %}

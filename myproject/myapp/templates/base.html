@@ -338,6 +338,10 @@
                     <li class=""><a href="{% url 'divisions' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-building-user"></i> Divisions</a></li>
                     {% endif %}
+                    {% if 'work_assigns' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'work_assigns' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-briefcase"></i> Work Assign</a></li>
+                    {% endif %}
                 </ul>
             </li>
             {% if 'dashboard' in request.session.permissions or request.session.role_id == 1 %}

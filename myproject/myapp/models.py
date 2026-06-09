@@ -88,6 +88,7 @@ class Section(models.Model):
 class Village(models.Model):
     village_code = models.CharField(max_length=50, unique=True, blank=True)
     village_name = models.CharField(max_length=100)
+    division = models.CharField(max_length=100, blank=True, null=True)
     section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name="villages")
     taluk = models.CharField(max_length=100, blank=True, null=True)
     district = models.CharField(max_length=100, blank=True, null=True)
@@ -221,3 +222,27 @@ class Division(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+
+class WorkAssign(models.Model):
+    work_assign_code = models.CharField(max_length=50, unique=True, blank=True)
+    division = models.CharField(max_length=100, blank=True, null=True)
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, related_name="work_assigns")
+    village = models.ForeignKey(Village, on_delete=models.SET_NULL, null=True, related_name="work_assigns")
+    officer = models.ForeignKey(Officer, on_delete=models.SET_NULL, null=True, related_name="work_assigns")
+    status = models.CharField(max_length=20, default="active")
+
+    class Meta:
+        db_table = "work_assign"
+
+    def save(self, *args, **kwargs):
+        if not self.work_assign_code:
+            last_assign = WorkAssign.objects.all().order_by('id').last()
+            if last_assign:
+                last_id = last_assign.id
+                self.work_assign_code = f"WRK-{last_id + 1:03d}"
+            else:
+                self.work_assign_code = "WRK-001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.work_assign_code} - {self.officer.name if self.officer else 'Unassigned'}"

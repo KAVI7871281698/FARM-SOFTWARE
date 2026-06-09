@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Work Assign{% endblock %}
+{% block header_title %}Add Work Assign{% endblock %}
+
+{% block content %}
+<div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
+    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Assign Work Details</h2>
+    <form method="POST" action="{% url 'add_work_assign' %}">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Officer</label>
+                <input type="text" id="officerSearch" placeholder="Search officer..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSelect('officerSearch', 'officerSelect')">
+                <select name="officer_id" id="officerSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;">
+                    <option value="" disabled selected>Select Officer</option>
+                    {% for officer in officers %}
+                    <option value="{{ officer.id }}">{{ officer.name }} ({{ officer.user_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Division</label>
+                <input type="text" id="divisionSearch" placeholder="Search division..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSelect('divisionSearch', 'divisionSelect')">
+                <select name="division" id="divisionSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;" onchange="filterSections()">
+                    <option value="all" data-id="all" selected>All Divisions</option>
+                    {% for division in divisions %}
+                    <option value="{{ division.name }}" data-id="{{ division.id }}">{{ division.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Section / Zone</label>
+                <input type="text" id="sectionSearch" placeholder="Search section..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSections()">
+                <select name="section_id" id="sectionSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;" onchange="filterVillages()">
+                    <option value="" disabled selected>Select Section</option>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}" data-division="{{ section.division.id }}">{{ section.section_name }} ({{ section.section_code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Village</label>
+                <input type="text" id="villageSearch" placeholder="Search village..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterVillages()">
+                <select name="village_id" id="villageSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;">
+                    <option value="" disabled selected>Select Village</option>
+                    {% for village in villages %}
+                    <option value="{{ village.id }}" data-section="{{ village.section.id }}">{{ village.village_name }} ({{ village.village_code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Status</label>
+                <select name="status" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="active" selected>Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <button type="button" onclick="window.location.href='{% url 'work_assigns' %}'" style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
+            <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Assign Work</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        filterSections();
+    });
+
+    function filterSelect(inputId, selectId) {
+        let input = document.getElementById(inputId).value.toLowerCase();
+        let options = document.getElementById(selectId).options;
+        for (let i = 1; i < options.length; i++) {
+            let text = options[i].text.toLowerCase();
+            options[i].style.display = text.includes(input) ? '' : 'none';
+        }
+    }
+
+    function filterSections() {
+        let input = document.getElementById('sectionSearch').value.toLowerCase();
+        let options = document.getElementById('sectionSelect').options;
+        
+        let divisionSelect = document.getElementById('divisionSelect');
+        let selectedDivisionOpt = divisionSelect.options[divisionSelect.selectedIndex];
+        let selectedDivisionId = selectedDivisionOpt ? selectedDivisionOpt.getAttribute('data-id') : 'all';
+        
+        for (let i = 1; i < options.length; i++) {
+            let text = options[i].text.toLowerCase();
+            let divId = options[i].getAttribute('data-division');
+            let isMatch = text.includes(input);
+            
+            if (selectedDivisionId && selectedDivisionId !== 'all' && selectedDivisionId !== divId) {
+                isMatch = false;
+            }
+            
+            options[i].style.display = isMatch ? '' : 'none';
+        }
+        
+        let currentSelected = document.getElementById('sectionSelect').options[document.getElementById('sectionSelect').selectedIndex];
+        if (currentSelected && currentSelected.style.display === 'none') {
+            document.getElementById('sectionSelect').value = "";
+        }
+        filterVillages();
+    }
+
+    function filterVillages() {
+        let input = document.getElementById('villageSearch').value.toLowerCase();
+        let options = document.getElementById('villageSelect').options;
+        
+        let selectedSection = document.getElementById('sectionSelect').value;
+        
+        for (let i = 1; i < options.length; i++) {
+            let text = options[i].text.toLowerCase();
+            let secId = options[i].getAttribute('data-section');
+            let isMatch = text.includes(input);
+            
+            if (selectedSection && selectedSection !== secId) {
+                isMatch = false;
+            }
+            
+            options[i].style.display = isMatch ? '' : 'none';
+        }
+        
+        let currentSelected = document.getElementById('villageSelect').options[document.getElementById('villageSelect').selectedIndex];
+        if (currentSelected && currentSelected.style.display === 'none') {
+            document.getElementById('villageSelect').value = "";
+        }
+    }
+</script>
+{% endblock %}

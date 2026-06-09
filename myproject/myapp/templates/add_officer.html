@@ -4,6 +4,15 @@
 {% block header_title %}Add Officer{% endblock %}
 
 {% block content %}
+<style>
+.custom-dropdown-container { position: relative; }
+.custom-dropdown-header { width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.custom-dropdown-options { display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 10; margin-top: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.custom-dropdown-options.show { display: block; }
+.custom-checkbox-label { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; margin: 0; transition: background 0.2s; }
+.custom-checkbox-label:hover { background: #f9f9f9; }
+.custom-checkbox-label input { margin-right: 8px; width: 16px; height: 16px; accent-color: var(--primary-color); cursor: pointer; }
+</style>
 <div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
         <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Officer Details & Permissions</h2>
         
@@ -31,21 +40,36 @@
                         {% endfor %}
                     </select>
                 </div>
-                {% if 'groups' in request.session.permissions or request.session.role_id == 1 %}
+                {% if 'groups' in request.session.permissions or is_superadmin %}
                 <div id="factories_container" style="display: none;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Factories</label>
-                    <select name="factories" id="factories_select" multiple style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
-                    </select>
+                    <div class="custom-dropdown-container">
+                        <div class="custom-dropdown-header" onclick="this.nextElementSibling.classList.toggle('show')">
+                            <span id="factories_text">Select Factories...</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="custom-dropdown-options" id="factories_select"></div>
+                    </div>
                 </div>
                 <div id="divisions_container" style="display: none;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Divisions</label>
-                    <select name="divisions" id="divisions_select" multiple style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
-                    </select>
+                    <div class="custom-dropdown-container">
+                        <div class="custom-dropdown-header" onclick="this.nextElementSibling.classList.toggle('show')">
+                            <span id="divisions_text">Select Divisions...</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="custom-dropdown-options" id="divisions_select"></div>
+                    </div>
                 </div>
                 <div id="sections_container" style="display: none;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Sections</label>
-                    <select name="sections" id="sections_select" multiple style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
-                    </select>
+                    <div class="custom-dropdown-container">
+                        <div class="custom-dropdown-header" onclick="this.nextElementSibling.classList.toggle('show')">
+                            <span id="sections_text">Select Sections...</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="custom-dropdown-options" id="sections_select"></div>
+                    </div>
                 </div>
                 {% endif %}
                 <div id="group_container" {% if not is_superadmin %}style="display: none;"{% endif %}>
@@ -143,6 +167,10 @@
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                             <input type="checkbox" name="permissions[]" value="varieties" class="master-sub-checkbox" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                             <span style="font-weight: 500; color: #444;">Varieties</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" name="permissions[]" value="work_assigns" class="master-sub-checkbox" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                            <span style="font-weight: 500; color: #444;">Work Assigns</span>
                         </label>
                     </div>
                     <div style="text-align: right;">
@@ -328,16 +356,22 @@
             const sectionsContainer = document.getElementById('sections_container');
             const sectionsSelect = document.getElementById('sections_select');
 
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.custom-dropdown-container')) {
+                    document.querySelectorAll('.custom-dropdown-options').forEach(el => el.classList.remove('show'));
+                }
+            });
+
             if (groupSelect) {
                 groupSelect.addEventListener('change', function() {
                     const groupId = this.value;
                     
                     // Reset down-stream
-                    if(factoriesSelect) factoriesSelect.innerHTML = '';
+                    if(factoriesSelect) { factoriesSelect.innerHTML = ''; document.getElementById('factories_text').textContent = 'Select Factories...'; }
                     if(factoriesContainer) factoriesContainer.style.display = 'none';
-                    if(divisionsSelect) divisionsSelect.innerHTML = '';
+                    if(divisionsSelect) { divisionsSelect.innerHTML = ''; document.getElementById('divisions_text').textContent = 'Select Divisions...'; }
                     if(divisionsContainer) divisionsContainer.style.display = 'none';
-                    if(sectionsSelect) sectionsSelect.innerHTML = '';
+                    if(sectionsSelect) { sectionsSelect.innerHTML = ''; document.getElementById('sections_text').textContent = 'Select Sections...'; }
                     if(sectionsContainer) sectionsContainer.style.display = 'none';
                     
                     if (groupId) {
@@ -346,10 +380,10 @@
                             .then(data => {
                                 if (data.factories && data.factories.length > 0) {
                                     data.factories.forEach(f => {
-                                        const option = document.createElement('option');
-                                        option.value = f.id;
-                                        option.textContent = f.name;
-                                        factoriesSelect.appendChild(option);
+                                        const label = document.createElement('label');
+                                        label.className = 'custom-checkbox-label';
+                                        label.innerHTML = `<input type="checkbox" name="factories[]" value="${f.id}"> <span>${f.name}</span>`;
+                                        factoriesSelect.appendChild(label);
                                     });
                                     if(factoriesContainer) factoriesContainer.style.display = 'block';
                                 }
@@ -364,12 +398,14 @@
 
             if (factoriesSelect) {
                 factoriesSelect.addEventListener('change', function() {
-                    const selectedOptions = Array.from(this.selectedOptions).map(opt => opt.value);
+                    const selectedCheckboxes = Array.from(this.querySelectorAll('input[type="checkbox"]:checked'));
+                    const selectedOptions = selectedCheckboxes.map(cb => cb.value);
+                    document.getElementById('factories_text').textContent = selectedOptions.length > 0 ? `${selectedOptions.length} Selected` : 'Select Factories...';
                     
                     // Reset down-stream
-                    if(divisionsSelect) divisionsSelect.innerHTML = '';
+                    if(divisionsSelect) { divisionsSelect.innerHTML = ''; document.getElementById('divisions_text').textContent = 'Select Divisions...'; }
                     if(divisionsContainer) divisionsContainer.style.display = 'none';
-                    if(sectionsSelect) sectionsSelect.innerHTML = '';
+                    if(sectionsSelect) { sectionsSelect.innerHTML = ''; document.getElementById('sections_text').textContent = 'Select Sections...'; }
                     if(sectionsContainer) sectionsContainer.style.display = 'none';
                     
                     if (selectedOptions.length > 0) {
@@ -381,10 +417,10 @@
                             .then(data => {
                                 if (data.divisions && data.divisions.length > 0) {
                                     data.divisions.forEach(d => {
-                                        const option = document.createElement('option');
-                                        option.value = d.id;
-                                        option.textContent = d.name;
-                                        divisionsSelect.appendChild(option);
+                                        const label = document.createElement('label');
+                                        label.className = 'custom-checkbox-label';
+                                        label.innerHTML = `<input type="checkbox" name="divisions[]" value="${d.id}"> <span>${d.name}</span>`;
+                                        divisionsSelect.appendChild(label);
                                     });
                                     if(divisionsContainer) divisionsContainer.style.display = 'block';
                                 }
@@ -395,10 +431,12 @@
 
             if (divisionsSelect) {
                 divisionsSelect.addEventListener('change', function() {
-                    const selectedOptions = Array.from(this.selectedOptions).map(opt => opt.value);
+                    const selectedCheckboxes = Array.from(this.querySelectorAll('input[type="checkbox"]:checked'));
+                    const selectedOptions = selectedCheckboxes.map(cb => cb.value);
+                    document.getElementById('divisions_text').textContent = selectedOptions.length > 0 ? `${selectedOptions.length} Selected` : 'Select Divisions...';
                     
                     // Reset down-stream
-                    if(sectionsSelect) sectionsSelect.innerHTML = '';
+                    if(sectionsSelect) { sectionsSelect.innerHTML = ''; document.getElementById('sections_text').textContent = 'Select Sections...'; }
                     if(sectionsContainer) sectionsContainer.style.display = 'none';
                     
                     if (selectedOptions.length > 0) {
@@ -410,15 +448,23 @@
                             .then(data => {
                                 if (data.sections && data.sections.length > 0) {
                                     data.sections.forEach(s => {
-                                        const option = document.createElement('option');
-                                        option.value = s.id;
-                                        option.textContent = s.section_name;
-                                        sectionsSelect.appendChild(option);
+                                        const label = document.createElement('label');
+                                        label.className = 'custom-checkbox-label';
+                                        label.innerHTML = `<input type="checkbox" name="sections[]" value="${s.id}"> <span>${s.section_name}</span>`;
+                                        sectionsSelect.appendChild(label);
                                     });
                                     if(sectionsContainer) sectionsContainer.style.display = 'block';
                                 }
                             });
                     }
+                });
+            }
+
+            if (sectionsSelect) {
+                sectionsSelect.addEventListener('change', function() {
+                    const selectedCheckboxes = Array.from(this.querySelectorAll('input[type="checkbox"]:checked'));
+                    const selectedOptions = selectedCheckboxes.map(cb => cb.value);
+                    document.getElementById('sections_text').textContent = selectedOptions.length > 0 ? `${selectedOptions.length} Selected` : 'Select Sections...';
                 });
             }
         });

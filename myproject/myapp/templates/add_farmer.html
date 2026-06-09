@@ -26,26 +26,32 @@
                     <input type="tel" name="phone" placeholder="Enter phone" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Division</label>
-                    <input type="text" name="division" placeholder="Enter division" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Division</label>
+                    <input type="text" id="divisionSearch" placeholder="Search division..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSelect('divisionSearch', 'divisionSelect')">
+                    <select name="division" id="divisionSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;" onchange="filterSections()">
+                        <option value="" data-id="all" disabled selected>Select Division</option>
+                        {% for division in divisions %}
+                        <option value="{{ division.name }}" data-id="{{ division.id }}">{{ division.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Section</label>
-                    <input type="text" id="sectionSearch" placeholder="Search section..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSelect('sectionSearch', 'sectionSelect')">
-                    <select name="section_id" id="sectionSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;">
+                    <input type="text" id="sectionSearch" placeholder="Search section..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSections()">
+                    <select name="section_id" id="sectionSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;" onchange="filterVillages()">
                         <option value="" disabled selected>Select Section</option>
                         {% for section in sections %}
-                        <option value="{{ section.id }}">{{ section.section_name }} ({{ section.section_code }})</option>
+                        <option value="{{ section.id }}" data-division="{{ section.division.id }}">{{ section.section_name }} ({{ section.section_code }})</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Village</label>
-                    <input type="text" id="villageSearch" placeholder="Search village..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterSelect('villageSearch', 'villageSelect')">
+                    <input type="text" id="villageSearch" placeholder="Search village..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 8px 8px 0 0; outline: none; font-family: 'Outfit'; margin-bottom: -1px; box-sizing: border-box;" onkeyup="filterVillages()">
                     <select name="village_id" id="villageSelect" required style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 0 0 8px 8px; outline: none; font-family: 'Outfit'; background: white; box-sizing: border-box;">
                         <option value="" disabled selected>Select Village</option>
                         {% for village in villages %}
-                        <option value="{{ village.id }}">{{ village.village_name }} ({{ village.village_code }})</option>
+                        <option value="{{ village.id }}" data-section="{{ village.section.id }}">{{ village.village_name }} ({{ village.village_code }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -197,6 +203,57 @@
             for (let i = 1; i < options.length; i++) {
                 let text = options[i].text.toLowerCase();
                 options[i].style.display = text.includes(input) ? '' : 'none';
+            }
+        }
+
+        function filterSections() {
+            let input = document.getElementById('sectionSearch').value.toLowerCase();
+            let options = document.getElementById('sectionSelect').options;
+            
+            let divisionSelect = document.getElementById('divisionSelect');
+            let selectedDivisionOpt = divisionSelect.options[divisionSelect.selectedIndex];
+            let selectedDivisionId = selectedDivisionOpt ? selectedDivisionOpt.getAttribute('data-id') : 'all';
+            
+            for (let i = 1; i < options.length; i++) {
+                let text = options[i].text.toLowerCase();
+                let divId = options[i].getAttribute('data-division');
+                let isMatch = text.includes(input);
+                
+                if (selectedDivisionId && selectedDivisionId !== 'all' && selectedDivisionId !== divId) {
+                    isMatch = false;
+                }
+                
+                options[i].style.display = isMatch ? '' : 'none';
+            }
+            
+            let currentSelected = document.getElementById('sectionSelect').options[document.getElementById('sectionSelect').selectedIndex];
+            if (currentSelected && currentSelected.style.display === 'none') {
+                document.getElementById('sectionSelect').value = "";
+            }
+            filterVillages();
+        }
+
+        function filterVillages() {
+            let input = document.getElementById('villageSearch').value.toLowerCase();
+            let options = document.getElementById('villageSelect').options;
+            
+            let selectedSection = document.getElementById('sectionSelect').value;
+            
+            for (let i = 1; i < options.length; i++) {
+                let text = options[i].text.toLowerCase();
+                let secId = options[i].getAttribute('data-section');
+                let isMatch = text.includes(input);
+                
+                if (selectedSection && selectedSection !== secId) {
+                    isMatch = false;
+                }
+                
+                options[i].style.display = isMatch ? '' : 'none';
+            }
+            
+            let currentSelected = document.getElementById('villageSelect').options[document.getElementById('villageSelect').selectedIndex];
+            if (currentSelected && currentSelected.style.display === 'none') {
+                document.getElementById('villageSelect').value = "";
             }
         }
     </script>

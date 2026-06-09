@@ -4,6 +4,67 @@
 {% block header_title %}Edit Officer{% endblock %}
 
 {% block content %}
+<style>
+    .custom-dropdown-container {
+        position: relative;
+    }
+
+    .custom-dropdown-header {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        outline: none;
+        font-family: 'Outfit';
+        background: white;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .custom-dropdown-options {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 10;
+        margin-top: 5px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .custom-dropdown-options.show {
+        display: block;
+    }
+
+    .custom-checkbox-label {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        margin: 0;
+        transition: background 0.2s;
+    }
+
+    .custom-checkbox-label:hover {
+        background: #f9f9f9;
+    }
+
+    .custom-checkbox-label input {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary-color);
+        cursor: pointer;
+    }
+</style>
 <div
     style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
     <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Officer Details
@@ -42,13 +103,16 @@
                     required>
                     <option value="" disabled selected>Select Role</option>
                     {% for role in roles %}
-                    <option value="{{ role.id }}" {% if officer.role and officer.role.id==role.id %}selected{% endif %}>
-                        {{ role.name }}</option>
+                    {% if officer.role and officer.role.id == role.id %}
+                    <option value="{{ role.id }}" selected>{{ role.name }}</option>
+                    {% else %}
+                    <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% endif %}
                     {% endfor %}
                 </select>
             </div>
 
-            {% if 'groups' in request.session.permissions or request.session.role_id == 1 %}
+            {% if 'groups' in request.session.permissions or is_superadmin %}
             <div id="group_container">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
                     Group</label>
@@ -56,8 +120,11 @@
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
                     <option value="">Select Group</option>
                     {% for group in groups %}
-                    <option value="{{ group.id }}" {% if officer.group and officer.group.id==group.id %}selected{% endif
-                        %}>{{ group.name }}</option>
+                    {% if officer.group and officer.group.id == group.id %}
+                    <option value="{{ group.id }}" selected>{{ group.name }}</option>
+                    {% else %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endif %}
                     {% endfor %}
                 </select>
             </div>
@@ -65,33 +132,56 @@
             <div id="factories_container" style="display: none;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
                     Factories</label>
-                <select name="factories" id="factories_select" multiple
-                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
-                    <!-- Pre-filled in edit form if needed, or fetched via JS -->
-                    {% for id, name in officer_factories %}
-                    <option value="{{ id }}" selected>{{ name }}</option>
-                    {% endfor %}
-                </select>
+                <div class="custom-dropdown-container">
+                    <div class="custom-dropdown-header" onclick="this.nextElementSibling.classList.toggle('show')">
+                        <span id="factories_text">{% if officer_factories|length > 0 %}{{ officer_factories|length }}
+                            Selected{% else %}Select Factories...{% endif %}</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="custom-dropdown-options" id="factories_select">
+                        {% for id, name in officer_factories %}
+                        <label class="custom-checkbox-label">
+                            <input type="checkbox" name="factories[]" value="{{ id }}" checked> <span>{{ name }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
             <div id="divisions_container" style="display: none;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
                     Divisions</label>
-                <select name="divisions" id="divisions_select" multiple
-                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
-                    {% for id, name in officer_divisions %}
-                    <option value="{{ id }}" selected>{{ name }}</option>
-                    {% endfor %}
-                </select>
+                <div class="custom-dropdown-container">
+                    <div class="custom-dropdown-header" onclick="this.nextElementSibling.classList.toggle('show')">
+                        <span id="divisions_text">{% if officer_divisions|length > 0 %}{{ officer_divisions|length }}
+                            Selected{% else %}Select Divisions...{% endif %}</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="custom-dropdown-options" id="divisions_select">
+                        {% for id, name in officer_divisions %}
+                        <label class="custom-checkbox-label">
+                            <input type="checkbox" name="divisions[]" value="{{ id }}" checked> <span>{{ name }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
             <div id="sections_container" style="display: none;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
                     Sections</label>
-                <select name="sections" id="sections_select" multiple
-                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white; height: 100px;">
-                    {% for id, name in officer_sections %}
-                    <option value="{{ id }}" selected>{{ name }}</option>
-                    {% endfor %}
-                </select>
+                <div class="custom-dropdown-container">
+                    <div class="custom-dropdown-header" onclick="this.nextElementSibling.classList.toggle('show')">
+                        <span id="sections_text">{% if officer_sections|length > 0 %}{{ officer_sections|length }}
+                            Selected{% else %}Select Sections...{% endif %}</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="custom-dropdown-options" id="sections_select">
+                        {% for id, name in officer_sections %}
+                        <label class="custom-checkbox-label">
+                            <input type="checkbox" name="sections[]" value="{{ id }}" checked> <span>{{ name }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
             {% endif %}
             <div>
@@ -108,68 +198,54 @@
         <div
             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; background: var(--bg-color); padding: 1.5rem; border-radius: 8px;">
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="dashboard" {% if 'dashboard' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="dashboard" {% if 'dashboard' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Dashboard</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="field_intelligence" {% if 'field_intelligence' in
-                    officer.permissions %}checked{% endif %}
+                <input type="checkbox" name="permissions[]" value="field_intelligence" {% if 'field_intelligence' in officer.permissions %}checked{% endif %}
                     style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Field Intelligence</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="analytics" {% if 'analytics' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="analytics" {% if 'analytics' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Analytics</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="ndvi_monitoring" {% if 'ndvi_monitoring' in
-                    officer.permissions %}checked{% endif %}
+                <input type="checkbox" name="permissions[]" value="ndvi_monitoring" {% if 'ndvi_monitoring' in officer.permissions %}checked{% endif %}
                     style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">NDVI Monitoring</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="scouting" {% if 'scouting' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="scouting" {% if 'scouting' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Scouting</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="reports" {% if 'reports' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="reports" {% if 'reports' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Reports</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="officers" {% if 'officers' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="officers" {% if 'officers' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Officers</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="settings" {% if 'settings' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="settings" {% if 'settings' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Settings</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="users" {% if 'users' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="users" {% if 'users' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Farmers</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="master" id="master-checkbox" {% if 'groups' in
-                    officer.permissions or 'factories' in officer.permissions or 'divisions' in officer.permissions
-                    or 'sections' in officer.permissions or 'villages' in officer.permissions or 'varieties' in
-                    officer.permissions or 'master' in officer.permissions %}checked{% endif %}
+                <input type="checkbox" name="permissions[]" value="master" id="master-checkbox" {% if 'groups' in officer.permissions or 'factories' in officer.permissions or 'divisions' in officer.permissions                     or 'sections' in officer.permissions or 'villages' in officer.permissions or 'varieties' in                     officer.permissions or 'work_assigns' in officer.permissions or 'master' in officer.permissions %}checked{% endif %}
                     style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Master</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="plots" {% if 'plots' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="plots" {% if 'plots' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Plots</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="surveys" {% if 'surveys' in officer.permissions
-                    %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <input type="checkbox" name="permissions[]" value="surveys" {% if 'surveys' in officer.permissions %}checked{% endif %} style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Surveys</span>
             </label>
         </div>
@@ -182,40 +258,39 @@
                 <h3 style="margin-bottom: 1.5rem; color: #333; font-family: 'Outfit';">Master Permissions</h3>
                 <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" name="permissions[]" value="groups" {% if 'groups' in officer.permissions
-                            %}checked{% endif %} class="master-sub-checkbox"
+                        <input type="checkbox" name="permissions[]" value="groups" {% if 'groups' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
                             style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500; color: #444;">Groups</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" name="permissions[]" value="factories" {% if 'factories' in
-                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                        <input type="checkbox" name="permissions[]" value="factories" {% if 'factories' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
                             style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500; color: #444;">Factories</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" name="permissions[]" value="divisions" {% if 'divisions' in
-                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                        <input type="checkbox" name="permissions[]" value="divisions" {% if 'divisions' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
                             style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500; color: #444;">Divisions</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" name="permissions[]" value="sections" {% if 'sections' in
-                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                        <input type="checkbox" name="permissions[]" value="sections" {% if 'sections' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
                             style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500; color: #444;">Sections</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" name="permissions[]" value="villages" {% if 'villages' in
-                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                        <input type="checkbox" name="permissions[]" value="villages" {% if 'villages' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
                             style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500; color: #444;">Villages</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" name="permissions[]" value="varieties" {% if 'varieties' in
-                            officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                        <input type="checkbox" name="permissions[]" value="varieties" {% if 'varieties' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
                             style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500; color: #444;">Varieties</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="work_assigns" {% if 'work_assigns' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Work Assigns</span>
                     </label>
                 </div>
                 <div style="text-align: right;">
@@ -406,20 +481,26 @@
         const sectionsSelect = document.getElementById('sections_select');
 
         // Show containers if they have pre-selected values
-        if (factoriesSelect && factoriesSelect.options.length > 0) factoriesContainer.style.display = 'block';
-        if (divisionsSelect && divisionsSelect.options.length > 0) divisionsContainer.style.display = 'block';
-        if (sectionsSelect && sectionsSelect.options.length > 0) sectionsContainer.style.display = 'block';
+        if (factoriesSelect && factoriesSelect.querySelectorAll('input[type="checkbox"]').length > 0) factoriesContainer.style.display = 'block';
+        if (divisionsSelect && divisionsSelect.querySelectorAll('input[type="checkbox"]').length > 0) divisionsContainer.style.display = 'block';
+        if (sectionsSelect && sectionsSelect.querySelectorAll('input[type="checkbox"]').length > 0) sectionsContainer.style.display = 'block';
+
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.custom-dropdown-container')) {
+                document.querySelectorAll('.custom-dropdown-options').forEach(el => el.classList.remove('show'));
+            }
+        });
 
         if (groupSelect) {
             groupSelect.addEventListener('change', function () {
                 const groupId = this.value;
 
                 // Reset down-stream
-                if (factoriesSelect) factoriesSelect.innerHTML = '';
+                if (factoriesSelect) { factoriesSelect.innerHTML = ''; document.getElementById('factories_text').textContent = 'Select Factories...'; }
                 if (factoriesContainer) factoriesContainer.style.display = 'none';
-                if (divisionsSelect) divisionsSelect.innerHTML = '';
+                if (divisionsSelect) { divisionsSelect.innerHTML = ''; document.getElementById('divisions_text').textContent = 'Select Divisions...'; }
                 if (divisionsContainer) divisionsContainer.style.display = 'none';
-                if (sectionsSelect) sectionsSelect.innerHTML = '';
+                if (sectionsSelect) { sectionsSelect.innerHTML = ''; document.getElementById('sections_text').textContent = 'Select Sections...'; }
                 if (sectionsContainer) sectionsContainer.style.display = 'none';
 
                 if (groupId) {
@@ -428,10 +509,10 @@
                         .then(data => {
                             if (data.factories && data.factories.length > 0) {
                                 data.factories.forEach(f => {
-                                    const option = document.createElement('option');
-                                    option.value = f.id;
-                                    option.textContent = f.name;
-                                    factoriesSelect.appendChild(option);
+                                    const label = document.createElement('label');
+                                    label.className = 'custom-checkbox-label';
+                                    label.innerHTML = `<input type="checkbox" name="factories[]" value="${f.id}"> <span>${f.name}</span>`;
+                                    factoriesSelect.appendChild(label);
                                 });
                                 if (factoriesContainer) factoriesContainer.style.display = 'block';
                             }
@@ -442,12 +523,14 @@
 
         if (factoriesSelect) {
             factoriesSelect.addEventListener('change', function () {
-                const selectedOptions = Array.from(this.selectedOptions).map(opt => opt.value);
+                const selectedCheckboxes = Array.from(this.querySelectorAll('input[type="checkbox"]:checked'));
+                const selectedOptions = selectedCheckboxes.map(cb => cb.value);
+                document.getElementById('factories_text').textContent = selectedOptions.length > 0 ? `${selectedOptions.length} Selected` : 'Select Factories...';
 
                 // Reset down-stream
-                if (divisionsSelect) divisionsSelect.innerHTML = '';
+                if (divisionsSelect) { divisionsSelect.innerHTML = ''; document.getElementById('divisions_text').textContent = 'Select Divisions...'; }
                 if (divisionsContainer) divisionsContainer.style.display = 'none';
-                if (sectionsSelect) sectionsSelect.innerHTML = '';
+                if (sectionsSelect) { sectionsSelect.innerHTML = ''; document.getElementById('sections_text').textContent = 'Select Sections...'; }
                 if (sectionsContainer) sectionsContainer.style.display = 'none';
 
                 if (selectedOptions.length > 0) {
@@ -459,10 +542,10 @@
                         .then(data => {
                             if (data.divisions && data.divisions.length > 0) {
                                 data.divisions.forEach(d => {
-                                    const option = document.createElement('option');
-                                    option.value = d.id;
-                                    option.textContent = d.name;
-                                    divisionsSelect.appendChild(option);
+                                    const label = document.createElement('label');
+                                    label.className = 'custom-checkbox-label';
+                                    label.innerHTML = `<input type="checkbox" name="divisions[]" value="${d.id}"> <span>${d.name}</span>`;
+                                    divisionsSelect.appendChild(label);
                                 });
                                 if (divisionsContainer) divisionsContainer.style.display = 'block';
                             }
@@ -473,10 +556,12 @@
 
         if (divisionsSelect) {
             divisionsSelect.addEventListener('change', function () {
-                const selectedOptions = Array.from(this.selectedOptions).map(opt => opt.value);
+                const selectedCheckboxes = Array.from(this.querySelectorAll('input[type="checkbox"]:checked'));
+                const selectedOptions = selectedCheckboxes.map(cb => cb.value);
+                document.getElementById('divisions_text').textContent = selectedOptions.length > 0 ? `${selectedOptions.length} Selected` : 'Select Divisions...';
 
                 // Reset down-stream
-                if (sectionsSelect) sectionsSelect.innerHTML = '';
+                if (sectionsSelect) { sectionsSelect.innerHTML = ''; document.getElementById('sections_text').textContent = 'Select Sections...'; }
                 if (sectionsContainer) sectionsContainer.style.display = 'none';
 
                 if (selectedOptions.length > 0) {
@@ -488,15 +573,23 @@
                         .then(data => {
                             if (data.sections && data.sections.length > 0) {
                                 data.sections.forEach(s => {
-                                    const option = document.createElement('option');
-                                    option.value = s.id;
-                                    option.textContent = s.section_name;
-                                    sectionsSelect.appendChild(option);
+                                    const label = document.createElement('label');
+                                    label.className = 'custom-checkbox-label';
+                                    label.innerHTML = `<input type="checkbox" name="sections[]" value="${s.id}"> <span>${s.section_name}</span>`;
+                                    sectionsSelect.appendChild(label);
                                 });
                                 if (sectionsContainer) sectionsContainer.style.display = 'block';
                             }
                         });
                 }
+            });
+        }
+
+        if (sectionsSelect) {
+            sectionsSelect.addEventListener('change', function () {
+                const selectedCheckboxes = Array.from(this.querySelectorAll('input[type="checkbox"]:checked'));
+                const selectedOptions = selectedCheckboxes.map(cb => cb.value);
+                document.getElementById('sections_text').textContent = selectedOptions.length > 0 ? `${selectedOptions.length} Selected` : 'Select Sections...';
             });
         }
     });

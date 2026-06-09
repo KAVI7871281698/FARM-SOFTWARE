@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Group, Factory, Division
+from .models import Role, Officer, Section, Village, Farmer, Variety, Group, Factory, Division, WorkAssign
 
 import json
 
@@ -23,20 +23,26 @@ def index(request):
     if request.method == 'POST':
         keys = request.POST.keys()
         
-        # 1. API: Add Farmer (Inferred if 'farmer_name' is passed)
+        # ==========================================
+        # 1. MOBILE API: Add Farmer
+        # ==========================================
         if 'farmer_name' in keys:
             farmer_name = request.POST.get('farmer_name')
             mobile = request.POST.get('mobile')
             # Add farmer logic here
             return JsonResponse({'status': 'success', 'message': f'Farmer {farmer_name} added successfully'})
             
-        # 2. API: Add Plot (Inferred if 'plot_name' is passed)
+        # ==========================================
+        # 2. MOBILE API: Add Plot
+        # ==========================================
         elif 'plot_name' in keys:
             plot_name = request.POST.get('plot_name')
             # Add plot logic here
             return JsonResponse({'status': 'success', 'message': f'Plot {plot_name} added successfully'})
             
-        # 3. API or Web Login
+        # ==========================================
+        # 3. MOBILE API & WEB: Login
+        # ==========================================
         elif 'user_id' in keys and 'password' in keys:
             user_id = request.POST.get('user_id')
             password = request.POST.get('password')
@@ -75,10 +81,38 @@ def index(request):
                     request.session['role_id'] = user.role_id
                     request.session['group_id'] = user.group_id if user.group else None
                     request.session['role_name'] = user.role.name if user.role else ''
+                    request.session['factory_ids'] = user.factory_ids
                     return redirect('dashboard')
                 else:
                     messages.error(request, 'Invalid User ID or password.')
                     return redirect('index')
+
+        # ==========================================
+        # 4. MOBILE API: Get Work Assigns
+        # ==========================================
+        elif 'officer_id' in keys and 'device_id' in keys:
+            officer_id = request.POST.get('officer_id')
+            
+            work_assigns = WorkAssign.objects.filter(officer_id=officer_id)
+            data = []
+            for wa in work_assigns:
+                data.append({
+                    'id': wa.id,
+                    'work_assign_code': wa.work_assign_code,
+                    'division': wa.division,
+                    'section_id': wa.section.id if wa.section else None,
+                    'section_name': wa.section.section_name if wa.section else None,
+                    'village_id': wa.village.id if wa.village else None,
+                    'village_name': wa.village.village_name if wa.village else None,
+                    'status': wa.status,
+                    'created_at': wa.created_at.strftime('%Y-%m-%d %H:%M:%S') if wa.created_at else None
+                })
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Work assigns fetched successfully',
+                'data': data
+            })
                     
         # Invalid API Request fallback
         elif request.headers.get('Accept') == 'application/json':
@@ -91,53 +125,35 @@ def logout_view(request):
     request.session.flush()
     return redirect('index')
 
-from django.views.decorators.csrf import csrf_exempt
+def get_allowed_factories(request):
+    is_superadmin = (str(request.session.get('role_id')) == '1')
+    if is_superadmin:
+        return Factory.objects.all()
+    
+    factory_ids_str = request.session.get('factory_ids')
+    if factory_ids_str:
+        fids = [int(x.strip()) for x in factory_ids_str.split(',') if x.strip().isdigit()]
+        return Factory.objects.filter(id__in=fids)
+    return Factory.objects.none()
 
-@csrf_exempt
-def mobile_api(request):
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        
-        if action == 'login':
-            user_id = request.POST.get('user_id')
-            password = request.POST.get('password')
-            lt = request.POST.get('lt')
-            ln = request.POST.get('ln')
-            device_id = request.POST.get('device_id')
-            
-            user = Officer.objects.filter(user_id=user_id, password=password).first()
-            if user:
-                return JsonResponse({
-                    'status': 'success',
-                    'message': 'Login successful',
-                    'data': {
-                        'id': user.id,
-                        'user_id': user.user_id,
-                        'name': user.name,
-                        'mobile': user.mobile,
-                        'email': user.email,
-                        'role_name': user.role.name if user.role else None,
-                        'group_id': user.group_id if user.group else None,
-                        'permissions': user.permissions or [],
-                        'device_id': device_id,
-                        'latitude': lt,
-                        'longitude': ln
-                    }
-                })
-            else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid User ID or password.'}, status=401)
-                
-        # Add other actions here, e.g. elif action == 'get_dashboard':
-        
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Invalid or missing action parameter'}, status=400)
-            
-    return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
+def get_active_factory_id(request):
+    return request.session.get('active_factory_id', 'all')
+
+def filter_by_factory(queryset, factory_path, request):
+    active_id = get_active_factory_id(request)
+    if active_id != 'all' and active_id:
+        return queryset.filter(**{factory_path: active_id})
+    else:
+        is_superadmin = (str(request.session.get('role_id')) == '1')
+        if not is_superadmin:
+            allowed_factories = get_allowed_factories(request)
+            return queryset.filter(**{f"{factory_path}__in": allowed_factories})
+        return queryset
 
 def dashboard(request):
     logged_group_id = request.session.get('group_id')
     role_name = request.session.get('role_name', '').lower()
-    is_superadmin = (role_name == 'superadmin')
+    is_superadmin = (str(request.session.get('role_id')) == '1')
     
     try:
         if is_superadmin or not logged_group_id:
@@ -160,12 +176,21 @@ def dashboard(request):
     divisions = []
     sections = []
 
-    selected_factory_id = request.GET.get('factory', 'all')
+    if 'factory' in request.GET:
+        selected_factory_id = request.GET.get('factory', 'all')
+        request.session['active_factory_id'] = selected_factory_id
+    else:
+        selected_factory_id = request.session.get('active_factory_id', 'all')
+
     selected_division_id = request.GET.get('division', 'all')
     selected_section_id = request.GET.get('section', 'all')
 
     if not all_selected:
-        factories = list(Factory.objects.filter(group_id=selected_group_id))
+        if not is_superadmin:
+            allowed_factories_qs = get_allowed_factories(request)
+            factories = list(allowed_factories_qs.filter(group_id=selected_group_id))
+        else:
+            factories = list(Factory.objects.filter(group_id=selected_group_id))
         
         if selected_factory_id != 'all' and not any(str(f.id) == selected_factory_id for f in factories):
             selected_factory_id = 'all'
@@ -244,16 +269,26 @@ def dashboard(request):
         }
     else:
         # Dynamic counts for all groups
-        factories = list(Factory.objects.all())
-        divisions = list(Division.objects.all())
-        sections = list(Section.objects.all())
+        if not is_superadmin:
+            allowed_factories_qs = get_allowed_factories(request)
+            factories = list(allowed_factories_qs)
+        else:
+            factories = list(Factory.objects.all())
+        divisions = list(Division.objects.filter(factory_name__in=factories)) if not is_superadmin else list(Division.objects.all())
+        sections = list(Section.objects.filter(division__in=divisions)) if not is_superadmin else list(Section.objects.all())
+        
         
         groups_count = len(groups)
         factories_count = len(factories)
         divisions_count = len(divisions)
         sections_count = len(sections)
-        farmers_count = Farmer.objects.count()
-        officers_count = Officer.objects.count()
+        farmers_count = Farmer.objects.count() if is_superadmin else Farmer.objects.filter(section__in=sections).count()
+        if is_superadmin:
+            officers_count = Officer.objects.count()
+        else:
+            valid_div_ids = set(str(d.id) for d in divisions)
+            officers_count = sum(1 for o in Officer.objects.all() if any(div_id in valid_div_ids for div_id in (o.division_ids or "").split(',')))
+        
 
         context = {
             'groups': groups,
@@ -307,13 +342,24 @@ def dashboard(request):
         hierarchy_data.append(group_data)
         
     context['hierarchy_data'] = hierarchy_data
+    context['user_factories'] = get_allowed_factories(request) if not is_superadmin else Factory.objects.all()
+    context['is_superadmin'] = is_superadmin
+    context['active_factory_id'] = selected_factory_id
+
+    user_id = request.session.get('user_id')
+    if is_superadmin:
+        work_assigns_count = WorkAssign.objects.count()
+    else:
+        work_assigns_count = WorkAssign.objects.filter(officer__user_id=user_id).count()
+    context['work_assigns_count'] = work_assigns_count
 
     return render(request, 'dashboard.html', context)
+
 
 def officers(request):
     logged_group_id = request.session.get('group_id')
     role_name = request.session.get('role_name', '').lower()
-    is_superadmin = (role_name == 'superadmin')
+    is_superadmin = (str(request.session.get('role_id')) == '1')
 
     if is_superadmin or not logged_group_id:
         officers_list = Officer.objects.all()
@@ -344,19 +390,19 @@ def settings(request):
     return render(request, 'settings.html')
 
 def users(request):
-    farmers_list = Farmer.objects.all()
+    farmers_list = filter_by_factory(Farmer.objects.all(), 'section__division__factory_name_id', request)
     return render(request, 'users.html', {'farmers': farmers_list})
 
 def villages(request):
-    villages_list = Village.objects.all()
+    villages_list = filter_by_factory(Village.objects.all(), 'section__division__factory_name_id', request)
     return render(request, 'villages.html', {'villages': villages_list})
 
 def sections(request):
-    sections_list = Section.objects.all()
+    sections_list = filter_by_factory(Section.objects.all(), 'division__factory_name_id', request)
     return render(request, 'sections.html', {'sections': sections_list})
 
 def varieties(request):
-    varieties_list = Variety.objects.all()
+    varieties_list = filter_by_factory(Variety.objects.all(), 'season__division__factory_name_id', request)
     return render(request, 'varieties.html', {'varieties': varieties_list})
 
 def plots(request):
@@ -387,9 +433,12 @@ def add_farmer(request):
         )
         return redirect('users')
 
-    sections_list = Section.objects.all()
-    villages_list = Village.objects.all()
+    divisions_list = filter_by_factory(Division.objects.all(), 'factory_name_id', request)
+    sections_list = filter_by_factory(Section.objects.all(), 'division__factory_name_id', request)
+    villages_list = filter_by_factory(Village.objects.all(), 'section__division__factory_name_id', request)
+    
     return render(request, 'add_farmer.html', {
+        'divisions': divisions_list,
         'sections': sections_list,
         'villages': villages_list
     })
@@ -397,7 +446,7 @@ def add_farmer(request):
 def add_officer(request):
     logged_group_id = request.session.get('group_id')
     role_name = request.session.get('role_name', '').lower()
-    is_superadmin = (role_name == 'superadmin')
+    is_superadmin = (str(request.session.get('role_id')) == '1')
 
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -450,7 +499,16 @@ def add_officer(request):
     return render(request, 'add_officer.html', {'roles': roles, 'divisions': divisions, 'groups': groups, 'superadmin_role_id': superadmin_role_id, 'is_superadmin': is_superadmin})
 
 def add_plots(request):
-    return render(request, 'add_plots.html')
+    active_factory_id = request.session.get('active_factory_id', 'all')
+    if active_factory_id != 'all':
+        farmers_list = Farmer.objects.filter(section__division__factory_name_id=active_factory_id)
+    else:
+        logged_group_id = request.session.get('group_id')
+        if logged_group_id:
+            farmers_list = Farmer.objects.filter(section__division__factory_name__group_id=logged_group_id)
+        else:
+            farmers_list = Farmer.objects.all()
+    return render(request, 'add_plots.html', {'farmers': farmers_list})
 
 def add_section(request):
     if request.method == 'POST':
@@ -466,7 +524,15 @@ def add_section(request):
         )
         return redirect('sections')
 
-    divisions = Division.objects.all()
+    active_factory_id = request.session.get('active_factory_id', 'all')
+    if active_factory_id != 'all':
+        divisions = Division.objects.filter(factory_name_id=active_factory_id)
+    else:
+        logged_group_id = request.session.get('group_id')
+        if logged_group_id:
+            divisions = Division.objects.filter(factory_name__group_id=logged_group_id)
+        else:
+            divisions = Division.objects.all()
     return render(request, 'add_section.html', {'divisions': divisions})
 
 def add_survey(request):
@@ -490,12 +556,21 @@ def add_variety(request):
         )
         return redirect('varieties')
     
-    sections_list = Section.objects.all()
+    active_factory_id = request.session.get('active_factory_id', 'all')
+    if active_factory_id != 'all':
+        sections_list = Section.objects.filter(division__factory_name_id=active_factory_id)
+    else:
+        logged_group_id = request.session.get('group_id')
+        if logged_group_id:
+            sections_list = Section.objects.filter(division__factory_name__group_id=logged_group_id)
+        else:
+            sections_list = Section.objects.all()
     return render(request, 'add_variety.html', {'sections': sections_list})
 
 def add_village(request):
     if request.method == 'POST':
         village_name = request.POST.get('village_name')
+        division = request.POST.get('division')
         section_id = request.POST.get('section_id')
         taluk = request.POST.get('taluk')
         district = request.POST.get('district')
@@ -508,6 +583,7 @@ def add_village(request):
         if section:
             Village.objects.create(
                 village_name=village_name,
+                division=division,
                 section=section,
                 taluk=taluk,
                 district=district,
@@ -517,8 +593,9 @@ def add_village(request):
             )
             return redirect('villages')
 
-    sections_list = Section.objects.all()
-    return render(request, 'add_village.html', {'sections': sections_list})
+    divisions_list = filter_by_factory(Division.objects.all(), 'factory_name_id', request)
+    sections_list = filter_by_factory(Section.objects.all(), 'division__factory_name_id', request)
+    return render(request, 'add_village.html', {'sections': sections_list, 'divisions': divisions_list})
 
 def edit_officer(request, id):
     from django.shortcuts import get_object_or_404
@@ -572,6 +649,9 @@ def edit_officer(request, id):
     officer_divisions = zip(officer_division_ids, officer_division_names)
     officer_sections = zip(officer_section_ids, officer_section_names)
     
+    logged_group_id = request.session.get('group_id')
+    is_superadmin = (str(request.session.get('role_id')) == '1')
+    
     return render(request, 'edit_officer.html', {
         'officer': officer, 
         'roles': roles, 
@@ -580,7 +660,8 @@ def edit_officer(request, id):
         'superadmin_role_id': superadmin_role_id,
         'officer_factories': officer_factories,
         'officer_divisions': officer_divisions,
-        'officer_sections': officer_sections
+        'officer_sections': officer_sections,
+        'is_superadmin': is_superadmin
     })
 
 def edit_farmer(request, id):
@@ -612,6 +693,7 @@ def edit_village(request, id):
     village = get_object_or_404(Village, id=id)
     if request.method == 'POST':
         village.village_name = request.POST.get('village_name')
+        village.division = request.POST.get('division')
         section_id = request.POST.get('section_id')
         village.section = Section.objects.get(id=section_id) if section_id else None
         village.taluk = request.POST.get('taluk')
@@ -622,8 +704,9 @@ def edit_village(request, id):
         village.save()
         return redirect('villages')
 
-    sections_list = Section.objects.all()
-    return render(request, 'edit_village.html', {'village': village, 'sections': sections_list})
+    divisions_list = filter_by_factory(Division.objects.all(), 'factory_name_id', request)
+    sections_list = filter_by_factory(Section.objects.all(), 'division__factory_name_id', request)
+    return render(request, 'edit_village.html', {'village': village, 'sections': sections_list, 'divisions': divisions_list})
 
 def edit_section(request, id):
     from django.shortcuts import get_object_or_404
@@ -699,7 +782,7 @@ def edit_group(request, id):
     return render(request, 'edit_group.html', {'group': group})
 
 def factories(request):
-    factories_list = Factory.objects.all()
+    factories_list = filter_by_factory(Factory.objects.all(), 'id', request)
     return render(request, 'factories.html', {'factories': factories_list})
 
 def add_factory(request):
@@ -738,7 +821,7 @@ def edit_factory(request, id):
     return render(request, 'edit_factory.html', {'factory': factory, 'groups': groups_list})
 
 def divisions(request):
-    divisions_list = Division.objects.all()
+    divisions_list = filter_by_factory(Division.objects.all(), 'factory_name_id', request)
     return render(request, 'divisions.html', {'divisions': divisions_list})
 
 def add_division(request):
@@ -754,7 +837,15 @@ def add_division(request):
         )
         return redirect('divisions')
 
-    factories_list = Factory.objects.all()
+    active_factory_id = request.session.get('active_factory_id', 'all')
+    if active_factory_id != 'all':
+        factories_list = Factory.objects.filter(id=active_factory_id)
+    else:
+        logged_group_id = request.session.get('group_id')
+        if logged_group_id:
+            factories_list = Factory.objects.filter(group_id=logged_group_id)
+        else:
+            factories_list = Factory.objects.all()
     return render(request, 'add_division.html', {'factories': factories_list})
 
 def edit_division(request, id):
@@ -790,3 +881,228 @@ def get_sections_by_divisions(request):
         sections = list(Section.objects.filter(division_id__in=division_ids).values('id', 'section_name'))
         return JsonResponse({'sections': sections})
     return JsonResponse({'sections': []})
+
+def delete_officer(request, id):
+    from django.shortcuts import get_object_or_404
+    officer = get_object_or_404(Officer, id=id)
+    officer.delete()
+    return redirect('officers')
+
+def delete_farmer(request, id):
+    from django.shortcuts import get_object_or_404
+    farmer = get_object_or_404(Farmer, id=id)
+    farmer.delete()
+    return redirect('users')
+
+def delete_village(request, id):
+    from django.shortcuts import get_object_or_404
+    village = get_object_or_404(Village, id=id)
+    village.delete()
+    return redirect('villages')
+
+def delete_section(request, id):
+    from django.shortcuts import get_object_or_404
+    section = get_object_or_404(Section, id=id)
+    section.delete()
+    return redirect('sections')
+
+def delete_variety(request, id):
+    from django.shortcuts import get_object_or_404
+    variety = get_object_or_404(Variety, id=id)
+    variety.delete()
+    return redirect('varieties')
+
+def delete_role(request, id):
+    from django.shortcuts import get_object_or_404
+    role = get_object_or_404(Role, id=id)
+    role.delete()
+    return redirect('roles')
+
+def delete_group(request, id):
+    from django.shortcuts import get_object_or_404
+    group = get_object_or_404(Group, id=id)
+    group.delete()
+    return redirect('groups')
+
+def delete_factory(request, id):
+    from django.shortcuts import get_object_or_404
+    factory = get_object_or_404(Factory, id=id)
+    factory.delete()
+    return redirect('factories')
+
+def delete_division(request, id):
+    from django.shortcuts import get_object_or_404
+    division = get_object_or_404(Division, id=id)
+    division.delete()
+    return redirect('divisions')
+
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def mobile_api(request):
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'login':
+            user_id = request.POST.get('user_id')
+            password = request.POST.get('password')
+            lt = request.POST.get('lt')
+            ln = request.POST.get('ln')
+            device_id = request.POST.get('device_id')
+            
+            user = Officer.objects.filter(user_id=user_id, password=password).first()
+            if user:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Login successful',
+                    'data': {
+                        'id': user.id,
+                        'user_id': user.user_id,
+                        'name': user.name,
+                        'mobile': user.mobile,
+                        'email': user.email,
+                        'role_name': user.role.name if user.role else None,
+                        'group_id': user.group_id if user.group else None,
+                        'permissions': user.permissions or [],
+                        'device_id': device_id,
+                        'latitude': lt,
+                        'longitude': ln
+                    }
+                })
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Invalid User ID or password.'}, status=401)
+                
+        # Add other actions here, e.g. elif action == 'get_dashboard':
+        
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid or missing action parameter'}, status=400)
+            
+    return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
+
+@csrf_exempt
+def mobile_get_work_assigns(request):
+    if request.method == 'POST':
+        officer_id = request.POST.get('officer_id')
+        lt = request.POST.get('lt')
+        ln = request.POST.get('ln')
+        device_id = request.POST.get('device_id')
+        
+        if not officer_id:
+            return JsonResponse({'status': 'error', 'message': 'officer_id is required'}, status=400)
+            
+        # Optional: You can log or use lt, ln, device_id here if needed
+        
+        work_assigns = WorkAssign.objects.filter(officer_id=officer_id)
+        data = []
+        for wa in work_assigns:
+            data.append({
+                'id': wa.id,
+                'work_assign_code': wa.work_assign_code,
+                'division': wa.division,
+                'section_id': wa.section.id if wa.section else None,
+                'section_name': wa.section.section_name if wa.section else None,
+                'village_id': wa.village.id if wa.village else None,
+                'village_name': wa.village.village_name if wa.village else None,
+                'status': wa.status,
+                'created_at': wa.created_at.strftime('%Y-%m-%d %H:%M:%S') if wa.created_at else None
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Work assigns fetched successfully',
+            'data': data
+        })
+        
+    return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
+
+def work_assigns(request):
+    if 'user_id' not in request.session:
+        return redirect('index')
+
+    work_list = WorkAssign.objects.all()
+    # If we need factory/group filtering we can add it here. For now show all.
+
+    return render(request, 'work_assigns.html', {'work_assigns': work_list})
+
+def add_work_assign(request):
+    if 'user_id' not in request.session:
+        return redirect('index')
+
+    if request.method == "POST":
+        division_name = request.POST.get('division')
+        section_id = request.POST.get('section_id')
+        village_id = request.POST.get('village_id')
+        officer_id = request.POST.get('officer_id')
+        status = request.POST.get('status', 'active')
+
+        section = Section.objects.get(id=section_id) if section_id else None
+        village = Village.objects.get(id=village_id) if village_id else None
+        officer = Officer.objects.get(id=officer_id) if officer_id else None
+
+        WorkAssign.objects.create(
+            division=division_name,
+            section=section,
+            village=village,
+            officer=officer,
+            status=status
+        )
+        return redirect('work_assigns')
+
+    divisions = Division.objects.all()
+    sections = Section.objects.all().select_related('division')
+    villages = Village.objects.all().select_related('section')
+    officers = Officer.objects.all()
+
+    return render(request, 'add_work_assign.html', {
+        'divisions': divisions,
+        'sections': sections,
+        'villages': villages,
+        'officers': officers
+    })
+
+def edit_work_assign(request, id):
+    if 'user_id' not in request.session:
+        return redirect('index')
+
+    work_assign = WorkAssign.objects.get(id=id)
+
+    if request.method == "POST":
+        work_assign.division = request.POST.get('division')
+        section_id = request.POST.get('section_id')
+        village_id = request.POST.get('village_id')
+        officer_id = request.POST.get('officer_id')
+        work_assign.status = request.POST.get('status', 'active')
+
+        work_assign.section = Section.objects.get(id=section_id) if section_id else None
+        work_assign.village = Village.objects.get(id=village_id) if village_id else None
+        work_assign.officer = Officer.objects.get(id=officer_id) if officer_id else None
+        
+        work_assign.save()
+        return redirect('work_assigns')
+
+    divisions = Division.objects.all()
+    sections = Section.objects.all().select_related('division')
+    villages = Village.objects.all().select_related('section')
+    officers = Officer.objects.all()
+
+    return render(request, 'edit_work_assign.html', {
+        'work_assign': work_assign,
+        'divisions': divisions,
+        'sections': sections,
+        'villages': villages,
+        'officers': officers
+    })
+
+def delete_work_assign(request, id):
+    if 'user_id' not in request.session:
+        return redirect('index')
+
+    try:
+        work_assign = WorkAssign.objects.get(id=id)
+        work_assign.delete()
+    except WorkAssign.DoesNotExist:
+        pass
+    
+    return redirect('work_assigns')

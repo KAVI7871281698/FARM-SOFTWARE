@@ -32,7 +32,8 @@
                     <td style="padding: 1rem;">{{ factory.location_LatLong|default:"-" }}</td>
                     <td style="padding: 1rem;">{{ factory.crushing_capacity|default:"-" }}</td>
                     <td style="padding: 1rem;">
-                        <a href="{% url 'edit_factory' factory.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        <a href="{% url 'edit_factory' factory.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: 600; margin-right: 15px;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        <a href="{% url 'delete_factory' factory.id %}" style="color: #d32f2f; text-decoration: none; font-weight: 600;" onclick="return confirm('Are you sure you want to delete this factory?');"><i class="fa-solid fa-trash"></i> Delete</a>
                     </td>
                 </tr>
                 {% empty %}

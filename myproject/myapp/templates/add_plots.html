@@ -25,8 +25,9 @@
                         <select
                             style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
                             <option value="" disabled selected>Select Farmer</option>
-                            <option value="john">John Doe (Green Valley)</option>
-                            <option value="ramesh">Ramesh Kumar (Sunny Plains)</option>
+                            {% for farmer in farmers %}
+                            <option value="{{ farmer.id }}">{{ farmer.name }} - {{ farmer.farmer_code }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div>
