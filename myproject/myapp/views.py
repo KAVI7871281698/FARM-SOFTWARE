@@ -134,7 +134,25 @@ def index(request):
                 'data': data
             })
         # ==========================================
-        # 5. MOBILE API: Get Crops
+        # 5. MOBILE API: Get Varieties
+        # ==========================================
+        elif 'crop_id' in keys and 'group_id' in keys and 'device_id' in keys:
+            crop_id = request.POST.get('crop_id')
+            group_id = request.POST.get('group_id')
+            device_id = request.POST.get('device_id')
+            lt = request.POST.get('lt')
+            ln = request.POST.get('ln')
+            
+            varieties = Variety.objects.filter(crop_type_id=crop_id)
+            data = [{'id': v.id, 'variety_code': v.variety_code, 'variety_name': v.variety_name} for v in varieties]
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Varieties fetched successfully',
+                'data': data
+            })
+            
+        # ==========================================
+        # 6. MOBILE API: Get Crops
         # ==========================================
         elif 'group_id' in keys and 'device_id' in keys and 'officer_id' not in keys:
             group_id = request.POST.get('group_id')
@@ -439,7 +457,7 @@ def sections(request):
     return render(request, 'sections.html', {'sections': sections_list})
 
 def varieties(request):
-    varieties_list = filter_by_factory(Variety.objects.all(), 'season__division__factory_name_id', request)
+    varieties_list = Variety.objects.all()
     return render(request, 'varieties.html', {'varieties': varieties_list})
 
 def plots(request):
@@ -582,9 +600,12 @@ def add_user(request):
 def add_variety(request):
     if request.method == 'POST':
         variety_name = request.POST.get('variety_name')
+        crop_id = request.POST.get('crop_id')
+        crop = Crop.objects.get(id=crop_id) if crop_id else None
         
         Variety.objects.create(
-            variety_name=variety_name
+            variety_name=variety_name,
+            crop_type=crop
         )
         return redirect('varieties')
     
@@ -597,7 +618,8 @@ def add_variety(request):
             sections_list = Section.objects.filter(division__factory_name__group_id=logged_group_id)
         else:
             sections_list = Section.objects.all()
-    return render(request, 'add_variety.html', {'sections': sections_list})
+    crops_list = Crop.objects.all()
+    return render(request, 'add_variety.html', {'sections': sections_list, 'crops': crops_list})
 
 def add_village(request):
     if request.method == 'POST':
@@ -760,11 +782,14 @@ def edit_variety(request, id):
     variety = get_object_or_404(Variety, id=id)
     if request.method == 'POST':
         variety.variety_name = request.POST.get('variety_name')
+        crop_id = request.POST.get('crop_id')
+        variety.crop_type = Crop.objects.get(id=crop_id) if crop_id else None
         variety.save()
         return redirect('varieties')
     
     sections_list = Section.objects.all()
-    return render(request, 'edit_variety.html', {'variety': variety, 'sections': sections_list})
+    crops_list = Crop.objects.all()
+    return render(request, 'edit_variety.html', {'variety': variety, 'sections': sections_list, 'crops': crops_list})
 
 def roles(request):
     roles_list = Role.objects.all()

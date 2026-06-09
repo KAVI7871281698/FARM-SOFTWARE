@@ -20,6 +20,16 @@
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background-color: #f9f9f9;">
             </div>
             <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Crop Type</label>
+                <select name="crop_id" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background-color: #fff; cursor: pointer;">
+                    <option value="">Select Crop</option>
+                    {% for crop in crops %}
+                    <option value="{{ crop.id }}">{{ crop.crop_name }} ({{ crop.crop_code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
                 <label
                     style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Variety
                     Name</label>

@@ -164,6 +164,7 @@ class Crop(models.Model):
 class Variety(models.Model):
     variety_code = models.CharField(max_length=50, unique=True, blank=True)
     variety_name = models.CharField(max_length=150)
+    crop_type = models.ForeignKey(Crop, on_delete=models.SET_NULL, null=True, blank=True, related_name="varieties")
 
     class Meta:
         db_table = "variety"
