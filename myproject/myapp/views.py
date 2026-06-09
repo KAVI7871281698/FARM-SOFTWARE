@@ -133,8 +133,35 @@ def index(request):
                 'message': 'Work assigns fetched successfully',
                 'data': data
             })
+            
         # ==========================================
-        # 5. MOBILE API: Get Varieties
+        # 5. MOBILE API: Get Farmers
+        # ==========================================
+        elif 'get_farmers' in keys:
+            group_id = request.POST.get('group_id')
+            device_id = request.POST.get('device_id')
+            lt = request.POST.get('lt')
+            ln = request.POST.get('ln')
+            
+            farmers = Farmer.objects.all()
+            data = []
+            for f in farmers:
+                village_name = f.village.village_name if f.village else "No Village"
+                display_name = f"{f.name} - {village_name}"
+                data.append({
+                    'id': f.id,
+                    'farmer_code': f.farmer_code,
+                    'farmer_name': display_name
+                })
+                
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Farmers fetched successfully',
+                'data': data
+            })
+            
+        # ==========================================
+        # 6. MOBILE API: Get Varieties
         # ==========================================
         elif 'crop_id' in keys and 'group_id' in keys and 'device_id' in keys:
             crop_id = request.POST.get('crop_id')
