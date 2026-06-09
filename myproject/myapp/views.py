@@ -1439,6 +1439,17 @@ def api_add_plot(request):
                 officer=officer,
                 land_image_url=land_image_url_param
             )
+        except OSError as e:
+            if e.errno == 30: # Read-only file system (Vercel)
+                plot = Plot.objects.create(
+                    farmer=farmer, division=division, division_name=division_name, section=section, section_name=section_name,
+                    village=village, village_name=village_name, crop_type=crop, variety=variety, planting_date=planting_date,
+                    area_acre=area_acre, is_mapped=is_mapped, latitude=lt, longitude=ln, device_id=device_id,
+                    group=group_obj, group_name=group_name, factory=factory_obj, factory_name=factory_name, officer=officer,
+                    land_image_url=land_image_url_param
+                )
+            else:
+                return JsonResponse({"status": "error", "message": f"File System Error: {str(e)}"}, status=400)
         except Exception as e:
             from django.core.exceptions import ValidationError
             error_msg = str(e)
