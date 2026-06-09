@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot
 
 import json
 
@@ -488,7 +488,8 @@ def varieties(request):
     return render(request, 'varieties.html', {'varieties': varieties_list})
 
 def plots(request):
-    return render(request, 'plots.html')
+    plots_list = filter_by_factory(Plot.objects.all(), 'farmer__section__division__factory_name_id', request)
+    return render(request, 'plots.html', {'plots': plots_list})
 
 def surveys(request):
     return render(request, 'surveys.html')
@@ -596,6 +597,60 @@ def add_officer(request):
     return render(request, 'add_officer.html', {'roles': roles, 'divisions': divisions, 'groups': groups, 'superadmin_role_id': superadmin_role_id, 'is_superadmin': is_superadmin})
 
 def add_plots(request):
+    if request.method == 'POST':
+        farmer_id = request.POST.get('farmer_id')
+        division_id = request.POST.get('division_id')
+        division_name = request.POST.get('division_name')
+        section_id = request.POST.get('section_id')
+        section_name = request.POST.get('section_name')
+        village_id = request.POST.get('village_id')
+        village_name = request.POST.get('village_name')
+        crop_id = request.POST.get('crop_id')
+        variety_id = request.POST.get('variety_id')
+        area_acre = request.POST.get('area_acre')
+        planting_date = request.POST.get('planting_date')
+        is_mapped = request.POST.get('is_mapped') == 'true'
+        land_image = request.FILES.get('land_image')
+        lt = request.POST.get('lt')
+        ln = request.POST.get('ln')
+        device_id = request.POST.get('device_id')
+
+        farmer = Farmer.objects.filter(id=farmer_id).first() if farmer_id else None
+        division = Division.objects.filter(id=division_id).first() if division_id else None
+        section = Section.objects.filter(id=section_id).first() if section_id else None
+        village = Village.objects.filter(id=village_id).first() if village_id else None
+        crop = Crop.objects.filter(id=crop_id).first() if crop_id else None
+        variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
+        
+        group_obj = farmer.group if farmer else None
+        group_name = farmer.group_name if farmer else None
+        factory_obj = farmer.factory if farmer else None
+        factory_name = farmer.factory_name if farmer else None
+
+        Plot.objects.create(
+            farmer=farmer,
+            division=division,
+            division_name=division_name,
+            section=section,
+            section_name=section_name,
+            village=village,
+            village_name=village_name,
+            crop_type=crop,
+            variety=variety,
+            planting_date=planting_date,
+            area_acre=area_acre,
+            is_mapped=is_mapped,
+            land_image=land_image,
+            latitude=lt,
+            longitude=ln,
+            device_id=device_id,
+            group=group_obj,
+            group_name=group_name,
+            factory=factory_obj,
+            factory_name=factory_name
+        )
+        return redirect('plots')
+
     active_factory_id = request.session.get('active_factory_id', 'all')
     if active_factory_id != 'all':
         farmers_list = Farmer.objects.filter(section__division__factory_name_id=active_factory_id)
@@ -605,7 +660,14 @@ def add_plots(request):
             farmers_list = Farmer.objects.filter(section__division__factory_name__group_id=logged_group_id)
         else:
             farmers_list = Farmer.objects.all()
-    return render(request, 'add_plots.html', {'farmers': farmers_list})
+            
+    crops_list = Crop.objects.all()
+    varieties_list = Variety.objects.all()
+    return render(request, 'add_plots.html', {
+        'farmers': farmers_list,
+        'crops': crops_list,
+        'varieties': varieties_list
+    })
 
 def add_section(request):
     if request.method == 'POST':

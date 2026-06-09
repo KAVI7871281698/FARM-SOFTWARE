@@ -165,6 +165,46 @@ class Crop(models.Model):
     def __str__(self):
         return f"{self.crop_code} - {self.crop_name}"
 
+class Plot(models.Model):
+    plot_code = models.CharField(max_length=50, unique=True, blank=True)
+    farmer = models.ForeignKey(Farmer, on_delete=models.CASCADE, related_name="plots")
+    division = models.ForeignKey('Division', on_delete=models.SET_NULL, null=True, blank=True)
+    division_name = models.CharField(max_length=100, blank=True, null=True)
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
+    section_name = models.CharField(max_length=100, blank=True, null=True)
+    village = models.ForeignKey(Village, on_delete=models.SET_NULL, null=True, blank=True)
+    village_name = models.CharField(max_length=100, blank=True, null=True)
+    crop_type = models.ForeignKey(Crop, on_delete=models.SET_NULL, null=True, blank=True)
+    variety = models.ForeignKey('Variety', on_delete=models.SET_NULL, null=True, blank=True)
+    planting_date = models.DateField(null=True, blank=True)
+    area_acre = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    is_mapped = models.BooleanField(default=False)
+    land_image = models.ImageField(upload_to='plot_images/', null=True, blank=True)
+    latitude = models.CharField(max_length=100, blank=True, null=True)
+    longitude = models.CharField(max_length=100, blank=True, null=True)
+    device_id = models.CharField(max_length=255, blank=True, null=True)
+    group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
+    group_name = models.CharField(max_length=100, blank=True, null=True)
+    factory = models.ForeignKey('Factory', on_delete=models.SET_NULL, null=True, blank=True)
+    factory_name = models.CharField(max_length=100, blank=True, null=True)
+    officer = models.ForeignKey('Officer', on_delete=models.SET_NULL, null=True, blank=True, related_name="added_plots")
+
+    class Meta:
+        db_table = "plot"
+
+    def save(self, *args, **kwargs):
+        if not self.plot_code:
+            last_plot = Plot.objects.all().order_by('id').last()
+            if last_plot:
+                last_id = last_plot.id
+                self.plot_code = f"PLT-{last_id + 1:04d}"
+            else:
+                self.plot_code = "PLT-0001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.plot_code} - {self.farmer.name if self.farmer else ''}"
+
 class Variety(models.Model):
     variety_code = models.CharField(max_length=50, unique=True, blank=True)
     variety_name = models.CharField(max_length=150)

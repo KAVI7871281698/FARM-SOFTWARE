@@ -5,69 +5,69 @@
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-            <h2>My Plots</h2>
-            <button onclick="window.location.href='{% url 'add_plots' %}'"
-                style="background: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;"><i
-                    class="fa-solid fa-plus"></i> Add Plot</button>
-        </div>
-        <div
-            style="background: var(--card-bg); border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden;">
-            <div style="overflow-x: auto; width: 100%;">
-                <table style="width: 100%; min-width: 700px; border-collapse: collapse; text-align: left;">
-                    <thead style="background: var(--primary-light); color: var(--primary-color);">
-                        <tr>
-                            <th style="padding: 1rem 1.5rem;">Plot ID</th>
-                            <th style="padding: 1rem 1.5rem;">Crop Variety</th>
-                            <th style="padding: 1rem 1.5rem;">Area (Acres)</th>
-                            <th style="padding: 1rem 1.5rem;">Planting Date</th>
-                            <th style="padding: 1rem 1.5rem;">Status</th>
-                            <th style="padding: 1rem 1.5rem;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 1rem 1.5rem;">#P-101</td>
-                            <td style="padding: 1rem 1.5rem;">Wheat (HD 2967)</td>
-                            <td style="padding: 1rem 1.5rem;">4.5</td>
-                            <td style="padding: 1rem 1.5rem;">12 Oct 2025</td>
-                            <td style="padding: 1rem 1.5rem;"><span
-                                    style="background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Healthy</span>
-                            </td>
-                            <td style="padding: 1rem 1.5rem;"><a href="#"
-                                    style="color: var(--info); text-decoration: none; font-weight: 500;">View Map</a>
-                            </td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 1rem 1.5rem;">#P-102</td>
-                            <td style="padding: 1rem 1.5rem;">Cotton (Bt)</td>
-                            <td style="padding: 1rem 1.5rem;">2.0</td>
-                            <td style="padding: 1rem 1.5rem;">05 Nov 2025</td>
-                            <td style="padding: 1rem 1.5rem;"><span
-                                    style="background: #ffebee; color: #d32f2f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Needs
-                                    Attention</span></td>
-                            <td style="padding: 1rem 1.5rem;"><a href="#"
-                                    style="color: var(--info); text-decoration: none; font-weight: 500;">View Map</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1rem 1.5rem;">#P-103</td>
-                            <td style="padding: 1rem 1.5rem;">Sugarcane</td>
-                            <td style="padding: 1rem 1.5rem;">6.0</td>
-                            <td style="padding: 1rem 1.5rem;">20 Dec 2025</td>
-                            <td style="padding: 1rem 1.5rem;"><span
-                                    style="background: #fff3e0; color: #f57c00; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Scout
-                                    Pending</span></td>
-                            <td style="padding: 1rem 1.5rem;"><a href="#"
-                                    style="color: var(--info); text-decoration: none; font-weight: 500;">View Map</a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-{% endblock %}
+    <h2>My Plots</h2>
+    <button onclick="window.location.href='{% url 'add_plots' %}'"
+        style="background: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;"><i
+            class="fa-solid fa-plus"></i> Add Plot</button>
+</div>
+<div
+    style="background: var(--card-bg); border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden;">
+    <div style="overflow-x: auto; width: 100%;">
+        <table style="width: 100%; min-width: 700px; border-collapse: collapse; text-align: left;">
+            <thead style="background: var(--primary-light); color: var(--primary-color);">
+                <tr>
+                    <th style="padding: 1rem 1.5rem;">Plot ID</th>
+                    <th style="padding: 1rem 1.5rem;">Farmer Name</th>
+                    <th style="padding: 1rem 1.5rem;">Village</th>
+                    <th style="padding: 1rem 1.5rem;">Crop Variety</th>
+                    <th style="padding: 1rem 1.5rem;">Area (Acres)</th>
+                    <th style="padding: 1rem 1.5rem;">Planting Date</th>
+                    <th style="padding: 1rem 1.5rem;">Status</th>
+                    <th style="padding: 1rem 1.5rem;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plot in plots %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem 1.5rem;">{{ plot.plot_code }}</td>
+                    <td style="padding: 1rem 1.5rem;">{{ plot.farmer.name }}</td>
+                    <td style="padding: 1rem 1.5rem;">{{ plot.village_name }}</td>
+                    <td style="padding: 1rem 1.5rem;">
+                        {{ plot.crop_type.crop_name|default:'-' }}
+                        ({{ plot.variety.variety_name|default:'-' }})
+                    </td>
+                    <td style="padding: 1rem 1.5rem;">{{ plot.area_acre }}</td>
+                    <td style="padding: 1rem 1.5rem;">{{ plot.planting_date|date:'d M Y' }}</td>
+                    <td style="padding: 1rem 1.5rem;">
+                        {% if plot.is_mapped %}
+                        <span
+                            style="background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Mapped</span>
+                        {% else %}
+                        <span
+                            style="background: #ffebee; color: #d32f2f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Unmapped</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem 1.5rem;">
+                        {% if plot.land_image %}
+                        <a href="{{ plot.land_image.url }}" target="_blank"
+                            style="color: var(--info); text-decoration: none; font-weight: 500;">View Map</a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="padding: 1rem 1.5rem; text-align: center;">No plots found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endblock %}
 
-{% block scripts %}
-<script>
+    {% block scripts %}
+    <script>
         document.addEventListener('DOMContentLoaded', function () {
             const menuToggle = document.getElementById('menuToggle');
             const sidebar = document.querySelector('.sidebar');
@@ -78,4 +78,4 @@
             }
         });
     </script>
-{% endblock %}
+    {% endblock %}
