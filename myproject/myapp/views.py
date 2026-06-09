@@ -1353,7 +1353,13 @@ def api_add_plot(request):
         crop_id = request.POST.get('crop_id')
         variety_id = request.POST.get('variety_id')
         area_acre = request.POST.get('area_acre')
+        if not area_acre or str(area_acre).strip() == '':
+            area_acre = None
+            
         planting_date = request.POST.get('planting_date')
+        if not planting_date or str(planting_date).strip() == '':
+            planting_date = None
+            
         is_mapped = request.POST.get('is_mapped', '').lower() == 'true'
         lt = request.POST.get('lt')
         ln = request.POST.get('ln')
@@ -1389,29 +1395,36 @@ def api_add_plot(request):
         
         land_image = request.FILES.get('land_image')
 
-        plot = Plot.objects.create(
-            farmer=farmer,
-            division=division,
-            division_name=division_name,
-            section=section,
-            section_name=section_name,
-            village=village,
-            village_name=village_name,
-            crop_type=crop,
-            variety=variety,
-            planting_date=planting_date,
-            area_acre=area_acre,
-            is_mapped=is_mapped,
-            land_image=land_image,
-            latitude=lt,
-            longitude=ln,
-            device_id=device_id,
-            group=group_obj,
-            group_name=group_name,
-            factory=factory_obj,
-            factory_name=factory_name,
-            officer=officer
-        )
+        try:
+            plot = Plot.objects.create(
+                farmer=farmer,
+                division=division,
+                division_name=division_name,
+                section=section,
+                section_name=section_name,
+                village=village,
+                village_name=village_name,
+                crop_type=crop,
+                variety=variety,
+                planting_date=planting_date,
+                area_acre=area_acre,
+                is_mapped=is_mapped,
+                land_image=land_image,
+                latitude=lt,
+                longitude=ln,
+                device_id=device_id,
+                group=group_obj,
+                group_name=group_name,
+                factory=factory_obj,
+                factory_name=factory_name,
+                officer=officer
+            )
+        except Exception as e:
+            from django.core.exceptions import ValidationError
+            error_msg = str(e)
+            if isinstance(e, ValidationError):
+                error_msg = "; ".join(e.messages)
+            return JsonResponse({"status": "error", "message": f"Data Validation Error: {error_msg}"}, status=400)
 
         image_url = request.build_absolute_uri(plot.land_image.url) if plot.land_image else None
 
