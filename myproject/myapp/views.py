@@ -136,7 +136,7 @@ def index(request):
         # ==========================================
         # 5. MOBILE API: Get Crops
         # ==========================================
-        elif 'get_crops' in keys:
+        elif 'group_id' in keys and 'device_id' in keys and 'officer_id' not in keys:
             group_id = request.POST.get('group_id')
             device_id = request.POST.get('device_id')
             lt = request.POST.get('lt')
