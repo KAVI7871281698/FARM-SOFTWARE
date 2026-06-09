@@ -180,6 +180,7 @@ class Plot(models.Model):
     area_acre = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     is_mapped = models.BooleanField(default=False)
     land_image = models.ImageField(upload_to='plot_images/', null=True, blank=True)
+    land_image_url = models.URLField(max_length=1000, blank=True, null=True)
     latitude = models.CharField(max_length=100, blank=True, null=True)
     longitude = models.CharField(max_length=100, blank=True, null=True)
     device_id = models.CharField(max_length=255, blank=True, null=True)

@@ -1392,6 +1392,10 @@ def api_add_plot(request):
         group_name = farmer.group_name
         factory_obj = farmer.factory
         factory_name = farmer.factory_name
+        
+        # URL passed directly from mobile app (Supabase, AWS, etc)
+        land_image_url_param = request.POST.get('land_image_url')
+        
         land_image = request.FILES.get('land_image')
         if not land_image:
             # Check if sent as base64 string
@@ -1432,7 +1436,8 @@ def api_add_plot(request):
                 group_name=group_name,
                 factory=factory_obj,
                 factory_name=factory_name,
-                officer=officer
+                officer=officer,
+                land_image_url=land_image_url_param
             )
         except Exception as e:
             from django.core.exceptions import ValidationError
@@ -1441,7 +1446,7 @@ def api_add_plot(request):
                 error_msg = "; ".join(e.messages)
             return JsonResponse({"status": "error", "message": f"Data Validation Error: {error_msg}"}, status=400)
 
-        image_url = request.build_absolute_uri(plot.land_image.url) if plot.land_image else None
+        image_url = plot.land_image_url or (request.build_absolute_uri(plot.land_image.url) if plot.land_image else None)
 
         return JsonResponse({
             "status": "success",
