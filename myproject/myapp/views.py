@@ -137,6 +137,12 @@ def index(request):
         # 5. MOBILE API: Get Crops
         # ==========================================
         elif 'get_crops' in keys:
+            group_id = request.POST.get('group_id')
+            device_id = request.POST.get('device_id')
+            lt = request.POST.get('lt')
+            ln = request.POST.get('ln')
+            
+            # Retrieve all crops
             crops = Crop.objects.all()
             data = [{'id': c.id, 'crop_code': c.crop_code, 'crop_name': c.crop_name} for c in crops]
             return JsonResponse({
