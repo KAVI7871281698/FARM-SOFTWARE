@@ -562,16 +562,10 @@ def add_user(request):
 
 def add_variety(request):
     if request.method == 'POST':
-        crop_type = request.POST.get('crop_type')
         variety_name = request.POST.get('variety_name')
-        season_id = request.POST.get('season')
-        
-        season = Section.objects.get(id=season_id) if season_id else None
         
         Variety.objects.create(
-            crop_type=crop_type,
-            variety_name=variety_name,
-            season=season
+            variety_name=variety_name
         )
         return redirect('varieties')
     
@@ -745,10 +739,7 @@ def edit_variety(request, id):
     from django.shortcuts import get_object_or_404
     variety = get_object_or_404(Variety, id=id)
     if request.method == 'POST':
-        variety.crop_type = request.POST.get('crop_type')
         variety.variety_name = request.POST.get('variety_name')
-        season_id = request.POST.get('season')
-        variety.season = Section.objects.get(id=season_id) if season_id else None
         variety.save()
         return redirect('varieties')
     

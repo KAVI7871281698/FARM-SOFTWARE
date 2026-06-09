@@ -142,9 +142,7 @@ class Farmer(models.Model):
 
 class Variety(models.Model):
     variety_code = models.CharField(max_length=50, unique=True, blank=True)
-    crop_type = models.CharField(max_length=100)
     variety_name = models.CharField(max_length=150)
-    season = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True)
 
     class Meta:
         db_table = "variety"
