@@ -34,6 +34,7 @@ class Officer(models.Model):
     role_name = models.CharField(max_length=50, null=True, blank=True)
     permissions = models.JSONField(default=list, blank=True, null=True)
     group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
+    group_name = models.CharField(max_length=100, blank=True, null=True)
     factory_ids = models.CharField(max_length=255, blank=True, null=True)
     factory_names = models.CharField(max_length=500, blank=True, null=True)
     division_ids = models.CharField(max_length=255, blank=True, null=True)

@@ -76,7 +76,8 @@ def index(request):
                             'permissions': user.permissions or [],
                             'device_id': user.device_id,
                             'latitude': user.latitude,
-                            'longitude': user.longitude
+                            'longitude': user.longitude,
+                            'group_name': user.group_name
                         }
                     })
                 else:
@@ -507,6 +508,7 @@ def add_officer(request):
             password=password,
             role=role,
             group=group,
+            group_name=group.name if group else "",
             permissions=permissions,
             factory_ids=",".join(factory_ids) if factory_ids else "",
             factory_names=",".join(factory_names) if factory_names else "",
@@ -632,6 +634,7 @@ def edit_officer(request, id):
         officer.role = Role.objects.filter(id=role_id).first() if role_id else None
         group_id = request.POST.get('group_id')
         officer.group = Group.objects.filter(id=group_id).first() if group_id else None
+        officer.group_name = officer.group.name if officer.group else ""
         
         factory_ids = request.POST.getlist('factories') or request.POST.getlist('factories[]')
         division_ids = request.POST.getlist('divisions') or request.POST.getlist('divisions[]')
