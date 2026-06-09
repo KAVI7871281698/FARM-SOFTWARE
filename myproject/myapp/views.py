@@ -1413,11 +1413,31 @@ def api_add_plot(request):
             officer=officer
         )
 
+        image_url = request.build_absolute_uri(plot.land_image.url) if plot.land_image else None
+
         return JsonResponse({
             "status": "success",
             "message": "Plot added successfully",
-            "plot_id": plot.id,
-            "plot_code": plot.plot_code
+            "data": {
+                "plot_id": plot.id,
+                "plot_code": plot.plot_code,
+                "farmer_name": plot.farmer.name if plot.farmer else None,
+                "division_name": plot.division_name,
+                "section_name": plot.section_name,
+                "village_name": plot.village_name,
+                "crop_type": plot.crop_type.crop_name if plot.crop_type else None,
+                "variety": plot.variety.variety_name if plot.variety else None,
+                "planting_date": str(plot.planting_date),
+                "area_acre": str(plot.area_acre),
+                "is_mapped": plot.is_mapped,
+                "latitude": plot.latitude,
+                "longitude": plot.longitude,
+                "device_id": plot.device_id,
+                "group_name": plot.group_name,
+                "factory_name": plot.factory_name,
+                "officer_name": plot.officer.name if plot.officer else None,
+                "land_image_url": image_url
+            }
         }, status=201)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
