@@ -236,7 +236,7 @@
                 <span style="font-weight: 500; color: #444;">Farmers</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="checkbox" name="permissions[]" value="master" id="master-checkbox" {% if 'groups' in officer.permissions or 'factories' in officer.permissions or 'divisions' in officer.permissions                     or 'sections' in officer.permissions or 'villages' in officer.permissions or 'varieties' in                     officer.permissions or 'work_assigns' in officer.permissions or 'master' in officer.permissions %}checked{% endif %}
+                <input type="checkbox" name="permissions[]" value="master" id="master-checkbox" {% if 'groups' in officer.permissions or 'factories' in officer.permissions or 'divisions' in officer.permissions                     or 'sections' in officer.permissions or 'villages' in officer.permissions or 'varieties' in                     officer.permissions or 'crops' in officer.permissions or 'work_assigns' in officer.permissions or 'master' in officer.permissions %}checked{% endif %}
                     style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                 <span style="font-weight: 500; color: #444;">Master</span>
             </label>
@@ -286,6 +286,11 @@
                         <input type="checkbox" name="permissions[]" value="varieties" {% if 'varieties' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
                             style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500; color: #444;">Varieties</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="permissions[]" value="crops" {% if 'crops' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"
+                            style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500; color: #444;">Crops</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                         <input type="checkbox" name="permissions[]" value="work_assigns" {% if 'work_assigns' in officer.permissions %}checked{% endif %} class="master-sub-checkbox"

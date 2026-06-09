@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Group, Factory, Division, WorkAssign
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign
 
 import json
 
@@ -132,7 +132,18 @@ def index(request):
                 'message': 'Work assigns fetched successfully',
                 'data': data
             })
-                    
+        # ==========================================
+        # 5. MOBILE API: Get Crops
+        # ==========================================
+        elif 'get_crops' in keys:
+            crops = Crop.objects.all()
+            data = [{'id': c.id, 'crop_code': c.crop_code, 'crop_name': c.crop_name} for c in crops]
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Crops fetched successfully',
+                'data': data
+            })
+
         # Invalid API Request fallback
         elif request.headers.get('Accept') == 'application/json':
             return JsonResponse({'status': 'error', 'message': 'Unknown API request parameters'}, status=400)
@@ -1116,3 +1127,39 @@ def delete_work_assign(request, id):
         pass
     
     return redirect('work_assigns')
+
+def crops(request):
+    if 'user_id' not in request.session:
+        return redirect('index')
+    crops_list = Crop.objects.all()
+    return render(request, 'crops.html', {'crops': crops_list})
+
+def add_crop(request):
+    if 'user_id' not in request.session:
+        return redirect('index')
+    if request.method == 'POST':
+        crop_name = request.POST.get('crop_name')
+        Crop.objects.create(crop_name=crop_name)
+        return redirect('crops')
+    return render(request, 'add_crop.html')
+
+def edit_crop(request, id):
+    if 'user_id' not in request.session:
+        return redirect('index')
+    from django.shortcuts import get_object_or_404
+    crop = get_object_or_404(Crop, id=id)
+    if request.method == 'POST':
+        crop.crop_name = request.POST.get('crop_name')
+        crop.save()
+        return redirect('crops')
+    return render(request, 'edit_crop.html', {'crop': crop})
+
+def delete_crop(request, id):
+    if 'user_id' not in request.session:
+        return redirect('index')
+    try:
+        crop = Crop.objects.get(id=id)
+        crop.delete()
+    except Crop.DoesNotExist:
+        pass
+    return redirect('crops')

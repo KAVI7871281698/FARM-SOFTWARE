@@ -322,6 +322,10 @@
                     <li class=""><a href="{% url 'varieties' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-seedling"></i> Varieties</a></li>
                     {% endif %}
+                    {% if 'crops' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'crops' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-leaf"></i> Crops</a></li>
+                    {% endif %}
                     {% if 'plots' in request.session.permissions or request.session.role_id == 1 %}
                     <li class=""><a href="{% url 'plots' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-map-location-dot"></i> Plots</a></li>

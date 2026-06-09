@@ -140,6 +140,26 @@ class Farmer(models.Model):
     def __str__(self):
         return f"{self.farmer_code} - {self.name}"
 
+class Crop(models.Model):
+    crop_code = models.CharField(max_length=50, unique=True, blank=True)
+    crop_name = models.CharField(max_length=150)
+
+    class Meta:
+        db_table = "crop"
+
+    def save(self, *args, **kwargs):
+        if not self.crop_code:
+            last_crop = Crop.objects.all().order_by('id').last()
+            if last_crop:
+                last_id = last_crop.id
+                self.crop_code = f"CRP-{last_id + 1:03d}"
+            else:
+                self.crop_code = "CRP-001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.crop_code} - {self.crop_name}"
+
 class Variety(models.Model):
     variety_code = models.CharField(max_length=50, unique=True, blank=True)
     variety_name = models.CharField(max_length=150)

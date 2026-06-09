@@ -60,4 +60,8 @@ urlpatterns = [
     path('add_work_assign/', views.add_work_assign, name='add_work_assign'),
     path('edit_work_assign/<int:id>/', views.edit_work_assign, name='edit_work_assign'),
     path('delete_work_assign/<int:id>/', views.delete_work_assign, name='delete_work_assign'),
+    path('crops/', views.crops, name='crops'),
+    path('add_crop/', views.add_crop, name='add_crop'),
+    path('edit_crop/<int:id>/', views.edit_crop, name='edit_crop'),
+    path('delete_crop/<int:id>/', views.delete_crop, name='delete_crop'),
 ]
