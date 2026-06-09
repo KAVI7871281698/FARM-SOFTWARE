@@ -101,8 +101,19 @@ def index(request):
         # ==========================================
         elif 'officer_id' in keys and 'device_id' in keys:
             officer_id = request.POST.get('officer_id')
+            device_id = request.POST.get('device_id')
+            lt = request.POST.get('lt')
+            ln = request.POST.get('ln')
             
             work_assigns = WorkAssign.objects.filter(officer_id=officer_id)
+            
+            update_fields = {}
+            if device_id: update_fields['device_id'] = device_id
+            if lt: update_fields['latitude'] = lt
+            if ln: update_fields['longitude'] = ln
+            if update_fields:
+                work_assigns.update(**update_fields)
+
             data = []
             for wa in work_assigns:
                 data.append({
