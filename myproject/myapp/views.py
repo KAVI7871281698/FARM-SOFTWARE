@@ -137,7 +137,7 @@ def index(request):
         # ==========================================
         # 5. MOBILE API: Get Farmers
         # ==========================================
-        elif 'get_farmers' in keys:
+        elif request.POST.get('get_farmers', '').lower() == 'true':
             group_id = request.POST.get('group_id')
             device_id = request.POST.get('device_id')
             lt = request.POST.get('lt')
