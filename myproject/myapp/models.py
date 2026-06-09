@@ -124,6 +124,10 @@ class Farmer(models.Model):
     division = models.CharField(max_length=100, blank=True, null=True)
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, related_name="farmers")
     village = models.ForeignKey(Village, on_delete=models.SET_NULL, null=True, related_name="farmers")
+    group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
+    group_name = models.CharField(max_length=100, blank=True, null=True)
+    factory = models.ForeignKey('Factory', on_delete=models.SET_NULL, null=True, blank=True)
+    factory_name = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         db_table = "farmer"

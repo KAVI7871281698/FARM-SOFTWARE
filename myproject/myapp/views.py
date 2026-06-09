@@ -143,7 +143,7 @@ def index(request):
             lt = request.POST.get('lt')
             ln = request.POST.get('ln')
             
-            farmers = Farmer.objects.all()
+            farmers = Farmer.objects.filter(group_id=group_id) if group_id else Farmer.objects.all()
             data = []
             for f in farmers:
                 village_name = f.village.village_name if f.village else "No Village"
@@ -501,9 +501,17 @@ def add_farmer(request):
         division = request.POST.get('division')
         section_id = request.POST.get('section_id')
         village_id = request.POST.get('village_id')
-        
+        group_id = request.POST.get('group_id') or request.session.get('group_id')
+        factory_id = request.session.get('active_factory_id')
+        if factory_id == 'all':
+            factory_id = None
+            
         section = Section.objects.get(id=section_id) if section_id else None
         village = Village.objects.get(id=village_id) if village_id else None
+        group_obj = Group.objects.filter(id=group_id).first() if group_id else None
+        group_name = group_obj.name if group_obj else None
+        factory_obj = Factory.objects.filter(id=factory_id).first() if factory_id else None
+        factory_name = factory_obj.name if factory_obj else None
         
         Farmer.objects.create(
             name=name,
@@ -511,18 +519,24 @@ def add_farmer(request):
             phone=phone,
             division=division,
             section=section,
-            village=village
+            village=village,
+            group=group_obj,
+            group_name=group_name,
+            factory=factory_obj,
+            factory_name=factory_name
         )
         return redirect('users')
 
     divisions_list = filter_by_factory(Division.objects.all(), 'factory_name_id', request)
     sections_list = filter_by_factory(Section.objects.all(), 'division__factory_name_id', request)
     villages_list = filter_by_factory(Village.objects.all(), 'section__division__factory_name_id', request)
+    groups = Group.objects.all()
     
     return render(request, 'add_farmer.html', {
         'divisions': divisions_list,
         'sections': sections_list,
-        'villages': villages_list
+        'villages': villages_list,
+        'groups': groups
     })
 
 def add_officer(request):
@@ -756,18 +770,30 @@ def edit_farmer(request, id):
         farmer.division = request.POST.get('division')
         section_id = request.POST.get('section_id')
         village_id = request.POST.get('village_id')
+        group_id = request.POST.get('group_id') or request.session.get('group_id')
+        factory_id = request.session.get('active_factory_id')
+        if factory_id == 'all':
+            factory_id = None
         
         farmer.section = Section.objects.get(id=section_id) if section_id else None
         farmer.village = Village.objects.get(id=village_id) if village_id else None
+        group_obj = Group.objects.filter(id=group_id).first() if group_id else None
+        farmer.group = group_obj
+        farmer.group_name = group_obj.name if group_obj else None
+        factory_obj = Factory.objects.filter(id=factory_id).first() if factory_id else None
+        farmer.factory = factory_obj
+        farmer.factory_name = factory_obj.name if factory_obj else None
         farmer.save()
         return redirect('users')
 
     sections_list = Section.objects.all()
     villages_list = Village.objects.all()
+    groups = Group.objects.all()
     return render(request, 'edit_farmer.html', {
         'farmer': farmer,
         'sections': sections_list,
-        'villages': villages_list
+        'villages': villages_list,
+        'groups': groups
     })
 
 def edit_village(request, id):
