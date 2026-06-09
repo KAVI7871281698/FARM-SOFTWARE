@@ -104,8 +104,7 @@ def index(request):
                     'section_name': wa.section.section_name if wa.section else None,
                     'village_id': wa.village.id if wa.village else None,
                     'village_name': wa.village.village_name if wa.village else None,
-                    'status': wa.status,
-                    'created_at': wa.created_at.strftime('%Y-%m-%d %H:%M:%S') if wa.created_at else None
+                    'status': wa.status
                 })
             
             return JsonResponse({
