@@ -233,6 +233,9 @@ class WorkAssign(models.Model):
     village = models.ForeignKey(Village, on_delete=models.SET_NULL, null=True, related_name="work_assigns")
     officer = models.ForeignKey(Officer, on_delete=models.SET_NULL, null=True, related_name="work_assigns")
     status = models.CharField(max_length=20, default="active")
+    latitude = models.CharField(max_length=100, blank=True, null=True)
+    longitude = models.CharField(max_length=100, blank=True, null=True)
+    device_id = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         db_table = "work_assign"
