@@ -54,6 +54,15 @@ def index(request):
             
             if is_mobile:
                 if user:
+                    device_id = request.POST.get('device_id')
+                    lt = request.POST.get('lt')
+                    ln = request.POST.get('ln')
+                    
+                    if device_id: user.device_id = device_id
+                    if lt: user.latitude = lt
+                    if ln: user.longitude = ln
+                    user.save()
+                    
                     return JsonResponse({
                         'status': 'success',
                         'message': 'Login successful',
@@ -65,9 +74,9 @@ def index(request):
                             'email': user.email,
                             'role_name': user.role.name if user.role else None,
                             'permissions': user.permissions or [],
-                            'device_id': request.POST.get('device_id'),
-                            'latitude': request.POST.get('lt'),
-                            'longitude': request.POST.get('ln')
+                            'device_id': user.device_id,
+                            'latitude': user.latitude,
+                            'longitude': user.longitude
                         }
                     })
                 else:

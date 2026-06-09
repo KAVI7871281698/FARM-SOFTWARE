@@ -40,6 +40,9 @@ class Officer(models.Model):
     division_names = models.CharField(max_length=500, blank=True, null=True)
     section_ids = models.CharField(max_length=255, blank=True, null=True)
     section_names = models.CharField(max_length=500, blank=True, null=True)
+    latitude = models.CharField(max_length=100, blank=True, null=True)
+    longitude = models.CharField(max_length=100, blank=True, null=True)
+    device_id = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         db_table = "officer"
