@@ -1392,8 +1392,23 @@ def api_add_plot(request):
         group_name = farmer.group_name
         factory_obj = farmer.factory
         factory_name = farmer.factory_name
-        
         land_image = request.FILES.get('land_image')
+        if not land_image:
+            # Check if sent as base64 string
+            land_image_b64 = request.POST.get('land_image')
+            if land_image_b64 and isinstance(land_image_b64, str) and len(land_image_b64) > 100:
+                import base64
+                from django.core.files.base import ContentFile
+                try:
+                    if ';base64,' in land_image_b64:
+                        format, imgstr = land_image_b64.split(';base64,')
+                        ext = format.split('/')[-1]
+                    else:
+                        imgstr = land_image_b64
+                        ext = 'png'
+                    land_image = ContentFile(base64.b64decode(imgstr), name=f'plot_{plot_code if "plot_code" in locals() else "upload"}.{ext}')
+                except Exception:
+                    pass
 
         try:
             plot = Plot.objects.create(
