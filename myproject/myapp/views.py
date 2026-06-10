@@ -119,7 +119,7 @@ def index(request):
                             'variety_name': p.variety.variety_name if p.variety else None,
                             'area_acre': str(p.area_acre) if p.area_acre is not None else None,
                             'status': p.status,
-                            'soil_type': p.soil_type.soil_name if p.soil_type else None,
+                            'soil_name': p.soil_type.soil_name if p.soil_type else None,
                             'latitude': p.latitude,
                             'longitude': p.longitude,
                         })
@@ -701,6 +701,89 @@ def add_plots(request):
         'varieties': varieties_list,
         'soil_types': soil_types_list
     })
+
+def edit_plot(request, id):
+    from django.shortcuts import get_object_or_404
+    plot = get_object_or_404(Plot, id=id)
+    if request.method == 'POST':
+        farmer_id = request.POST.get('farmer_id')
+        division_id = request.POST.get('division_id')
+        division_name = request.POST.get('division_name')
+        section_id = request.POST.get('section_id')
+        section_name = request.POST.get('section_name')
+        village_id = request.POST.get('village_id')
+        village_name = request.POST.get('village_name')
+        crop_id = request.POST.get('crop_id')
+        variety_id = request.POST.get('variety_id')
+        area_acre = request.POST.get('area_acre')
+        planting_date = request.POST.get('planting_date')
+        status = request.POST.get('status', 'Not Mapped')
+        soil_type_id = request.POST.get('soil_type_id')
+        lt = request.POST.get('lt')
+        ln = request.POST.get('ln')
+
+        farmer = Farmer.objects.filter(id=farmer_id).first() if farmer_id else None
+        division = Division.objects.filter(id=division_id).first() if division_id else None
+        section = Section.objects.filter(id=section_id).first() if section_id else None
+        village = Village.objects.filter(id=village_id).first() if village_id else None
+        crop = Crop.objects.filter(id=crop_id).first() if crop_id else None
+        variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
+        soil_type = SoilType.objects.filter(id=soil_type_id).first() if soil_type_id else None
+
+        plot.farmer = farmer
+        plot.division = division
+        plot.division_name = division_name
+        plot.section = section
+        plot.section_name = section_name
+        plot.village = village
+        plot.village_name = village_name
+        plot.crop_type = crop
+        plot.variety = variety
+        if planting_date:
+            plot.planting_date = planting_date
+        if area_acre:
+            plot.area_acre = area_acre
+        plot.status = status
+        plot.soil_type = soil_type
+        if lt:
+            plot.latitude = lt
+        if ln:
+            plot.longitude = ln
+        if farmer:
+            plot.group = farmer.group
+            plot.group_name = farmer.group_name
+            plot.factory = farmer.factory
+            plot.factory_name = farmer.factory_name
+            
+        plot.save()
+        return redirect('plots')
+
+    active_factory_id = request.session.get('active_factory_id', 'all')
+    if active_factory_id != 'all':
+        farmers_list = Farmer.objects.filter(section__division__factory_name_id=active_factory_id)
+    else:
+        logged_group_id = request.session.get('group_id')
+        if logged_group_id:
+            farmers_list = Farmer.objects.filter(section__division__factory_name__group_id=logged_group_id)
+        else:
+            farmers_list = Farmer.objects.all()
+
+    crops_list = Crop.objects.all()
+    varieties_list = Variety.objects.all()
+    soil_types_list = SoilType.objects.all()
+    return render(request, 'edit_plot.html', {
+        'plot': plot,
+        'farmers': farmers_list,
+        'crops': crops_list,
+        'varieties': varieties_list,
+        'soil_types': soil_types_list
+    })
+
+def delete_plot(request, id):
+    from django.shortcuts import get_object_or_404
+    plot = get_object_or_404(Plot, id=id)
+    plot.delete()
+    return redirect('plots')
 
 def add_section(request):
     if request.method == 'POST':
@@ -1494,7 +1577,7 @@ def api_add_plot(request):
                 "planting_date": str(plot.planting_date),
                 "area_acre": str(plot.area_acre),
                 "status": plot.status,
-                "soil_type": plot.soil_type.soil_name if plot.soil_type else None,
+                "soil_name": plot.soil_type.soil_name if plot.soil_type else None,
                 "latitude": plot.latitude,
                 "longitude": plot.longitude,
                 "device_id": plot.device_id,
@@ -1537,7 +1620,7 @@ def api_get_plots(request):
             "planting_date": str(plot.planting_date) if plot.planting_date else None,
             "area_acre": str(plot.area_acre) if plot.area_acre else None,
             "status": plot.status,
-            "soil_type": plot.soil_type.soil_name if plot.soil_type else None,
+            "soil_name": plot.soil_type.soil_name if plot.soil_type else None,
             "latitude": plot.latitude,
             "longitude": plot.longitude,
             "device_id": plot.device_id,

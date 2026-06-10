@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Plot{% endblock %}
+{% block header_title %}Edit Plot{% endblock %}
+
+{% block content %}
+<div
+    style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
+    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Edit Plot
+        Details</h2>
+    <form method="POST" action="{% url 'edit_plot' plot.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="lt" id="lt" value="{{ plot.latitude|default:'' }}">
+        <input type="hidden" name="ln" id="ln" value="{{ plot.longitude|default:'' }}">
+        <input type="hidden" name="device_id" id="device_id" value="web-browser">
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Plot Code</label>
+                <input type="text" value="{{ plot.plot_code }}" disabled
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: #f9f9f9; color: #888;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign
+                    to Farmer</label>
+                <select name="farmer_id" id="farmerSelect" required onchange="fillFarmerDetails()"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="" disabled selected>Select Farmer</option>
+                    {% for farmer in farmers %}
+                    <option value="{{ farmer.id }}" data-div-id="{{ farmer.section.division.id|default:'' }}"
+                        data-div-name="{{ farmer.division|default:'' }}"
+                        data-sec-id="{{ farmer.section.id|default:'' }}"
+                        data-sec-name="{{ farmer.section.section_name|default:'' }}"
+                        data-vil-id="{{ farmer.village.id|default:'' }}"
+                        data-vil-name="{{ farmer.village.village_name|default:'' }}" {% if plot.farmer_id == farmer.id %}selected{% endif %}>
+                        {{ farmer.name }} - {{ farmer.farmer_code }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Division</label>
+                <input type="hidden" name="division_id" id="divisionId" value="{{ plot.division_id|default:'' }}">
+                <input type="text" id="divisionName" name="division_name" readonly value="{{ plot.division_name|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: #f9f9f9;">
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Section</label>
+                <input type="hidden" name="section_id" id="sectionId" value="{{ plot.section_id|default:'' }}">
+                <input type="text" id="sectionName" name="section_name" readonly value="{{ plot.section_name|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: #f9f9f9;">
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Village</label>
+                <input type="hidden" name="village_id" id="villageId" value="{{ plot.village_id|default:'' }}">
+                <input type="text" id="villageName" name="village_name" readonly value="{{ plot.village_name|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: #f9f9f9;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Crop
+                    Type</label>
+                <select name="crop_id" id="cropSelect" required onchange="filterVarieties()"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="" disabled selected>Select Crop</option>
+                    {% for crop in crops %}
+                    <option value="{{ crop.id }}" {% if plot.crop_type_id == crop.id %}selected{% endif %}>{{ crop.crop_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Variety</label>
+                <select name="variety_id" id="varietySelect" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="" disabled selected>Select Variety</option>
+                    {% for variety in varieties %}
+                    <option value="{{ variety.id }}" data-crop="{{ variety.crop_type.id }}" {% if plot.variety_id == variety.id %}selected{% endif %}>{{ variety.variety_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Area
+                    (Acres)</label>
+                <input type="number" name="area_acre" step="0.1" placeholder="Enter area" required value="{{ plot.area_acre }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Planting
+                    Date</label>
+                <input type="date" name="planting_date" required value="{{ plot.planting_date|date:'Y-m-d' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Status</label>
+                <select name="status"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="Not Mapped" {% if plot.status == 'Not Mapped' %}selected{% endif %}>Not Mapped</option>
+                    <option value="Mapped" {% if plot.status == 'Mapped' %}selected{% endif %}>Mapped</option>
+                    <option value="Need Attention" {% if plot.status == 'Need Attention' %}selected{% endif %}>Need Attention</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Soil Type</label>
+                <select name="soil_type_id"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="" selected>Select Soil Type</option>
+                    {% for soil in soil_types %}
+                    <option value="{{ soil.id }}" {% if plot.soil_type_id == soil.id %}selected{% endif %}>{{ soil.soil_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+
+        </div>
+
+        <div style="text-align: right;">
+            <button type="button" onclick="window.location.href='{% url 'plots' %}'"
+                style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
+            <button type="submit"
+                style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Update Plot</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Chart default settings
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.color = "#666";
+
+    // NDVI Trend Chart (Line)
+    const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
+    new Chart(ctxNdvi, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Average NDVI',
+                data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
+                borderColor: '#2e7d32',
+                backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 1 }
+            }
+        }
+    });
+
+    // Crop Health Chart (Doughnut)
+    const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
+    new Chart(ctxHealth, {
+        type: 'doughnut',
+        data: {
+            labels: ['Healthy', 'Moderate', 'Poor'],
+            datasets: [{
+                data: [65, 25, 10],
+                backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Scout Status Chart (Bar)
+    const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
+    new Chart(ctxScout, {
+        type: 'bar',
+        data: {
+            labels: ['Completed', 'Pending', 'Overdue'],
+            datasets: [{
+                label: 'Scouts',
+                data: [42, 15, 8],
+                backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
+    const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
+    new Chart(ctxSurvey, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Remaining'],
+            datasets: [{
+                data: [78, 22],
+                backgroundColor: ['#0288d1', '#e0e0e0'],
+                borderWidth: 0,
+                circumference: 180,
+                rotation: 270
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '80%',
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { enabled: false }
+            }
+        },
+        plugins: [{
+            id: 'textCenter',
+            beforeDraw: function (chart) {
+                var width = chart.width,
+                    height = chart.height,
+                    ctx = chart.ctx;
+                ctx.restore();
+                var fontSize = (height / 114).toFixed(2);
+                ctx.font = "bold " + fontSize + "em Outfit";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "#333";
+                var text = "78%",
+                    textX = Math.round((width - ctx.measureText(text).width) / 2),
+                    textY = height / 1.5;
+                ctx.fillText(text, textX, textY);
+                ctx.save();
+            }
+        }]
+    });
+</script>
+
+<script>
+    function fillFarmerDetails() {
+        var select = document.getElementById('farmerSelect');
+        var selectedOption = select.options[select.selectedIndex];
+
+        if (selectedOption.value) {
+            document.getElementById('divisionId').value = selectedOption.getAttribute('data-div-id') || '';
+            document.getElementById('divisionName').value = selectedOption.getAttribute('data-div-name') || '';
+
+            document.getElementById('sectionId').value = selectedOption.getAttribute('data-sec-id') || '';
+            document.getElementById('sectionName').value = selectedOption.getAttribute('data-sec-name') || '';
+
+            document.getElementById('villageId').value = selectedOption.getAttribute('data-vil-id') || '';
+            document.getElementById('villageName').value = selectedOption.getAttribute('data-vil-name') || '';
+        }
+    }
+
+    function filterVarieties() {
+        var cropSelect = document.getElementById('cropSelect');
+        var selectedCrop = cropSelect.value;
+        var varietySelect = document.getElementById('varietySelect');
+        var options = varietySelect.options;
+
+        varietySelect.value = "";
+
+        for (var i = 1; i < options.length; i++) {
+            if (options[i].getAttribute('data-crop') === selectedCrop || !selectedCrop) {
+                options[i].style.display = '';
+            } else {
+                options[i].style.display = 'none';
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (menuToggle && sidebar) {
+            menuToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('open');
+            });
+        }
+
+
+        // Fetch device location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                document.getElementById('lt').value = position.coords.latitude;
+                document.getElementById('ln').value = position.coords.longitude;
+            });
+        }
+    });
+</script>
+{% endblock %}
