@@ -89,7 +89,7 @@ def index(request):
         # ==========================================
         # 4. MOBILE API: Get Work Assigns
         # ==========================================
-        elif 'officer_id' in keys and 'device_id' in keys:
+        elif 'officer_id' in keys and 'device_id' in keys and 'plot_action' not in keys and 'get_farmers' not in keys and 'crop_id' not in keys:
             officer_id = request.POST.get('officer_id')
             device_id = request.POST.get('device_id')
             lt = request.POST.get('lt')
