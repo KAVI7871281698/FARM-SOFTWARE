@@ -122,6 +122,7 @@ def index(request):
                             'soil_name': p.soil_type.soil_name if p.soil_type else None,
                             'latitude': p.latitude,
                             'longitude': p.longitude,
+                            'date_planted': str(p.planting_date) if p.planting_date else None,
                         })
 
                 data.append({
@@ -644,6 +645,17 @@ def add_plots(request):
         lt = request.POST.get('lt')
         ln = request.POST.get('ln')
         device_id = request.POST.get('device_id')
+        gps_area = request.POST.get('gps_area')
+        planting_season = request.POST.get('planting_season')
+        crushing_season = request.POST.get('crushing_season')
+        plot_type = request.POST.get('plot_type')
+        irrigation_type = request.POST.get('irrigation_type')
+        water_source = request.POST.get('water_source')
+        seed_type = request.POST.get('seed_type')
+        spacing_ft = request.POST.get('spacing_ft')
+        harvest_date = request.POST.get('harvest_date')
+        production_t = request.POST.get('production_t')
+        yield_ton_acre = request.POST.get('yield_ton_acre')
 
         farmer = Farmer.objects.filter(id=farmer_id).first() if farmer_id else None
         division = Division.objects.filter(id=division_id).first() if division_id else None
@@ -675,6 +687,17 @@ def add_plots(request):
             latitude=lt,
             longitude=ln,
             device_id=device_id,
+            gps_area=gps_area if gps_area else None,
+            planting_season=planting_season,
+            crushing_season=crushing_season,
+            plot_type=plot_type,
+            irrigation_type=irrigation_type,
+            water_source=water_source,
+            seed_type=seed_type,
+            spacing_ft=spacing_ft if spacing_ft else None,
+            harvest_date=harvest_date if harvest_date else None,
+            production_t=production_t if production_t else None,
+            yield_ton_acre=yield_ton_acre if yield_ton_acre else None,
             group=group_obj,
             group_name=group_name,
             factory=factory_obj,
@@ -721,6 +744,17 @@ def edit_plot(request, id):
         soil_type_id = request.POST.get('soil_type_id')
         lt = request.POST.get('lt')
         ln = request.POST.get('ln')
+        gps_area = request.POST.get('gps_area')
+        planting_season = request.POST.get('planting_season')
+        crushing_season = request.POST.get('crushing_season')
+        plot_type = request.POST.get('plot_type')
+        irrigation_type = request.POST.get('irrigation_type')
+        water_source = request.POST.get('water_source')
+        seed_type = request.POST.get('seed_type')
+        spacing_ft = request.POST.get('spacing_ft')
+        harvest_date = request.POST.get('harvest_date')
+        production_t = request.POST.get('production_t')
+        yield_ton_acre = request.POST.get('yield_ton_acre')
 
         farmer = Farmer.objects.filter(id=farmer_id).first() if farmer_id else None
         division = Division.objects.filter(id=division_id).first() if division_id else None
@@ -749,6 +783,21 @@ def edit_plot(request, id):
             plot.latitude = lt
         if ln:
             plot.longitude = ln
+            
+        plot.gps_area = gps_area if gps_area else None
+        plot.planting_season = planting_season
+        plot.crushing_season = crushing_season
+        plot.plot_type = plot_type
+        plot.irrigation_type = irrigation_type
+        plot.water_source = water_source
+        plot.seed_type = seed_type
+        plot.spacing_ft = spacing_ft if spacing_ft else None
+        if harvest_date:
+            plot.harvest_date = harvest_date
+        else:
+            plot.harvest_date = None
+        plot.production_t = production_t if production_t else None
+        plot.yield_ton_acre = yield_ton_acre if yield_ton_acre else None
         if farmer:
             plot.group = farmer.group
             plot.group_name = farmer.group_name
@@ -1493,7 +1542,22 @@ def api_add_plot(request):
         ln = request.POST.get('ln')
         device_id = request.POST.get('device_id')
         officer_id = request.POST.get('officer_id')
-
+        gps_area = request.POST.get('gps_area')
+        if not gps_area or str(gps_area).strip() == '': gps_area = None
+        planting_season = request.POST.get('planting_season')
+        crushing_season = request.POST.get('crushing_season')
+        plot_type = request.POST.get('plot_type')
+        irrigation_type = request.POST.get('irrigation_type')
+        water_source = request.POST.get('water_source')
+        seed_type = request.POST.get('seed_type')
+        spacing_ft = request.POST.get('spacing_ft')
+        if not spacing_ft or str(spacing_ft).strip() == '': spacing_ft = None
+        harvest_date = request.POST.get('harvest_date')
+        if not harvest_date or str(harvest_date).strip() == '': harvest_date = None
+        production_t = request.POST.get('production_t')
+        if not production_t or str(production_t).strip() == '': production_t = None
+        yield_ton_acre = request.POST.get('yield_ton_acre')
+        if not yield_ton_acre or str(yield_ton_acre).strip() == '': yield_ton_acre = None
         if not farmer_input or not officer_id:
             return JsonResponse({"status": "error", "message": "farmer_name and officer_id are required"}, status=400)
 
@@ -1539,6 +1603,17 @@ def api_add_plot(request):
                 latitude=lt,
                 longitude=ln,
                 device_id=device_id,
+                gps_area=gps_area,
+                planting_season=planting_season,
+                crushing_season=crushing_season,
+                plot_type=plot_type,
+                irrigation_type=irrigation_type,
+                water_source=water_source,
+                seed_type=seed_type,
+                spacing_ft=spacing_ft,
+                harvest_date=harvest_date,
+                production_t=production_t,
+                yield_ton_acre=yield_ton_acre,
                 group=group_obj,
                 group_name=group_name,
                 factory=factory_obj,
@@ -1551,6 +1626,9 @@ def api_add_plot(request):
                     farmer=farmer, division=division, division_name=division_name, section=section, section_name=section_name,
                     village=village, village_name=village_name, crop_type=crop, variety=variety, planting_date=planting_date,
                     area_acre=area_acre, status=status, soil_type=soil_type, latitude=lt, longitude=ln, device_id=device_id,
+                    gps_area=gps_area, planting_season=planting_season, crushing_season=crushing_season, plot_type=plot_type,
+                    irrigation_type=irrigation_type, water_source=water_source, seed_type=seed_type, spacing_ft=spacing_ft,
+                    harvest_date=harvest_date, production_t=production_t, yield_ton_acre=yield_ton_acre,
                     group=group_obj, group_name=group_name, factory=factory_obj, factory_name=factory_name, officer=officer
                 )
             else:

@@ -96,6 +96,61 @@
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
             <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">GPS Area</label>
+                <input type="number" name="gps_area" step="0.01" placeholder="Enter GPS area" value="{{ plot.gps_area|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Planting Season</label>
+                <input type="text" name="planting_season" placeholder="e.g. Kuruvai, Samba" value="{{ plot.planting_season|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Crushing Season</label>
+                <input type="text" name="crushing_season" placeholder="e.g. 2023-24" value="{{ plot.crushing_season|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Plot Type</label>
+                <input type="text" name="plot_type" placeholder="e.g. Main Plot" value="{{ plot.plot_type|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Irrigation Type</label>
+                <input type="text" name="irrigation_type" placeholder="e.g. Drip, Canal" value="{{ plot.irrigation_type|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Water Source</label>
+                <input type="text" name="water_source" placeholder="e.g. Well, River" value="{{ plot.water_source|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Seed Type</label>
+                <input type="text" name="seed_type" placeholder="Enter Seed Type" value="{{ plot.seed_type|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Spacing (Ft)</label>
+                <input type="number" name="spacing_ft" step="0.01" placeholder="Enter spacing" value="{{ plot.spacing_ft|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Harvest Date</label>
+                <input type="date" name="harvest_date" value="{{ plot.harvest_date|date:'Y-m-d' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Production (Tonnes)</label>
+                <input type="number" name="production_t" step="0.01" placeholder="Enter production" value="{{ plot.production_t|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Yield (Ton/Acre)</label>
+                <input type="number" name="yield_ton_acre" step="0.01" placeholder="Enter yield" value="{{ plot.yield_ton_acre|default:'' }}"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Status</label>
                 <select name="status"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
