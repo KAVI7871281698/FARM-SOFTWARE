@@ -22,6 +22,7 @@
                     <th style="padding: 1rem 1.5rem;">Crop Variety</th>
                     <th style="padding: 1rem 1.5rem;">Area (Acres)</th>
                     <th style="padding: 1rem 1.5rem;">Planting Date</th>
+                    <th style="padding: 1rem 1.5rem;">Soil Type</th>
                     <th style="padding: 1rem 1.5rem;">Status</th>
                     <th style="padding: 1rem 1.5rem;">Action</th>
                 </tr>
@@ -38,20 +39,24 @@
                     </td>
                     <td style="padding: 1rem 1.5rem;">{{ plot.area_acre }}</td>
                     <td style="padding: 1rem 1.5rem;">{{ plot.planting_date|date:'d M Y' }}</td>
+                    <td style="padding: 1rem 1.5rem;">{{ plot.soil_type.soil_name|default:'-' }}</td>
                     <td style="padding: 1rem 1.5rem;">
-                        {% if plot.is_mapped %}
+                        {% if plot.status == 'Mapped' %}
                         <span
                             style="background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Mapped</span>
+                        {% elif plot.status == 'Need Attention' %}
+                        <span
+                            style="background: #fff3e0; color: #e65100; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Need Attention</span>
                         {% else %}
                         <span
-                            style="background: #ffebee; color: #d32f2f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Unmapped</span>
+                            style="background: #ffebee; color: #d32f2f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Not Mapped</span>
                         {% endif %}
                     </td>
                     <td style="padding: 1rem 1.5rem;">-</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" style="padding: 1rem 1.5rem; text-align: center;">No plots found.</td>
+                    <td colspan="9" style="padding: 1rem 1.5rem; text-align: center;">No plots found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

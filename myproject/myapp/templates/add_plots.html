@@ -97,12 +97,22 @@
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
             <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Is
-                    Mapped?</label>
-                <select name="is_mapped"
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Status</label>
+                <select name="status"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
-                    <option value="false">No</option>
-                    <option value="true">Yes</option>
+                    <option value="Not Mapped">Not Mapped</option>
+                    <option value="Mapped">Mapped</option>
+                    <option value="Need Attention">Need Attention</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Soil Type</label>
+                <select name="soil_type_id"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="" selected>Select Soil Type</option>
+                    {% for soil in soil_types %}
+                    <option value="{{ soil.id }}">{{ soil.soil_name }}</option>
+                    {% endfor %}
                 </select>
             </div>
 

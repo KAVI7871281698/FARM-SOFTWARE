@@ -118,7 +118,8 @@ def index(request):
                             'crop_name': p.crop_type.crop_name if p.crop_type else None,
                             'variety_name': p.variety.variety_name if p.variety else None,
                             'area_acre': str(p.area_acre) if p.area_acre is not None else None,
-                            'status': p.is_mapped,
+                            'status': p.status,
+                            'soil_type': p.soil_type.soil_name if p.soil_type else None,
                             'latitude': p.latitude,
                             'longitude': p.longitude,
                         })
@@ -638,7 +639,8 @@ def add_plots(request):
         variety_id = request.POST.get('variety_id')
         area_acre = request.POST.get('area_acre')
         planting_date = request.POST.get('planting_date')
-        is_mapped = request.POST.get('is_mapped') == 'true'
+        status = request.POST.get('status', 'Not Mapped')
+        soil_type_id = request.POST.get('soil_type_id')
         lt = request.POST.get('lt')
         ln = request.POST.get('ln')
         device_id = request.POST.get('device_id')
@@ -649,6 +651,7 @@ def add_plots(request):
         village = Village.objects.filter(id=village_id).first() if village_id else None
         crop = Crop.objects.filter(id=crop_id).first() if crop_id else None
         variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
+        soil_type = SoilType.objects.filter(id=soil_type_id).first() if soil_type_id else None
         
         group_obj = farmer.group if farmer else None
         group_name = farmer.group_name if farmer else None
@@ -667,7 +670,8 @@ def add_plots(request):
             variety=variety,
             planting_date=planting_date,
             area_acre=area_acre,
-            is_mapped=is_mapped,
+            status=status,
+            soil_type=soil_type,
             latitude=lt,
             longitude=ln,
             device_id=device_id,
@@ -690,10 +694,12 @@ def add_plots(request):
             
     crops_list = Crop.objects.all()
     varieties_list = Variety.objects.all()
+    soil_types_list = SoilType.objects.all()
     return render(request, 'add_plots.html', {
         'farmers': farmers_list,
         'crops': crops_list,
-        'varieties': varieties_list
+        'varieties': varieties_list,
+        'soil_types': soil_types_list
     })
 
 def add_section(request):
@@ -1398,7 +1404,8 @@ def api_add_plot(request):
         if not planting_date or str(planting_date).strip() == '':
             planting_date = None
             
-        is_mapped = request.POST.get('is_mapped', '').lower() == 'true'
+        status = request.POST.get('status', 'Not Mapped')
+        soil_type_id = request.POST.get('soil_type_id')
         lt = request.POST.get('lt')
         ln = request.POST.get('ln')
         device_id = request.POST.get('device_id')
@@ -1418,6 +1425,7 @@ def api_add_plot(request):
         officer = Officer.objects.filter(id=officer_id).first()
         crop = Crop.objects.filter(id=crop_id).first() if crop_id else None
         variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
+        soil_type = SoilType.objects.filter(id=soil_type_id).first() if soil_type_id else None
 
         division = farmer.section.division if farmer.section and farmer.section.division else None
         division_name = division.name if division else None
@@ -1443,7 +1451,8 @@ def api_add_plot(request):
                 variety=variety,
                 planting_date=planting_date,
                 area_acre=area_acre,
-                is_mapped=is_mapped,
+                status=status,
+                soil_type=soil_type,
                 latitude=lt,
                 longitude=ln,
                 device_id=device_id,
@@ -1458,7 +1467,7 @@ def api_add_plot(request):
                 plot = Plot.objects.create(
                     farmer=farmer, division=division, division_name=division_name, section=section, section_name=section_name,
                     village=village, village_name=village_name, crop_type=crop, variety=variety, planting_date=planting_date,
-                    area_acre=area_acre, is_mapped=is_mapped, latitude=lt, longitude=ln, device_id=device_id,
+                    area_acre=area_acre, status=status, soil_type=soil_type, latitude=lt, longitude=ln, device_id=device_id,
                     group=group_obj, group_name=group_name, factory=factory_obj, factory_name=factory_name, officer=officer
                 )
             else:
@@ -1484,7 +1493,8 @@ def api_add_plot(request):
                 "variety": plot.variety.variety_name if plot.variety else None,
                 "planting_date": str(plot.planting_date),
                 "area_acre": str(plot.area_acre),
-                "is_mapped": plot.is_mapped,
+                "status": plot.status,
+                "soil_type": plot.soil_type.soil_name if plot.soil_type else None,
                 "latitude": plot.latitude,
                 "longitude": plot.longitude,
                 "device_id": plot.device_id,
@@ -1526,7 +1536,8 @@ def api_get_plots(request):
             "variety": plot.variety.variety_name if plot.variety else None,
             "planting_date": str(plot.planting_date) if plot.planting_date else None,
             "area_acre": str(plot.area_acre) if plot.area_acre else None,
-            "is_mapped": plot.is_mapped,
+            "status": plot.status,
+            "soil_type": plot.soil_type.soil_name if plot.soil_type else None,
             "latitude": plot.latitude,
             "longitude": plot.longitude,
             "device_id": plot.device_id,
@@ -1588,7 +1599,7 @@ def field_intelligence(request):
             )
             mapping.save()
             
-            plot.is_mapped = True
+            plot.status = 'Mapped'
             plot.save()
             
             return redirect('field_intelligence')
