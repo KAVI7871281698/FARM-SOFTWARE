@@ -185,6 +185,12 @@ def index(request):
                 'data': data
             })
 
+        # ==========================================
+        # 7. MOBILE API: Get Plots
+        # ==========================================
+        elif request.POST.get('plot_action', '').lower() == 'true':
+            return api_get_plots(request)
+
         # Invalid API Request fallback
         elif request.headers.get('Accept') == 'application/json':
             return JsonResponse({'status': 'error', 'message': 'Unknown API request parameters'}, status=400)
@@ -1467,6 +1473,9 @@ def api_get_plots(request):
     
     if not group_id or not officer_id:
         return JsonResponse({"status": "error", "message": "group_id and officer_id are required"}, status=400)
+        
+    if str(plot_action).lower() != 'true':
+        return JsonResponse({"status": "error", "message": "plot_action must be 'true' to view plots"}, status=400)
         
     plots = Plot.objects.filter(group_id=group_id, officer_id=officer_id).order_by('-id')
     
