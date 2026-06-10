@@ -1455,3 +1455,44 @@ def api_add_plot(request):
         }, status=201)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def api_get_plots(request):
+    group_id = request.GET.get('group_id') or request.POST.get('group_id')
+    officer_id = request.GET.get('officer_id') or request.POST.get('officer_id')
+    lt = request.GET.get('lt') or request.POST.get('lt')
+    ln = request.GET.get('ln') or request.POST.get('ln')
+    device_id = request.GET.get('device_id') or request.POST.get('device_id')
+    plot_action = request.GET.get('plot_action') or request.POST.get('plot_action')
+    
+    if not group_id or not officer_id:
+        return JsonResponse({"status": "error", "message": "group_id and officer_id are required"}, status=400)
+        
+    plots = Plot.objects.filter(group_id=group_id, officer_id=officer_id).order_by('-id')
+    
+    data = []
+    for plot in plots:
+        data.append({
+            "plot_id": plot.id,
+            "plot_code": plot.plot_code,
+            "farmer_name": plot.farmer.name if plot.farmer else None,
+            "division_name": plot.division_name,
+            "section_name": plot.section_name,
+            "village_name": plot.village_name,
+            "crop_type": plot.crop_type.crop_name if plot.crop_type else None,
+            "variety": plot.variety.variety_name if plot.variety else None,
+            "planting_date": str(plot.planting_date) if plot.planting_date else None,
+            "area_acre": str(plot.area_acre) if plot.area_acre else None,
+            "is_mapped": plot.is_mapped,
+            "latitude": plot.latitude,
+            "longitude": plot.longitude,
+            "device_id": plot.device_id,
+            "group_name": plot.group_name,
+            "factory_name": plot.factory_name,
+            "officer_name": plot.officer.name if plot.officer else None
+        })
+        
+    return JsonResponse({
+        "status": "success",
+        "data": data
+    }, status=200)

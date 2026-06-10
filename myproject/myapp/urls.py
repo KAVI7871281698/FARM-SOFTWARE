@@ -27,6 +27,7 @@ urlpatterns = [
     path('get_mobile_varieties/', views.api_get_varieties, name='api_get_varieties'),
     path('get_mobile_farmers/', views.api_get_farmers, name='api_get_farmers'),
     path('api/add_plot/', views.api_add_plot, name='api_add_plot'),
+    path('api/get_plots/', views.api_get_plots, name='api_get_plots'),
     path('add_variety/', views.add_variety, name='add_variety'),
     path('add_village/', views.add_village, name='add_village'),
     path('edit_officer/<int:id>/', views.edit_officer, name='edit_officer'),
