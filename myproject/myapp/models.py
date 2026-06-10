@@ -348,3 +348,23 @@ class FieldMapping(models.Model):
 
     def __str__(self):
         return f"Mapping for Plot: {self.plot.plot_code} - {self.farmer.name}"
+
+class SoilType(models.Model):
+    soil_code = models.CharField(max_length=50, unique=True, blank=True)
+    soil_name = models.CharField(max_length=150)
+
+    class Meta:
+        db_table = "soil_type"
+
+    def save(self, *args, **kwargs):
+        if not self.soil_code:
+            last_soil = SoilType.objects.all().order_by('id').last()
+            if last_soil:
+                last_id = last_soil.id
+                self.soil_code = f"SOIL-{last_id + 1:03d}"
+            else:
+                self.soil_code = "SOIL-001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.soil_code} - {self.soil_name}"

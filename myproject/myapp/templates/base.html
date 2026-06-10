@@ -322,6 +322,10 @@
                     <li class=""><a href="{% url 'varieties' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-seedling"></i> Varieties</a></li>
                     {% endif %}
+                    {% if 'soil_types' in request.session.permissions or request.session.role_id == 1 %}
+                    <li class=""><a href="{% url 'soil_types' %}" style="padding-left: 3.5rem;"><i
+                                class="fa-solid fa-layer-group"></i> Soil Types</a></li>
+                    {% endif %}
                     {% if 'crops' in request.session.permissions or request.session.role_id == 1 %}
                     <li class=""><a href="{% url 'crops' %}" style="padding-left: 3.5rem;"><i
                                 class="fa-solid fa-leaf"></i> Crops</a></li>

@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType
 
 import json
 
@@ -207,6 +207,22 @@ def index(request):
         # ==========================================
         elif request.POST.get('plot_action', '').lower() == 'true':
             return api_get_plots(request)
+
+        # ==========================================
+        # 8. MOBILE API: Get Soil Types
+        # ==========================================
+        elif request.POST.get('get_soil_types', '').lower() == 'true' and 'device_id' in keys:
+            device_id = request.POST.get('device_id')
+            lt = request.POST.get('lt')
+            ln = request.POST.get('ln')
+            
+            soil_types = SoilType.objects.all()
+            data = [{'id': s.id, 'soil_code': s.soil_code, 'soil_name': s.soil_name} for s in soil_types]
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Soil types fetched successfully',
+                'data': data
+            })
 
         # Invalid API Request fallback
         elif request.headers.get('Accept') == 'application/json':
@@ -1582,3 +1598,29 @@ def field_intelligence(request):
         'farmers': farmers,
         'is_superadmin': is_superadmin
     })
+
+def soil_types(request):
+    soil_types_list = SoilType.objects.all()
+    return render(request, 'soil_types.html', {'soil_types': soil_types_list})
+
+def add_soil_type(request):
+    if request.method == 'POST':
+        soil_name = request.POST.get('soil_name')
+        SoilType.objects.create(soil_name=soil_name)
+        return redirect('soil_types')
+    return render(request, 'add_soil_type.html')
+
+def edit_soil_type(request, id):
+    from django.shortcuts import get_object_or_404
+    soil_type = get_object_or_404(SoilType, id=id)
+    if request.method == 'POST':
+        soil_type.soil_name = request.POST.get('soil_name')
+        soil_type.save()
+        return redirect('soil_types')
+    return render(request, 'edit_soil_type.html', {'soil_type': soil_type})
+
+def delete_soil_type(request, id):
+    from django.shortcuts import get_object_or_404
+    soil_type = get_object_or_404(SoilType, id=id)
+    soil_type.delete()
+    return redirect('soil_types')
