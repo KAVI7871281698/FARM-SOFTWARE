@@ -118,7 +118,7 @@ def index(request):
                             'crop_name': p.crop_type.crop_name if p.crop_type else None,
                             'variety_name': p.variety.variety_name if p.variety else None,
                             'area_acre': str(p.area_acre) if p.area_acre is not None else None,
-                            'is_mapped': p.is_mapped,
+                            'status': p.is_mapped,
                             'latitude': p.latitude,
                             'longitude': p.longitude,
                         })
