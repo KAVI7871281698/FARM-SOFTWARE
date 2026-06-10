@@ -315,3 +315,36 @@ class WorkAssign(models.Model):
 
     def __str__(self):
         return f"{self.work_assign_code} - {self.officer.name if self.officer else 'Unassigned'}"
+
+class FieldMapping(models.Model):
+    farmer = models.ForeignKey(Farmer, on_delete=models.CASCADE, related_name="field_mappings")
+    farmer_code = models.CharField(max_length=50, blank=True, null=True)
+    plot = models.ForeignKey(Plot, on_delete=models.CASCADE, related_name="field_mappings")
+    
+    # Hierarchy
+    division = models.CharField(max_length=100, blank=True, null=True)
+    section = models.CharField(max_length=100, blank=True, null=True)
+    village = models.CharField(max_length=100, blank=True, null=True)
+    group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
+    group_name = models.CharField(max_length=100, blank=True, null=True)
+    factory = models.ForeignKey('Factory', on_delete=models.SET_NULL, null=True, blank=True)
+    factory_name = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Mapping details
+    boundary = models.JSONField(blank=True, null=True) # To store JSON polygon
+    
+    # Images
+    img1 = models.ImageField(upload_to='field_images/', blank=True, null=True)
+    img2 = models.ImageField(upload_to='field_images/', blank=True, null=True)
+    img3 = models.ImageField(upload_to='field_images/', blank=True, null=True)
+    
+    # Tracking
+    officer = models.ForeignKey('Officer', on_delete=models.SET_NULL, null=True, blank=True)
+    officer_name = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "field_mapping"
+
+    def __str__(self):
+        return f"Mapping for Plot: {self.plot.plot_code} - {self.farmer.name}"

@@ -1505,3 +1505,63 @@ def api_get_plots(request):
         "status": "success",
         "data": data
     }, status=200)
+
+from .models import FieldMapping
+
+def api_get_farmer_plots(request):
+    farmer_id = request.GET.get('farmer_id')
+    if farmer_id:
+        plots_qs = Plot.objects.filter(farmer_id=farmer_id)
+        plots_data = []
+        for p in plots_qs:
+            plots_data.append({
+                'id': p.id,
+                'plot_code': p.plot_code,
+                'area_acre': str(p.area_acre) if p.area_acre else '0'
+            })
+        return JsonResponse({'status': 'success', 'plots': plots_data})
+    return JsonResponse({'status': 'error', 'message': 'No farmer_id provided'}, status=400)
+
+def field_intelligence(request):
+    if request.method == 'POST':
+        farmer_id = request.POST.get('farmer_id')
+        plot_id = request.POST.get('plot_id')
+        boundary = request.POST.get('boundary') # JSON string
+        img1 = request.FILES.get('img1')
+        img2 = request.FILES.get('img2')
+        img3 = request.FILES.get('img3')
+        
+        farmer = Farmer.objects.filter(id=farmer_id).first()
+        plot = Plot.objects.filter(id=plot_id).first()
+        
+        if farmer and plot:
+            mapping = FieldMapping(
+                farmer=farmer,
+                farmer_code=farmer.farmer_code,
+                plot=plot,
+                division=farmer.division,
+                section=farmer.section.section_name if farmer.section else '',
+                village=farmer.village.village_name if farmer.village else '',
+                group=farmer.group,
+                group_name=farmer.group_name,
+                factory=farmer.factory,
+                factory_name=farmer.factory_name,
+                boundary=boundary,
+                img1=img1,
+                img2=img2,
+                img3=img3,
+                officer_name=request.session.get('officer_name')
+            )
+            mapping.save()
+            
+            plot.is_mapped = True
+            plot.save()
+            
+            return redirect('field_intelligence')
+            
+    farmers = Farmer.objects.all()
+    is_superadmin = request.session.get('role_id') == 1
+    return render(request, 'field_intelligence.html', {
+        'farmers': farmers,
+        'is_superadmin': is_superadmin
+    })

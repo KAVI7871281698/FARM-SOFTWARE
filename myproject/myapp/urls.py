@@ -68,4 +68,5 @@ urlpatterns = [
     path('add_crop/', views.add_crop, name='add_crop'),
     path('edit_crop/<int:id>/', views.edit_crop, name='edit_crop'),
     path('delete_crop/<int:id>/', views.delete_crop, name='delete_crop'),
+    path('api/get_farmer_plots/', views.api_get_farmer_plots, name='api_get_farmer_plots'),
 ]
