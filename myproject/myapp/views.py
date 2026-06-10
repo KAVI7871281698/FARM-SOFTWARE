@@ -106,6 +106,22 @@ def index(request):
 
             data = []
             for wa in work_assigns:
+                village_plots = []
+                if wa.village:
+                    plots = Plot.objects.filter(village=wa.village)
+                    for p in plots:
+                        village_plots.append({
+                            'id': p.id,
+                            'plot_code': p.plot_code,
+                            'farmer_name': p.farmer.name if p.farmer else None,
+                            'crop_name': p.crop_type.crop_name if p.crop_type else None,
+                            'variety_name': p.variety.variety_name if p.variety else None,
+                            'area_acre': str(p.area_acre) if p.area_acre is not None else None,
+                            'is_mapped': p.is_mapped,
+                            'latitude': p.latitude,
+                            'longitude': p.longitude,
+                        })
+
                 data.append({
                     'id': wa.id,
                     'work_assign_code': wa.work_assign_code,
@@ -114,7 +130,8 @@ def index(request):
                     'section_name': wa.section.section_name if wa.section else None,
                     'village_id': wa.village.id if wa.village else None,
                     'village_name': wa.village.village_name if wa.village else None,
-                    'status': wa.status
+                    'status': wa.status,
+                    'plots': village_plots
                 })
             
             return JsonResponse({
