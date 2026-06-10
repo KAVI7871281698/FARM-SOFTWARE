@@ -103,25 +103,7 @@
                         </select>
                     </div>
 
-                    <!-- Image Upload Field -->
-                    <div style="grid-column: 1 / -1;">
-                        <label
-                            style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Plot
-                            Image / Map Screenshot</label>
-                        <div style="border: 2px dashed #ddd; border-radius: 8px; padding: 2rem; text-align: center; background: #fafafa; cursor: pointer; transition: 0.3s;"
-                            onmouseover="this.style.borderColor='var(--primary-color)'; this.style.background='#f0f9f0'"
-                            onmouseout="this.style.borderColor='#ddd'; this.style.background='#fafafa'">
-                            <i class="fa-solid fa-cloud-arrow-up"
-                                style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
-                            <p style="color: var(--text-muted); font-weight: 500; margin-bottom: 0.5rem;">Click to
-                                upload or drag and drop</p>
-                            <p style="color: #999; font-size: 0.85rem;">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
-                            <input type="file" name="land_image" accept="image/*" style="display: none;" id="plotImage">
-                            <button type="button" onclick="document.getElementById('plotImage').click()"
-                                style="margin-top: 1rem; background: white; color: var(--text-muted); border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Outfit';">Browse
-                                Files</button>
-                        </div>
-                    </div>
+
                 </div>
 
                 <div style="text-align: right;">
@@ -300,15 +282,7 @@
                 });
             }
             
-            document.getElementById('plotImage').addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    var fileName = e.target.files[0].name;
-                    var label = this.parentElement.querySelector('p:nth-of-type(1)');
-                    label.textContent = 'Selected: ' + fileName;
-                    label.style.color = 'var(--primary-color)';
-                }
-            });
-            
+
             // Fetch device location
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {

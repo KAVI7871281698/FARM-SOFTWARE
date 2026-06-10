@@ -47,14 +47,7 @@
                             style="background: #ffebee; color: #d32f2f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Unmapped</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 1rem 1.5rem;">
-                        {% if plot.land_image %}
-                        <a href="{{ plot.land_image.url }}" target="_blank"
-                            style="color: var(--info); text-decoration: none; font-weight: 500;">View Map</a>
-                        {% else %}
-                        -
-                        {% endif %}
-                    </td>
+                    <td style="padding: 1rem 1.5rem;">-</td>
                 </tr>
                 {% empty %}
                 <tr>

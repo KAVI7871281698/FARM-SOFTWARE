@@ -599,7 +599,6 @@ def add_plots(request):
         area_acre = request.POST.get('area_acre')
         planting_date = request.POST.get('planting_date')
         is_mapped = request.POST.get('is_mapped') == 'true'
-        land_image = request.FILES.get('land_image')
         lt = request.POST.get('lt')
         ln = request.POST.get('ln')
         device_id = request.POST.get('device_id')
@@ -629,7 +628,6 @@ def add_plots(request):
             planting_date=planting_date,
             area_acre=area_acre,
             is_mapped=is_mapped,
-            land_image=land_image,
             latitude=lt,
             longitude=ln,
             device_id=device_id,
@@ -1365,7 +1363,6 @@ def api_add_plot(request):
         ln = request.POST.get('ln')
         device_id = request.POST.get('device_id')
         officer_id = request.POST.get('officer_id')
-        land_image = request.FILES.get('land_image')
 
         if not farmer_input or not officer_id:
             return JsonResponse({"status": "error", "message": "farmer_name and officer_id are required"}, status=400)
@@ -1393,27 +1390,6 @@ def api_add_plot(request):
         factory_obj = farmer.factory
         factory_name = farmer.factory_name
         
-        # URL passed directly from mobile app (Supabase, AWS, etc)
-        land_image_url_param = request.POST.get('land_image_url')
-        
-        land_image = request.FILES.get('land_image')
-        if not land_image:
-            # Check if sent as base64 string
-            land_image_b64 = request.POST.get('land_image')
-            if land_image_b64 and isinstance(land_image_b64, str) and len(land_image_b64) > 100:
-                import base64
-                from django.core.files.base import ContentFile
-                try:
-                    if ';base64,' in land_image_b64:
-                        format, imgstr = land_image_b64.split(';base64,')
-                        ext = format.split('/')[-1]
-                    else:
-                        imgstr = land_image_b64
-                        ext = 'png'
-                    land_image = ContentFile(base64.b64decode(imgstr), name=f'plot_{plot_code if "plot_code" in locals() else "upload"}.{ext}')
-                except Exception:
-                    pass
-
         try:
             plot = Plot.objects.create(
                 farmer=farmer,
@@ -1428,7 +1404,6 @@ def api_add_plot(request):
                 planting_date=planting_date,
                 area_acre=area_acre,
                 is_mapped=is_mapped,
-                land_image=land_image,
                 latitude=lt,
                 longitude=ln,
                 device_id=device_id,
@@ -1436,8 +1411,7 @@ def api_add_plot(request):
                 group_name=group_name,
                 factory=factory_obj,
                 factory_name=factory_name,
-                officer=officer,
-                land_image_url=land_image_url_param
+                officer=officer
             )
         except OSError as e:
             if e.errno == 30: # Read-only file system (Vercel)
@@ -1445,8 +1419,7 @@ def api_add_plot(request):
                     farmer=farmer, division=division, division_name=division_name, section=section, section_name=section_name,
                     village=village, village_name=village_name, crop_type=crop, variety=variety, planting_date=planting_date,
                     area_acre=area_acre, is_mapped=is_mapped, latitude=lt, longitude=ln, device_id=device_id,
-                    group=group_obj, group_name=group_name, factory=factory_obj, factory_name=factory_name, officer=officer,
-                    land_image_url=land_image_url_param
+                    group=group_obj, group_name=group_name, factory=factory_obj, factory_name=factory_name, officer=officer
                 )
             else:
                 return JsonResponse({"status": "error", "message": f"File System Error: {str(e)}"}, status=400)
@@ -1456,8 +1429,6 @@ def api_add_plot(request):
             if isinstance(e, ValidationError):
                 error_msg = "; ".join(e.messages)
             return JsonResponse({"status": "error", "message": f"Data Validation Error: {error_msg}"}, status=400)
-
-        image_url = plot.land_image_url or (request.build_absolute_uri(plot.land_image.url) if plot.land_image else None)
 
         return JsonResponse({
             "status": "success",
@@ -1479,8 +1450,7 @@ def api_add_plot(request):
                 "device_id": plot.device_id,
                 "group_name": plot.group_name,
                 "factory_name": plot.factory_name,
-                "officer_name": plot.officer.name if plot.officer else None,
-                "land_image_url": image_url
+                "officer_name": plot.officer.name if plot.officer else None
             }
         }, status=201)
 
