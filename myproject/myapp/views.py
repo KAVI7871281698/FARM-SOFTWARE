@@ -114,6 +114,7 @@ def index(request):
                             'id': p.id,
                             'plot_code': p.plot_code,
                             'farmer_name': p.farmer.name if p.farmer else None,
+                            'farmer_phone': p.farmer.phone if p.farmer else None,
                             'crop_name': p.crop_type.crop_name if p.crop_type else None,
                             'variety_name': p.variety.variety_name if p.variety else None,
                             'area_acre': str(p.area_acre) if p.area_acre is not None else None,
