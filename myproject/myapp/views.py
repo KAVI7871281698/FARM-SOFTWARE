@@ -1525,112 +1525,172 @@ def api_get_farmers(request):
 @csrf_exempt
 def api_add_plot(request):
     if request.method == 'POST':
+        plot_id = request.POST.get('plot_id')
         farmer_input = request.POST.get('farmer_name')
-        crop_id = request.POST.get('crop_id')
-        variety_id = request.POST.get('variety_id')
-        area_acre = request.POST.get('area_acre')
-        if not area_acre or str(area_acre).strip() == '':
-            area_acre = None
-            
-        planting_date = request.POST.get('planting_date')
-        if not planting_date or str(planting_date).strip() == '':
-            planting_date = None
-            
-        status = request.POST.get('status', 'Not Mapped')
-        soil_type_id = request.POST.get('soil_type_id')
-        lt = request.POST.get('lt')
-        ln = request.POST.get('ln')
-        device_id = request.POST.get('device_id')
         officer_id = request.POST.get('officer_id')
-        gps_area = request.POST.get('gps_area')
-        if not gps_area or str(gps_area).strip() == '': gps_area = None
-        planting_season = request.POST.get('planting_season')
-        crushing_season = request.POST.get('crushing_season')
-        plot_type = request.POST.get('plot_type')
-        irrigation_type = request.POST.get('irrigation_type')
-        water_source = request.POST.get('water_source')
-        seed_type = request.POST.get('seed_type')
-        spacing_ft = request.POST.get('spacing_ft')
-        if not spacing_ft or str(spacing_ft).strip() == '': spacing_ft = None
-        harvest_date = request.POST.get('harvest_date')
-        if not harvest_date or str(harvest_date).strip() == '': harvest_date = None
-        production_t = request.POST.get('production_t')
-        if not production_t or str(production_t).strip() == '': production_t = None
-        yield_ton_acre = request.POST.get('yield_ton_acre')
-        if not yield_ton_acre or str(yield_ton_acre).strip() == '': yield_ton_acre = None
-        if not farmer_input or not officer_id:
+
+        plot = None
+        if plot_id:
+            plot = Plot.objects.filter(id=plot_id).first()
+            if not plot:
+                return JsonResponse({"status": "error", "message": "Plot not found"}, status=404)
+
+        if not plot and (not farmer_input or not officer_id):
             return JsonResponse({"status": "error", "message": "farmer_name and officer_id are required"}, status=400)
 
         try:
-            farmer = Farmer.objects.filter(id=farmer_input).first()
-        except ValueError:
-            farmer = Farmer.objects.filter(name=farmer_input).first()
+            farmer = None
+            if farmer_input:
+                try:
+                    farmer = Farmer.objects.filter(id=farmer_input).first()
+                except ValueError:
+                    farmer = Farmer.objects.filter(name=farmer_input).first()
+                if not farmer and not plot:
+                    return JsonResponse({"status": "error", "message": "Farmer not found"}, status=404)
+
+            officer = Officer.objects.filter(id=officer_id).first() if officer_id else None
             
-        if not farmer:
-            return JsonResponse({"status": "error", "message": "Farmer not found"}, status=404)
+            crop_id = request.POST.get('crop_id')
+            crop = Crop.objects.filter(id=crop_id).first() if crop_id else None
+            
+            variety_id = request.POST.get('variety_id')
+            variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
+            
+            soil_type_id = request.POST.get('soil_type_id')
+            soil_type = SoilType.objects.filter(id=soil_type_id).first() if soil_type_id else None
 
-        officer = Officer.objects.filter(id=officer_id).first()
-        crop = Crop.objects.filter(id=crop_id).first() if crop_id else None
-        variety = Variety.objects.filter(id=variety_id).first() if variety_id else None
-        soil_type = SoilType.objects.filter(id=soil_type_id).first() if soil_type_id else None
+            if plot:
+                # Update existing plot
+                if farmer:
+                    plot.farmer = farmer
+                    division = farmer.section.division if farmer.section and farmer.section.division else None
+                    plot.division = division
+                    plot.division_name = division.name if division else None
+                    plot.section = farmer.section if farmer.section else None
+                    plot.section_name = farmer.section.section_name if farmer.section else None
+                    plot.village = farmer.village if farmer.village else None
+                    plot.village_name = farmer.village.village_name if farmer.village else None
+                    plot.group = farmer.group
+                    plot.group_name = farmer.group_name
+                    plot.factory = farmer.factory
+                    plot.factory_name = farmer.factory_name
+                    
+                if crop: plot.crop_type = crop
+                if variety: plot.variety = variety
+                if soil_type: plot.soil_type = soil_type
+                if officer: plot.officer = officer
 
-        division = farmer.section.division if farmer.section and farmer.section.division else None
-        division_name = division.name if division else None
-        section = farmer.section if farmer.section else None
-        section_name = section.section_name if section else None
-        village = farmer.village if farmer.village else None
-        village_name = village.village_name if village else None
-        group_obj = farmer.group
-        group_name = farmer.group_name
-        factory_obj = farmer.factory
-        factory_name = farmer.factory_name
-        
-        try:
-            plot = Plot.objects.create(
-                farmer=farmer,
-                division=division,
-                division_name=division_name,
-                section=section,
-                section_name=section_name,
-                village=village,
-                village_name=village_name,
-                crop_type=crop,
-                variety=variety,
-                planting_date=planting_date,
-                area_acre=area_acre,
-                status=status,
-                soil_type=soil_type,
-                latitude=lt,
-                longitude=ln,
-                device_id=device_id,
-                gps_area=gps_area,
-                planting_season=planting_season,
-                crushing_season=crushing_season,
-                plot_type=plot_type,
-                irrigation_type=irrigation_type,
-                water_source=water_source,
-                seed_type=seed_type,
-                spacing_ft=spacing_ft,
-                harvest_date=harvest_date,
-                production_t=production_t,
-                yield_ton_acre=yield_ton_acre,
-                group=group_obj,
-                group_name=group_name,
-                factory=factory_obj,
-                factory_name=factory_name,
-                officer=officer
-            )
+                if 'area_acre' in request.POST:
+                    area_acre = request.POST.get('area_acre')
+                    plot.area_acre = area_acre if area_acre and str(area_acre).strip() != '' else None
+                if 'planting_date' in request.POST:
+                    planting_date = request.POST.get('planting_date')
+                    plot.planting_date = planting_date if planting_date and str(planting_date).strip() != '' else None
+                if 'status' in request.POST:
+                    plot.status = request.POST.get('status')
+                if 'lt' in request.POST: plot.latitude = request.POST.get('lt')
+                if 'ln' in request.POST: plot.longitude = request.POST.get('ln')
+                if 'device_id' in request.POST: plot.device_id = request.POST.get('device_id')
+                if 'gps_area' in request.POST:
+                    gps_area = request.POST.get('gps_area')
+                    plot.gps_area = gps_area if gps_area and str(gps_area).strip() != '' else None
+                if 'planting_season' in request.POST: plot.planting_season = request.POST.get('planting_season')
+                if 'crushing_season' in request.POST: plot.crushing_season = request.POST.get('crushing_season')
+                if 'plot_type' in request.POST: plot.plot_type = request.POST.get('plot_type')
+                if 'irrigation_type' in request.POST: plot.irrigation_type = request.POST.get('irrigation_type')
+                if 'water_source' in request.POST: plot.water_source = request.POST.get('water_source')
+                if 'seed_type' in request.POST: plot.seed_type = request.POST.get('seed_type')
+                if 'spacing_ft' in request.POST:
+                    spacing_ft = request.POST.get('spacing_ft')
+                    plot.spacing_ft = spacing_ft if spacing_ft and str(spacing_ft).strip() != '' else None
+                if 'harvest_date' in request.POST:
+                    harvest_date = request.POST.get('harvest_date')
+                    plot.harvest_date = harvest_date if harvest_date and str(harvest_date).strip() != '' else None
+                if 'production_t' in request.POST:
+                    production_t = request.POST.get('production_t')
+                    plot.production_t = production_t if production_t and str(production_t).strip() != '' else None
+                if 'yield_ton_acre' in request.POST:
+                    yield_ton_acre = request.POST.get('yield_ton_acre')
+                    plot.yield_ton_acre = yield_ton_acre if yield_ton_acre and str(yield_ton_acre).strip() != '' else None
+                
+                plot.save()
+            else:
+                # Create new plot
+                area_acre = request.POST.get('area_acre')
+                if not area_acre or str(area_acre).strip() == '': area_acre = None
+                
+                planting_date = request.POST.get('planting_date')
+                if not planting_date or str(planting_date).strip() == '': planting_date = None
+                
+                status = request.POST.get('status', 'Not Mapped')
+                lt = request.POST.get('lt')
+                ln = request.POST.get('ln')
+                device_id = request.POST.get('device_id')
+                gps_area = request.POST.get('gps_area')
+                if not gps_area or str(gps_area).strip() == '': gps_area = None
+                planting_season = request.POST.get('planting_season')
+                crushing_season = request.POST.get('crushing_season')
+                plot_type = request.POST.get('plot_type')
+                irrigation_type = request.POST.get('irrigation_type')
+                water_source = request.POST.get('water_source')
+                seed_type = request.POST.get('seed_type')
+                spacing_ft = request.POST.get('spacing_ft')
+                if not spacing_ft or str(spacing_ft).strip() == '': spacing_ft = None
+                harvest_date = request.POST.get('harvest_date')
+                if not harvest_date or str(harvest_date).strip() == '': harvest_date = None
+                production_t = request.POST.get('production_t')
+                if not production_t or str(production_t).strip() == '': production_t = None
+                yield_ton_acre = request.POST.get('yield_ton_acre')
+                if not yield_ton_acre or str(yield_ton_acre).strip() == '': yield_ton_acre = None
+
+                division = farmer.section.division if farmer.section and farmer.section.division else None
+                division_name = division.name if division else None
+                section = farmer.section if farmer.section else None
+                section_name = section.section_name if section else None
+                village = farmer.village if farmer.village else None
+                village_name = village.village_name if village else None
+                group_obj = farmer.group
+                group_name = farmer.group_name
+                factory_obj = farmer.factory
+                factory_name = farmer.factory_name
+                
+                plot = Plot.objects.create(
+                    farmer=farmer,
+                    division=division,
+                    division_name=division_name,
+                    section=section,
+                    section_name=section_name,
+                    village=village,
+                    village_name=village_name,
+                    crop_type=crop,
+                    variety=variety,
+                    planting_date=planting_date,
+                    area_acre=area_acre,
+                    status=status,
+                    soil_type=soil_type,
+                    latitude=lt,
+                    longitude=ln,
+                    device_id=device_id,
+                    gps_area=gps_area,
+                    planting_season=planting_season,
+                    crushing_season=crushing_season,
+                    plot_type=plot_type,
+                    irrigation_type=irrigation_type,
+                    water_source=water_source,
+                    seed_type=seed_type,
+                    spacing_ft=spacing_ft,
+                    harvest_date=harvest_date,
+                    production_t=production_t,
+                    yield_ton_acre=yield_ton_acre,
+                    group=group_obj,
+                    group_name=group_name,
+                    factory=factory_obj,
+                    factory_name=factory_name,
+                    officer=officer
+                )
         except OSError as e:
             if e.errno == 30: # Read-only file system (Vercel)
-                plot = Plot.objects.create(
-                    farmer=farmer, division=division, division_name=division_name, section=section, section_name=section_name,
-                    village=village, village_name=village_name, crop_type=crop, variety=variety, planting_date=planting_date,
-                    area_acre=area_acre, status=status, soil_type=soil_type, latitude=lt, longitude=ln, device_id=device_id,
-                    gps_area=gps_area, planting_season=planting_season, crushing_season=crushing_season, plot_type=plot_type,
-                    irrigation_type=irrigation_type, water_source=water_source, seed_type=seed_type, spacing_ft=spacing_ft,
-                    harvest_date=harvest_date, production_t=production_t, yield_ton_acre=yield_ton_acre,
-                    group=group_obj, group_name=group_name, factory=factory_obj, factory_name=factory_name, officer=officer
-                )
+                pass # Just ignore if we can't save on Vercel
             else:
                 return JsonResponse({"status": "error", "message": f"File System Error: {str(e)}"}, status=400)
         except Exception as e:
@@ -1642,26 +1702,37 @@ def api_add_plot(request):
 
         return JsonResponse({
             "status": "success",
-            "message": "Plot added successfully",
+            "message": "Plot added successfully" if not plot_id else "Plot updated successfully",
             "data": {
-                "plot_id": plot.id,
-                "plot_code": plot.plot_code,
-                "farmer_name": plot.farmer.name if plot.farmer else None,
-                "division_name": plot.division_name,
-                "section_name": plot.section_name,
-                "village_name": plot.village_name,
-                "crop_type": plot.crop_type.crop_name if plot.crop_type else None,
-                "variety": plot.variety.variety_name if plot.variety else None,
-                "planting_date": str(plot.planting_date),
-                "area_acre": str(plot.area_acre),
-                "status": plot.status,
-                "soil_name": plot.soil_type.soil_name if plot.soil_type else None,
-                "latitude": plot.latitude,
-                "longitude": plot.longitude,
-                "device_id": plot.device_id,
-                "group_name": plot.group_name,
-                "factory_name": plot.factory_name,
-                "officer_name": plot.officer.name if plot.officer else None
+                "plot_id": plot.id if plot else None,
+                "plot_code": plot.plot_code if plot else None,
+                "farmer_name": plot.farmer.name if plot and plot.farmer else None,
+                "division_name": plot.division_name if plot else None,
+                "section_name": plot.section_name if plot else None,
+                "village_name": plot.village_name if plot else None,
+                "crop_type": plot.crop_type.crop_name if plot and plot.crop_type else None,
+                "variety": plot.variety.variety_name if plot and plot.variety else None,
+                "planting_date": str(plot.planting_date) if plot and plot.planting_date else None,
+                "area_acre": str(plot.area_acre) if plot and plot.area_acre else None,
+                "status": plot.status if plot else None,
+                "soil_name": plot.soil_type.soil_name if plot and plot.soil_type else None,
+                "latitude": plot.latitude if plot else None,
+                "longitude": plot.longitude if plot else None,
+                "device_id": plot.device_id if plot else None,
+                "gps_area": str(plot.gps_area) if plot and plot.gps_area else None,
+                "planting_season": plot.planting_season if plot else None,
+                "crushing_season": plot.crushing_season if plot else None,
+                "plot_type": plot.plot_type if plot else None,
+                "irrigation_type": plot.irrigation_type if plot else None,
+                "water_source": plot.water_source if plot else None,
+                "seed_type": plot.seed_type if plot else None,
+                "spacing_ft": str(plot.spacing_ft) if plot and plot.spacing_ft else None,
+                "harvest_date": str(plot.harvest_date) if plot and plot.harvest_date else None,
+                "production_t": str(plot.production_t) if plot and plot.production_t else None,
+                "yield_ton_acre": str(plot.yield_ton_acre) if plot and plot.yield_ton_acre else None,
+                "group_name": plot.group_name if plot else None,
+                "factory_name": plot.factory_name if plot else None,
+                "officer_name": plot.officer.name if plot and plot.officer else None
             }
         }, status=201)
 
