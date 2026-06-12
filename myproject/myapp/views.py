@@ -1588,8 +1588,27 @@ def api_add_plot(request):
                     plot.planting_date = planting_date if planting_date and str(planting_date).strip() != '' else None
                 if 'status' in request.POST:
                     plot.status = request.POST.get('status')
-                if 'lt' in request.POST: plot.latitude = request.POST.get('lt')
-                if 'ln' in request.POST: plot.longitude = request.POST.get('ln')
+                if 'lt' in request.POST:
+                    lt_val = request.POST.get('lt')
+                    try:
+                        import json
+                        plot.latitude = json.loads(lt_val) if lt_val else []
+                    except:
+                        plot.latitude = [lt_val] if lt_val else []
+                if 'ln' in request.POST:
+                    ln_val = request.POST.get('ln')
+                    try:
+                        import json
+                        plot.longitude = json.loads(ln_val) if ln_val else []
+                    except:
+                        plot.longitude = [ln_val] if ln_val else []
+                if 'center_lt_ln' in request.POST:
+                    c_val = request.POST.get('center_lt_ln')
+                    try:
+                        import json
+                        plot.center_lt_ln = json.loads(c_val) if c_val else []
+                    except:
+                        plot.center_lt_ln = [c_val] if c_val else []
                 if 'device_id' in request.POST: plot.device_id = request.POST.get('device_id')
                 if 'gps_area' in request.POST:
                     gps_area = request.POST.get('gps_area')
@@ -1613,6 +1632,14 @@ def api_add_plot(request):
                     yield_ton_acre = request.POST.get('yield_ton_acre')
                     plot.yield_ton_acre = yield_ton_acre if yield_ton_acre and str(yield_ton_acre).strip() != '' else None
                 
+                if 'boundary_image' in request.POST:
+                    boundary_img_val = request.POST.get('boundary_image')
+                    try:
+                        import json
+                        plot.boundary_image = json.loads(boundary_img_val)
+                    except:
+                        plot.boundary_image = [boundary_img_val] if boundary_img_val else []
+                
                 plot.save()
             else:
                 # Create new plot
@@ -1623,8 +1650,26 @@ def api_add_plot(request):
                 if not planting_date or str(planting_date).strip() == '': planting_date = None
                 
                 status = request.POST.get('status', 'Not Mapped')
-                lt = request.POST.get('lt')
-                ln = request.POST.get('ln')
+                lt_val = request.POST.get('lt')
+                try:
+                    import json
+                    lt = json.loads(lt_val) if lt_val else []
+                except:
+                    lt = [lt_val] if lt_val else []
+
+                ln_val = request.POST.get('ln')
+                try:
+                    import json
+                    ln = json.loads(ln_val) if ln_val else []
+                except:
+                    ln = [ln_val] if ln_val else []
+
+                c_val = request.POST.get('center_lt_ln')
+                try:
+                    import json
+                    center_lt_ln = json.loads(c_val) if c_val else []
+                except:
+                    center_lt_ln = [c_val] if c_val else []
                 device_id = request.POST.get('device_id')
                 gps_area = request.POST.get('gps_area')
                 if not gps_area or str(gps_area).strip() == '': gps_area = None
@@ -1642,6 +1687,13 @@ def api_add_plot(request):
                 if not production_t or str(production_t).strip() == '': production_t = None
                 yield_ton_acre = request.POST.get('yield_ton_acre')
                 if not yield_ton_acre or str(yield_ton_acre).strip() == '': yield_ton_acre = None
+
+                boundary_img_val = request.POST.get('boundary_image')
+                try:
+                    import json
+                    boundary_image_data = json.loads(boundary_img_val) if boundary_img_val else []
+                except:
+                    boundary_image_data = [boundary_img_val] if boundary_img_val else []
 
                 division = farmer.section.division if farmer.section and farmer.section.division else None
                 division_name = division.name if division else None
@@ -1670,6 +1722,7 @@ def api_add_plot(request):
                     soil_type=soil_type,
                     latitude=lt,
                     longitude=ln,
+                    center_lt_ln=center_lt_ln,
                     device_id=device_id,
                     gps_area=gps_area,
                     planting_season=planting_season,
@@ -1686,7 +1739,8 @@ def api_add_plot(request):
                     group_name=group_name,
                     factory=factory_obj,
                     factory_name=factory_name,
-                    officer=officer
+                    officer=officer,
+                    boundary_image=boundary_image_data
                 )
         except OSError as e:
             if e.errno == 30: # Read-only file system (Vercel)
@@ -1718,6 +1772,7 @@ def api_add_plot(request):
                 "soil_name": plot.soil_type.soil_name if plot and plot.soil_type else None,
                 "latitude": plot.latitude if plot else None,
                 "longitude": plot.longitude if plot else None,
+                "center_lt_ln": plot.center_lt_ln if plot else None,
                 "device_id": plot.device_id if plot else None,
                 "gps_area": str(plot.gps_area) if plot and plot.gps_area else None,
                 "planting_season": plot.planting_season if plot else None,
@@ -1732,7 +1787,8 @@ def api_add_plot(request):
                 "yield_ton_acre": str(plot.yield_ton_acre) if plot and plot.yield_ton_acre else None,
                 "group_name": plot.group_name if plot else None,
                 "factory_name": plot.factory_name if plot else None,
-                "officer_name": plot.officer.name if plot and plot.officer else None
+                "officer_name": plot.officer.name if plot and plot.officer else None,
+                "boundary_image": plot.boundary_image if plot else None
             }
         }, status=201)
 
@@ -1772,10 +1828,12 @@ def api_get_plots(request):
             "soil_name": plot.soil_type.soil_name if plot.soil_type else None,
             "latitude": plot.latitude,
             "longitude": plot.longitude,
+            "center_lt_ln": plot.center_lt_ln,
             "device_id": plot.device_id,
             "group_name": plot.group_name,
             "factory_name": plot.factory_name,
-            "officer_name": plot.officer.name if plot.officer else None
+            "officer_name": plot.officer.name if plot.officer else None,
+            "boundary_image": plot.boundary_image
         })
         
     return JsonResponse({

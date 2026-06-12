@@ -180,8 +180,9 @@ class Plot(models.Model):
     area_acre = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=50, default="Not Mapped")
     soil_type = models.ForeignKey('SoilType', on_delete=models.SET_NULL, null=True, blank=True)
-    latitude = models.CharField(max_length=100, blank=True, null=True)
-    longitude = models.CharField(max_length=100, blank=True, null=True)
+    latitude = models.JSONField(blank=True, null=True)
+    longitude = models.JSONField(blank=True, null=True)
+    center_lt_ln = models.JSONField(blank=True, null=True)
     device_id = models.CharField(max_length=255, blank=True, null=True)
     gps_area = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     planting_season = models.CharField(max_length=100, null=True, blank=True)
@@ -199,6 +200,7 @@ class Plot(models.Model):
     factory = models.ForeignKey('Factory', on_delete=models.SET_NULL, null=True, blank=True)
     factory_name = models.CharField(max_length=100, blank=True, null=True)
     officer = models.ForeignKey('Officer', on_delete=models.SET_NULL, null=True, blank=True, related_name="added_plots")
+    boundary_image = models.JSONField(blank=True, null=True)
 
     class Meta:
         db_table = "plot"

@@ -4,180 +4,488 @@
 {% block header_title %}Field Intelligence{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
-    #map {
-        height: 500px;
-        width: 100%;
-        border-radius: 12px;
-        margin-top: 1rem;
+    /* CSS Variables for theme */
+    :root {
+        --fi-primary: #4361ee;
+        --fi-primary-hover: #3a53d0;
+        --fi-surface: #ffffff;
+        --fi-bg: #f8f9fc;
+        --fi-border: #e2e8f0;
+        --fi-text: #1e293b;
+        --fi-text-muted: #64748b;
+        --fi-radius: 16px;
+        --fi-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
     }
-    .form-grid {
+
+    .fi-container {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: 350px 1fr;
         gap: 1.5rem;
-        margin-bottom: 2rem;
+        height: calc(100vh - 120px);
+        min-height: 600px;
+        font-family: 'Outfit', sans-serif;
     }
-    .form-group label {
+
+    /* Form Sidebar */
+    .fi-sidebar {
+        background: var(--fi-surface);
+        border-radius: var(--fi-radius);
+        box-shadow: var(--fi-shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid var(--fi-border);
+    }
+
+    .fi-sidebar-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--fi-border);
+        background: linear-gradient(135deg, #f8f9fc 0%, #ffffff 100%);
+    }
+
+    .fi-sidebar-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--fi-text);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .fi-sidebar-header h2 i {
+        color: var(--fi-primary);
+    }
+
+    .fi-sidebar-content {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .fi-sidebar-footer {
+        padding: 1.25rem 1.5rem;
+        border-top: 1px solid var(--fi-border);
+        background: var(--fi-bg);
+        display: flex;
+        gap: 1rem;
+    }
+
+    /* Form Elements */
+    .fi-form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .fi-form-group label {
         display: block;
-        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
         font-weight: 500;
-        color: var(--text-muted);
+        color: var(--fi-text-muted);
+        margin-bottom: 0.5rem;
     }
-    .form-control {
+
+    .fi-form-control {
         width: 100%;
-        padding: 0.8rem;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        outline: none;
-        font-family: 'Outfit';
-        background: white;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--fi-border);
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        color: var(--fi-text);
+        background: var(--fi-bg);
+        transition: all 0.2s ease;
+        box-sizing: border-box;
     }
-    .form-control[readonly] {
-        background: #f9f9f9;
-        color: #888;
+
+    .fi-form-control:focus {
+        outline: none;
+        border-color: var(--fi-primary);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        background: var(--fi-surface);
+    }
+
+    .fi-form-control[readonly] {
+        background: #f1f5f9;
+        color: var(--fi-text-muted);
+        border-color: transparent;
+        cursor: not-allowed;
+    }
+
+    select.fi-form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1rem;
+        padding-right: 2.5rem;
+    }
+
+    .fi-file-upload {
+        position: relative;
+        border: 2px dashed var(--fi-border);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.2s ease;
+        background: var(--fi-bg);
+        cursor: pointer;
+    }
+
+    .fi-file-upload:hover {
+        border-color: var(--fi-primary);
+        background: rgba(67, 97, 238, 0.05);
+    }
+
+    .fi-file-upload i {
+        font-size: 1.5rem;
+        color: var(--fi-text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .fi-file-upload input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .fi-file-upload-text {
+        font-size: 0.85rem;
+        color: var(--fi-text-muted);
+    }
+
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+
+    /* Buttons */
+    .fi-btn {
+        padding: 0.75rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-family: inherit;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        border: none;
+        box-sizing: border-box;
+    }
+
+    .fi-btn-outline {
+        background: transparent;
+        border: 1px solid var(--fi-border);
+        color: var(--fi-text);
+    }
+
+    .fi-btn-outline:hover {
+        background: var(--fi-bg);
+        border-color: #cbd5e1;
+    }
+
+    .fi-btn-primary {
+        background: var(--fi-primary);
+        color: white;
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);
+    }
+
+    .fi-btn-primary:hover {
+        background: var(--fi-primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    /* Map Area */
+    .fi-map-container {
+        background: var(--fi-surface);
+        border-radius: var(--fi-radius);
+        box-shadow: var(--fi-shadow);
+        border: 1px solid var(--fi-border);
+        overflow: hidden;
+        position: relative;
+    }
+
+    #map {
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+
+    .map-overlay-card {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        z-index: 400;
+        /* Leaflet UI is around 400 */
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        max-width: 280px;
+    }
+
+    .map-overlay-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--fi-text);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .map-overlay-text {
+        font-size: 0.8rem;
+        color: var(--fi-text-muted);
+        line-height: 1.4;
+    }
+
+    /* Leaflet Customizations */
+    .leaflet-control-zoom {
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .leaflet-control-zoom a {
+        background: white !important;
+        color: var(--fi-text) !important;
+    }
+
+    .leaflet-control-zoom a:hover {
+        background: #f8f9fc !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .fi-container {
+            grid-template-columns: 1fr;
+            height: auto;
+        }
+
+        .fi-map-container {
+            height: 500px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Map Field Boundary</h2>
-    
-    <form method="POST" action="{% url 'field_intelligence' %}" enctype="multipart/form-data" id="fieldForm">
-        {% csrf_token %}
-        <input type="hidden" name="boundary" id="boundaryData">
-        
-        <div class="form-grid">
-            <div class="form-group">
-                <label>Farmer Name</label>
-                <select name="farmer_id" id="farmerSelect" class="form-control" required onchange="onFarmerSelect()">
-                    <option value="" disabled selected>Select Farmer</option>
-                    {% for farmer in farmers %}
-                    <option value="{{ farmer.id }}" 
-                        data-code="{{ farmer.farmer_code|default:'' }}"
-                        data-div="{{ farmer.division|default:'' }}"
-                        data-sec="{{ farmer.section.section_name|default:'' }}"
-                        data-vil="{{ farmer.village.village_name|default:'' }}">
-                        {{ farmer.name }} - {{ farmer.farmer_code }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Farmer Code</label>
-                <input type="text" id="farmerCode" class="form-control" readonly>
-            </div>
-            
-            <div class="form-group">
-                <label>Division</label>
-                <input type="text" id="divisionName" class="form-control" readonly>
-            </div>
-            
-            <div class="form-group">
-                <label>Section</label>
-                <input type="text" id="sectionName" class="form-control" readonly>
-            </div>
-            
-            <div class="form-group">
-                <label>Village</label>
-                <input type="text" id="villageName" class="form-control" readonly>
-            </div>
-            
-            <div class="form-group">
-                <label>Select Plot</label>
-                <select name="plot_id" id="plotSelect" class="form-control" required>
-                    <option value="" disabled selected>Select Plot</option>
-                    <!-- Populated via AJAX -->
-                </select>
-            </div>
+<div class="fi-container">
+    <!-- Sidebar Form -->
+    <div class="fi-sidebar">
+        <div class="fi-sidebar-header">
+            <h2><i class="fas fa-draw-polygon"></i> Boundary Details</h2>
         </div>
 
-        <div class="form-grid">
-            <div class="form-group">
-                <label>Image 1</label>
-                <input type="file" name="img1" class="form-control" accept="image/*">
-            </div>
-            <div class="form-group">
-                <label>Image 2</label>
-                <input type="file" name="img2" class="form-control" accept="image/*">
-            </div>
-            <div class="form-group">
-                <label>Image 3</label>
-                <input type="file" name="img3" class="form-control" accept="image/*">
-            </div>
-        </div>
+        <form method="POST" action="{% url 'field_intelligence' %}" enctype="multipart/form-data" id="fieldForm"
+            style="display: contents;">
+            {% csrf_token %}
+            <input type="hidden" name="boundary" id="boundaryData">
 
-        <div style="margin-bottom: 2rem;">
-            <label style="font-weight: 500; color: var(--text-muted);">Draw Field Boundary (Use Polygon Tool on the left)</label>
-            <div id="map"></div>
-        </div>
+            <div class="fi-sidebar-content">
+                <div class="fi-form-group">
+                    <label>Select Farmer</label>
+                    <select name="farmer_id" id="farmerSelect" class="fi-form-control" required
+                        onchange="onFarmerSelect()">
+                        <option value="" disabled selected>Search or select farmer...</option>
+                        {% for farmer in farmers %}
+                        <option value="{{ farmer.id }}" data-code="{{ farmer.farmer_code|default:'' }}"
+                            data-div="{{ farmer.division|default:'' }}"
+                            data-sec="{{ farmer.section.section_name|default:'' }}"
+                            data-vil="{{ farmer.village.village_name|default:'' }}">
+                            {{ farmer.name }} - {{ farmer.farmer_code }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        <div style="text-align: right;">
-            <button type="button" onclick="window.location.reload()"
-                style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Clear</button>
-            <button type="submit"
-                style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Save Field Intelligence</button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="fi-form-group">
+                        <label>Farmer Code</label>
+                        <input type="text" id="farmerCode" class="fi-form-control" readonly placeholder="-">
+                    </div>
+                    <div class="fi-form-group">
+                        <label>Village</label>
+                        <input type="text" id="villageName" class="fi-form-control" readonly placeholder="-">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="fi-form-group">
+                        <label>Division</label>
+                        <input type="text" id="divisionName" class="fi-form-control" readonly placeholder="-">
+                    </div>
+                    <div class="fi-form-group">
+                        <label>Section</label>
+                        <input type="text" id="sectionName" class="fi-form-control" readonly placeholder="-">
+                    </div>
+                </div>
+
+                <div class="fi-form-group">
+                    <label>Target Plot</label>
+                    <select name="plot_id" id="plotSelect" class="fi-form-control" required>
+                        <option value="" disabled selected>Select plot to map...</option>
+                    </select>
+                </div>
+
+                <div class="fi-form-group" style="margin-top: 1.5rem;">
+                    <label>Field Images <span
+                            style="font-weight: normal; color: #94a3b8; font-size: 0.8rem;">(Optional)</span></label>
+                    <div class="image-grid">
+                        <div class="fi-file-upload">
+                            <input type="file" name="img1" accept="image/*" onchange="updateFileLabel(this, 'label1')">
+                            <i class="fas fa-camera"></i>
+                            <div class="fi-file-upload-text" id="label1">Img 1</div>
+                        </div>
+                        <div class="fi-file-upload">
+                            <input type="file" name="img2" accept="image/*" onchange="updateFileLabel(this, 'label2')">
+                            <i class="fas fa-camera"></i>
+                            <div class="fi-file-upload-text" id="label2">Img 2</div>
+                        </div>
+                        <div class="fi-file-upload">
+                            <input type="file" name="img3" accept="image/*" onchange="updateFileLabel(this, 'label3')">
+                            <i class="fas fa-camera"></i>
+                            <div class="fi-file-upload-text" id="label3">Img 3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fi-sidebar-footer">
+                <button type="button" onclick="window.location.reload()" class="fi-btn fi-btn-outline" style="flex: 1;">
+                    <i class="fas fa-redo-alt"></i> Reset
+                </button>
+                <button type="submit" class="fi-btn fi-btn-primary" style="flex: 2;">
+                    <i class="fas fa-save"></i> Save Intelligence
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Map Area -->
+    <div class="fi-map-container">
+        <div id="map"></div>
+
+        <div class="map-overlay-card">
+            <div class="map-overlay-title">
+                <i class="fas fa-info-circle" style="color: var(--fi-primary);"></i> Instructions
+            </div>
+            <div class="map-overlay-text">
+                Use the polygon tool <i class="fas fa-draw-polygon" style="margin:0 2px;"></i> on the left side of the
+                map to draw the boundaries of the selected plot. Double click to finish drawing.
+            </div>
         </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script>
+    // Update file input labels
+    function updateFileLabel(input, labelId) {
+        const label = document.getElementById(labelId);
+        if (input.files && input.files.length > 0) {
+            label.textContent = "Selected";
+            label.style.color = "var(--fi-primary)";
+            input.parentElement.style.borderColor = "var(--fi-primary)";
+        } else {
+            label.textContent = labelId.replace('label', 'Img ');
+            label.style.color = "var(--fi-text-muted)";
+            input.parentElement.style.borderColor = "var(--fi-border)";
+        }
+    }
+
+    // Farmer Selection Logic
     function onFarmerSelect() {
         var select = document.getElementById('farmerSelect');
         var opt = select.options[select.selectedIndex];
-        
+
         if (opt.value) {
-            document.getElementById('farmerCode').value = opt.getAttribute('data-code');
-            document.getElementById('divisionName').value = opt.getAttribute('data-div');
-            document.getElementById('sectionName').value = opt.getAttribute('data-sec');
-            document.getElementById('villageName').value = opt.getAttribute('data-vil');
-            
+            document.getElementById('farmerCode').value = opt.getAttribute('data-code') || 'N/A';
+            document.getElementById('divisionName').value = opt.getAttribute('data-div') || 'N/A';
+            document.getElementById('sectionName').value = opt.getAttribute('data-sec') || 'N/A';
+            document.getElementById('villageName').value = opt.getAttribute('data-vil') || 'N/A';
+
+            // Add subtle animation to inputs
+            ['farmerCode', 'divisionName', 'sectionName', 'villageName'].forEach(id => {
+                const el = document.getElementById(id);
+                el.style.transform = 'scale(1.02)';
+                setTimeout(() => el.style.transform = 'scale(1)', 200);
+            });
+
             // Fetch plots via AJAX
+            const plotSelect = document.getElementById('plotSelect');
+            plotSelect.innerHTML = '<option value="" disabled selected>Loading plots...</option>';
+
             fetch(`/api/get_farmer_plots/?farmer_id=${opt.value}`)
                 .then(res => res.json())
                 .then(data => {
-                    var plotSelect = document.getElementById('plotSelect');
-                    plotSelect.innerHTML = '<option value="" disabled selected>Select Plot</option>';
-                    if(data.status === 'success') {
+                    plotSelect.innerHTML = '<option value="" disabled selected>Select plot to map...</option>';
+                    if (data.status === 'success' && data.plots.length > 0) {
                         data.plots.forEach(p => {
                             plotSelect.innerHTML += `<option value="${p.id}">${p.plot_code} (${p.area_acre} Acres)</option>`;
                         });
+                    } else {
+                        plotSelect.innerHTML = '<option value="" disabled selected>No plots found for farmer</option>';
                     }
                 })
-                .catch(err => console.error("Error fetching plots", err));
+                .catch(err => {
+                    console.error("Error fetching plots", err);
+                    plotSelect.innerHTML = '<option value="" disabled selected>Error loading plots</option>';
+                });
         }
     }
 
     // Initialize Map
-    var map = L.map('map').setView([11.0168, 76.9558], 10); // Default center (Coimbatore approx)
+    var map = L.map('map', {
+        zoomControl: false // We'll add it to the bottom right
+    }).setView([11.0168, 76.9558], 10);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     // Add Google Satellite Layer
-    L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+    L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
         maxZoom: 20,
-        subdomains:['mt0','mt1','mt2','mt3']
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Map data &copy; Google'
     }).addTo(map);
 
     // Initialize Leaflet Draw
     var drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
+
     var drawControl = new L.Control.Draw({
+        position: 'topleft',
         draw: {
             polyline: false,
             polygon: {
                 allowIntersection: false,
                 drawError: {
-                    color: '#e1e100', 
-                    message: '<strong>Error:</strong> polygon edges cannot cross!' 
+                    color: '#ef4444',
+                    message: '<strong>Error:</strong> Boundaries cannot intersect!'
                 },
                 shapeOptions: {
-                    color: '#bada55'
+                    color: '#4361ee',
+                    fillColor: '#4361ee',
+                    fillOpacity: 0.2,
+                    weight: 3
                 }
             },
             circle: false,
@@ -192,34 +500,37 @@
     });
     map.addControl(drawControl);
 
-    map.on(L.Draw.Event.CREATED, function (e) {
-        var layer = e.layer;
-        
-        // Clear previous drawings so we only have one boundary
-        drawnItems.clearLayers();
-        drawnItems.addLayer(layer);
-        
-        // Convert to GeoJSON and store in hidden input
-        var geojson = layer.toGeoJSON();
-        document.getElementById('boundaryData').value = JSON.stringify(geojson.geometry.coordinates);
-    });
-
-    map.on(L.Draw.Event.EDITED, function (e) {
-        var layers = e.layers;
-        layers.eachLayer(function (layer) {
-            var geojson = layer.toGeoJSON();
+    // Setup map event listeners
+    function updateBoundaryInput() {
+        const layers = drawnItems.getLayers();
+        if (layers.length > 0) {
+            const geojson = layers[0].toGeoJSON();
             document.getElementById('boundaryData').value = JSON.stringify(geojson.geometry.coordinates);
-        });
+        } else {
+            document.getElementById('boundaryData').value = "";
+        }
+    }
+
+    map.on(L.Draw.Event.CREATED, function (e) {
+        drawnItems.clearLayers();
+        drawnItems.addLayer(e.layer);
+        updateBoundaryInput();
     });
 
-    map.on(L.Draw.Event.DELETED, function (e) {
-        document.getElementById('boundaryData').value = "";
-    });
+    map.on(L.Draw.Event.EDITED, updateBoundaryInput);
+    map.on(L.Draw.Event.DELETED, updateBoundaryInput);
 
-    document.getElementById('fieldForm').addEventListener('submit', function(e) {
+    // Form validation
+    document.getElementById('fieldForm').addEventListener('submit', function (e) {
         if (!document.getElementById('boundaryData').value) {
             e.preventDefault();
-            alert("Please draw a boundary on the map before saving.");
+            alert("⚠️ Please draw a plot boundary on the map before saving.");
+
+            // Highlight the map to guide user
+            document.querySelector('.fi-map-container').style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.5)';
+            setTimeout(() => {
+                document.querySelector('.fi-map-container').style.boxShadow = 'var(--fi-shadow)';
+            }, 2000);
         }
     });
 </script>
