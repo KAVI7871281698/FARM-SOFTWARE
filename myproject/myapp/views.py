@@ -1861,6 +1861,14 @@ def api_add_plot(request):
                     except:
                         plot.boundary_image = [boundary_img_val] if boundary_img_val else []
                 
+                if 'boundaries' in request.POST:
+                    boundaries_val = request.POST.get('boundaries')
+                    try:
+                        import json
+                        plot.boundaries = json.loads(boundaries_val)
+                    except:
+                        plot.boundaries = [boundaries_val] if boundaries_val else []
+                
                 plot.save()
             else:
                 # Create new plot
@@ -1916,6 +1924,13 @@ def api_add_plot(request):
                 except:
                     boundary_image_data = [boundary_img_val] if boundary_img_val else []
 
+                boundaries_val = request.POST.get('boundaries')
+                try:
+                    import json
+                    boundaries_data = json.loads(boundaries_val) if boundaries_val else []
+                except:
+                    boundaries_data = [boundaries_val] if boundaries_val else []
+
                 division = farmer.section.division if farmer.section and farmer.section.division else None
                 division_name = division.name if division else None
                 section = farmer.section if farmer.section else None
@@ -1961,7 +1976,8 @@ def api_add_plot(request):
                     factory=factory_obj,
                     factory_name=factory_name,
                     officer=officer,
-                    boundary_image=boundary_image_data
+                    boundary_image=boundary_image_data,
+                    boundaries=boundaries_data
                 )
         except OSError as e:
             if e.errno == 30: # Read-only file system (Vercel)
@@ -2009,7 +2025,8 @@ def api_add_plot(request):
                 "group_name": plot.group_name if plot else None,
                 "factory_name": plot.factory_name if plot else None,
                 "officer_name": plot.officer.name if plot and plot.officer else None,
-                "boundary_image": plot.boundary_image if plot else None
+                "boundary_image": plot.boundary_image if plot else None,
+                "boundaries": plot.boundaries if plot else None
             }
         }, status=201)
 
@@ -2054,7 +2071,8 @@ def api_get_plots(request):
             "group_name": plot.group_name,
             "factory_name": plot.factory_name,
             "officer_name": plot.officer.name if plot.officer else None,
-            "boundary_image": plot.boundary_image
+            "boundary_image": plot.boundary_image,
+            "boundaries": plot.boundaries
         })
         
     return JsonResponse({

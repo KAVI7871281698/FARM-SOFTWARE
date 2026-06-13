@@ -201,6 +201,7 @@ class Plot(models.Model):
     factory_name = models.CharField(max_length=100, blank=True, null=True)
     officer = models.ForeignKey('Officer', on_delete=models.SET_NULL, null=True, blank=True, related_name="added_plots")
     boundary_image = models.JSONField(blank=True, null=True)
+    boundaries = models.JSONField(blank=True, null=True)
 
     class Meta:
         db_table = "plot"
