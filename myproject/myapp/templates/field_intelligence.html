@@ -1,11 +1,28 @@
 {% extends 'base.html' %}
 
 {% block title %}Field Intelligence{% endblock %}
-{% block header_title %}Field Intelligence{% endblock %}
+{% block header_title %}
+<div style="display: flex; align-items: center; gap: 20px;">
+    <span>Field Intelligence</span>
+    <div class="header-search-bar" style="position: relative;">
+        <i id="mapSearchIcon" class="fas fa-search"
+            style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--fi-text-muted); cursor: pointer; z-index: 10;"></i>
+        <input type="text" id="mapSearchInput" placeholder="Search for country, state, village, etc..."
+            style="padding: 10px 15px 10px 40px; border-radius: 20px; border: 1px solid var(--fi-border); width: 350px; font-family: inherit; font-size: 0.9rem; outline: none; background: var(--fi-surface); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.3s ease;">
+    </div>
+</div>
+<style>
+    #mapSearchInput:focus {
+        border-color: var(--fi-primary) !important;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15) !important;
+    }
+</style>
+{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
     /* CSS Variables for theme */
@@ -22,9 +39,8 @@
     }
 
     .fi-container {
-        display: grid;
-        grid-template-columns: 350px 1fr;
-        gap: 1.5rem;
+        display: flex;
+        flex-direction: column;
         height: calc(100vh - 120px);
         min-height: 600px;
         font-family: 'Outfit', sans-serif;
@@ -32,13 +48,7 @@
 
     /* Form Sidebar */
     .fi-sidebar {
-        background: var(--fi-surface);
-        border-radius: var(--fi-radius);
-        box-shadow: var(--fi-shadow);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        border: 1px solid var(--fi-border);
+        display: none;
     }
 
     .fi-sidebar-header {
@@ -213,15 +223,22 @@
         background: var(--fi-surface);
         border-radius: var(--fi-radius);
         box-shadow: var(--fi-shadow);
-        border: 1px solid var(--fi-border);
+        border: 4px solid var(--fi-primary);
+        padding: 10px;
         overflow: hidden;
         position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
     }
 
     #map {
+        flex: 1;
         width: 100%;
         height: 100%;
         z-index: 1;
+        border-radius: 8px;
     }
 
     .map-overlay-card {
@@ -270,6 +287,112 @@
         background: #f8f9fc !important;
     }
 
+    /* Pulsing Map Marker */
+    .plot-marker-container {
+        position: relative;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .plot-marker-dot {
+        width: 14px;
+        height: 14px;
+        background-color: #ff3333;
+        border-radius: 50%;
+        position: relative;
+        z-index: 2;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .plot-marker-pulse {
+        width: 30px;
+        height: 30px;
+        background-color: #ff3333;
+        border-radius: 50%;
+        position: absolute;
+        z-index: 1;
+        animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+        0% {
+            transform: scale(0.5);
+            opacity: 0.8;
+        }
+
+        100% {
+            transform: scale(2);
+            opacity: 0;
+        }
+    }
+
+    .plot-marker-label {
+        position: absolute;
+        top: 35px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.95);
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--fi-text);
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        z-index: 3;
+        border: 1px solid var(--fi-border);
+    }
+
+    /* Tooltip Customization */
+    .leaflet-tooltip.plot-tooltip {
+        background: rgba(255, 255, 255, 0.98);
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        padding: 0;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .leaflet-tooltip-left.plot-tooltip::before {
+        border-left-color: rgba(255, 255, 255, 0.98);
+    }
+
+    .leaflet-tooltip-right.plot-tooltip::before {
+        border-right-color: rgba(255, 255, 255, 0.98);
+    }
+
+    .plot-popup-content {
+        min-width: 220px;
+        padding: 15px;
+    }
+
+    .plot-popup-content h3 {
+        margin: 0 0 12px 0;
+        color: var(--fi-primary);
+        font-size: 1.1rem;
+        border-bottom: 2px solid var(--fi-border);
+        padding-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .plot-popup-content p {
+        margin: 6px 0;
+        font-size: 0.85rem;
+        color: var(--fi-text);
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .plot-popup-content p strong {
+        color: var(--fi-text-muted);
+        margin-right: 15px;
+    }
+
     /* Responsive */
     @media (max-width: 1024px) {
         .fi-container {
@@ -286,97 +409,6 @@
 
 {% block content %}
 <div class="fi-container">
-    <!-- Sidebar Form -->
-    <div class="fi-sidebar">
-        <div class="fi-sidebar-header">
-            <h2><i class="fas fa-draw-polygon"></i> Boundary Details</h2>
-        </div>
-
-        <form method="POST" action="{% url 'field_intelligence' %}" enctype="multipart/form-data" id="fieldForm"
-            style="display: contents;">
-            {% csrf_token %}
-            <input type="hidden" name="boundary" id="boundaryData">
-
-            <div class="fi-sidebar-content">
-                <div class="fi-form-group">
-                    <label>Select Farmer</label>
-                    <select name="farmer_id" id="farmerSelect" class="fi-form-control" required
-                        onchange="onFarmerSelect()">
-                        <option value="" disabled selected>Search or select farmer...</option>
-                        {% for farmer in farmers %}
-                        <option value="{{ farmer.id }}" data-code="{{ farmer.farmer_code|default:'' }}"
-                            data-div="{{ farmer.division|default:'' }}"
-                            data-sec="{{ farmer.section.section_name|default:'' }}"
-                            data-vil="{{ farmer.village.village_name|default:'' }}">
-                            {{ farmer.name }} - {{ farmer.farmer_code }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="fi-form-group">
-                        <label>Farmer Code</label>
-                        <input type="text" id="farmerCode" class="fi-form-control" readonly placeholder="-">
-                    </div>
-                    <div class="fi-form-group">
-                        <label>Village</label>
-                        <input type="text" id="villageName" class="fi-form-control" readonly placeholder="-">
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="fi-form-group">
-                        <label>Division</label>
-                        <input type="text" id="divisionName" class="fi-form-control" readonly placeholder="-">
-                    </div>
-                    <div class="fi-form-group">
-                        <label>Section</label>
-                        <input type="text" id="sectionName" class="fi-form-control" readonly placeholder="-">
-                    </div>
-                </div>
-
-                <div class="fi-form-group">
-                    <label>Target Plot</label>
-                    <select name="plot_id" id="plotSelect" class="fi-form-control" required>
-                        <option value="" disabled selected>Select plot to map...</option>
-                    </select>
-                </div>
-
-                <div class="fi-form-group" style="margin-top: 1.5rem;">
-                    <label>Field Images <span
-                            style="font-weight: normal; color: #94a3b8; font-size: 0.8rem;">(Optional)</span></label>
-                    <div class="image-grid">
-                        <div class="fi-file-upload">
-                            <input type="file" name="img1" accept="image/*" onchange="updateFileLabel(this, 'label1')">
-                            <i class="fas fa-camera"></i>
-                            <div class="fi-file-upload-text" id="label1">Img 1</div>
-                        </div>
-                        <div class="fi-file-upload">
-                            <input type="file" name="img2" accept="image/*" onchange="updateFileLabel(this, 'label2')">
-                            <i class="fas fa-camera"></i>
-                            <div class="fi-file-upload-text" id="label2">Img 2</div>
-                        </div>
-                        <div class="fi-file-upload">
-                            <input type="file" name="img3" accept="image/*" onchange="updateFileLabel(this, 'label3')">
-                            <i class="fas fa-camera"></i>
-                            <div class="fi-file-upload-text" id="label3">Img 3</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="fi-sidebar-footer">
-                <button type="button" onclick="window.location.reload()" class="fi-btn fi-btn-outline" style="flex: 1;">
-                    <i class="fas fa-redo-alt"></i> Reset
-                </button>
-                <button type="submit" class="fi-btn fi-btn-primary" style="flex: 2;">
-                    <i class="fas fa-save"></i> Save Intelligence
-                </button>
-            </div>
-        </form>
-    </div>
-
     <!-- Map Area -->
     <div class="fi-map-container">
         <div id="map"></div>
@@ -397,62 +429,8 @@
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 <script>
-    // Update file input labels
-    function updateFileLabel(input, labelId) {
-        const label = document.getElementById(labelId);
-        if (input.files && input.files.length > 0) {
-            label.textContent = "Selected";
-            label.style.color = "var(--fi-primary)";
-            input.parentElement.style.borderColor = "var(--fi-primary)";
-        } else {
-            label.textContent = labelId.replace('label', 'Img ');
-            label.style.color = "var(--fi-text-muted)";
-            input.parentElement.style.borderColor = "var(--fi-border)";
-        }
-    }
-
-    // Farmer Selection Logic
-    function onFarmerSelect() {
-        var select = document.getElementById('farmerSelect');
-        var opt = select.options[select.selectedIndex];
-
-        if (opt.value) {
-            document.getElementById('farmerCode').value = opt.getAttribute('data-code') || 'N/A';
-            document.getElementById('divisionName').value = opt.getAttribute('data-div') || 'N/A';
-            document.getElementById('sectionName').value = opt.getAttribute('data-sec') || 'N/A';
-            document.getElementById('villageName').value = opt.getAttribute('data-vil') || 'N/A';
-
-            // Add subtle animation to inputs
-            ['farmerCode', 'divisionName', 'sectionName', 'villageName'].forEach(id => {
-                const el = document.getElementById(id);
-                el.style.transform = 'scale(1.02)';
-                setTimeout(() => el.style.transform = 'scale(1)', 200);
-            });
-
-            // Fetch plots via AJAX
-            const plotSelect = document.getElementById('plotSelect');
-            plotSelect.innerHTML = '<option value="" disabled selected>Loading plots...</option>';
-
-            fetch(`/api/get_farmer_plots/?farmer_id=${opt.value}`)
-                .then(res => res.json())
-                .then(data => {
-                    plotSelect.innerHTML = '<option value="" disabled selected>Select plot to map...</option>';
-                    if (data.status === 'success' && data.plots.length > 0) {
-                        data.plots.forEach(p => {
-                            plotSelect.innerHTML += `<option value="${p.id}">${p.plot_code} (${p.area_acre} Acres)</option>`;
-                        });
-                    } else {
-                        plotSelect.innerHTML = '<option value="" disabled selected>No plots found for farmer</option>';
-                    }
-                })
-                .catch(err => {
-                    console.error("Error fetching plots", err);
-                    plotSelect.innerHTML = '<option value="" disabled selected>Error loading plots</option>';
-                });
-        }
-    }
-
     // Initialize Map
     var map = L.map('map', {
         zoomControl: false // We'll add it to the bottom right
@@ -460,12 +438,78 @@
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Add Google Satellite Layer
-    L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+    // Add Satellite Layer (Google Hybrid for Labels)
+    L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         attribution: 'Map data &copy; Google'
     }).addTo(map);
+
+    // Custom Search Implementation
+    var searchMarker = null;
+    var searchInput = document.getElementById('mapSearchInput');
+    var searchIcon = document.getElementById('mapSearchIcon');
+
+    function performSearch() {
+        var query = searchInput.value;
+        if (query.trim() !== '') {
+            searchIcon.classList.remove('fa-search');
+            searchIcon.classList.add('fa-spinner', 'fa-spin');
+
+            // Direct fetch for much faster response and error handling
+            fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query))
+                .then(response => response.json())
+                .then(data => {
+                    searchIcon.classList.remove('fa-spinner', 'fa-spin');
+                    searchIcon.classList.add('fa-search');
+
+                    if (data && data.length > 0) {
+                        var place = data[0];
+                        var lat = parseFloat(place.lat);
+                        var lon = parseFloat(place.lon);
+
+                        // Parse bounding box: Nominatim returns [south, north, west, east]
+                        var bbox = place.boundingbox;
+                        if (bbox) {
+                            var bounds = [
+                                [parseFloat(bbox[0]), parseFloat(bbox[2])],
+                                [parseFloat(bbox[1]), parseFloat(bbox[3])]
+                            ];
+                            map.fitBounds(bounds, { maxZoom: 18 });
+                        } else {
+                            map.setView([lat, lon], 14);
+                        }
+
+                        if (searchMarker) {
+                            map.removeLayer(searchMarker);
+                        }
+                        searchMarker = L.marker([lat, lon]).addTo(map)
+                            .bindPopup(place.display_name)
+                            .openPopup();
+                    } else {
+                        alert("Location not found. Please try a different name.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Geocoding error:", error);
+                    searchIcon.classList.remove('fa-spinner', 'fa-spin');
+                    searchIcon.classList.add('fa-search');
+                    alert("Network error or timeout. Please try again.");
+                });
+        }
+    }
+
+    searchInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            performSearch();
+        }
+    });
+
+    searchIcon.addEventListener('click', function (e) {
+        e.preventDefault();
+        performSearch();
+    });
 
     // Initialize Leaflet Draw
     var drawnItems = new L.FeatureGroup();
@@ -500,38 +544,123 @@
     });
     map.addControl(drawControl);
 
-    // Setup map event listeners
-    function updateBoundaryInput() {
-        const layers = drawnItems.getLayers();
-        if (layers.length > 0) {
-            const geojson = layers[0].toGeoJSON();
-            document.getElementById('boundaryData').value = JSON.stringify(geojson.geometry.coordinates);
-        } else {
-            document.getElementById('boundaryData').value = "";
-        }
-    }
-
     map.on(L.Draw.Event.CREATED, function (e) {
         drawnItems.clearLayers();
         drawnItems.addLayer(e.layer);
-        updateBoundaryInput();
     });
 
-    map.on(L.Draw.Event.EDITED, updateBoundaryInput);
-    map.on(L.Draw.Event.DELETED, updateBoundaryInput);
+    // Fix map rendering inside the container
+    setTimeout(function () {
+        map.invalidateSize();
+    }, 200);
 
-    // Form validation
-    document.getElementById('fieldForm').addEventListener('submit', function (e) {
-        if (!document.getElementById('boundaryData').value) {
-            e.preventDefault();
-            alert("⚠️ Please draw a plot boundary on the map before saving.");
+    // Plot Markers Implementation
+    var rawPlotsData = JSON.parse('{{ plots_json|escapejs|default:"[]" }}');
 
-            // Highlight the map to guide user
-            document.querySelector('.fi-map-container').style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.5)';
-            setTimeout(() => {
-                document.querySelector('.fi-map-container').style.boxShadow = 'var(--fi-shadow)';
-            }, 2000);
-        }
+    // Filter out invalid coordinates (like lat 123)
+    var plotsData = rawPlotsData.filter(function (p) {
+        return p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180;
     });
+
+    // Fallback sample data if no valid plots are found
+    if (plotsData.length === 0) {
+        plotsData = [
+            {
+                plot_code: "PLT-D001",
+                lat: 11.0168,
+                lon: 76.9558,
+                farmer_name: "Kannan (Sample)",
+                division: "Coimbatore",
+                section: "Thudiyalur",
+                village: "Vellakinar",
+                planting_date: "2023-10-15",
+                acres: "5.5",
+                soil_type: "Red Soil",
+                status: "Active"
+            },
+            {
+                plot_code: "PLT-D002",
+                lat: 11.0250,
+                lon: 76.9600,
+                farmer_name: "Murugan (Sample)",
+                division: "Coimbatore",
+                section: "Thudiyalur",
+                village: "Vellakinar",
+                planting_date: "2024-01-10",
+                acres: "2.0",
+                soil_type: "Black Soil",
+                status: "Harvested"
+            }
+        ];
+    }
+
+    var plotMarkersGroup = L.featureGroup().addTo(map);
+
+    plotsData.forEach(function (plot) {
+        var customIcon = L.divIcon({
+            className: 'custom-plot-icon',
+            html: `
+                <div class="plot-marker-container">
+                    <div class="plot-marker-pulse"></div>
+                    <div class="plot-marker-dot"></div>
+                    <div class="plot-marker-label">${plot.plot_code}</div>
+                </div>
+            `,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        var marker = L.marker([plot.lat, plot.lon], { icon: customIcon }).addTo(plotMarkersGroup);
+
+        // Calculate radius based on acres to highlight the plot area
+        var acresValue = parseFloat(plot.acres) || 1; // default to 1 acre if not available
+        var areaSqMeters = acresValue * 4046.86;
+        var radiusMeters = Math.sqrt(areaSqMeters / Math.PI);
+
+        // Highlight the plot area with a circle
+        var highlightCircle = L.circle([plot.lat, plot.lon], {
+            radius: radiusMeters,
+            color: '#ff3333', // highly visible red
+            fillColor: '#ff3333',
+            fillOpacity: 0.2,
+            weight: 2,
+            dashArray: '5, 5' // Dashed line to look like a marked zone
+        }).addTo(plotMarkersGroup);
+
+        var tooltipHtml = `
+            <div class="plot-popup-content">
+                <h3><i class="fas fa-seedling"></i> ${plot.plot_code}</h3>
+                <p><strong>Farmer:</strong> <span style="font-weight:600; color:var(--fi-text);">${plot.farmer_name}</span></p>
+                <p><strong>Division:</strong> <span>${plot.division}</span></p>
+                <p><strong>Section:</strong> <span>${plot.section}</span></p>
+                <p><strong>Village:</strong> <span>${plot.village}</span></p>
+                <p><strong>Planting Date:</strong> <span>${plot.planting_date}</span></p>
+                <p><strong>Acres:</strong> <span style="font-weight:600;">${plot.acres}</span></p>
+                <p><strong>Soil Type:</strong> <span>${plot.soil_type}</span></p>
+                <p><strong>Status:</strong> <span style="background: rgba(67, 97, 238, 0.1); color: var(--fi-primary); padding: 2px 8px; border-radius: 4px; font-weight: 700;">${plot.status}</span></p>
+            </div>
+        `;
+
+        marker.bindTooltip(tooltipHtml, {
+            className: 'plot-tooltip',
+            direction: 'auto',
+            offset: [0, -10],
+            opacity: 1
+        });
+    });
+
+    if (plotsData.length > 0) {
+        var bounds = plotMarkersGroup.getBounds();
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+
+        // If there's only 1 marker, getBounds() has 0 area. We need to create a slightly larger bounds manually to setMaxBounds
+        var paddedBounds = bounds.isValid() ? bounds.pad(0.3) : bounds;
+
+        // Prevent user from panning to other areas
+        map.setMaxBounds(paddedBounds);
+
+        // Restrict minimum zoom so they can't zoom out to see the whole world
+        map.setMinZoom(map.getBoundsZoom(paddedBounds));
+    }
 </script>
 {% endblock %}

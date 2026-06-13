@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Scout Log{% endblock %}
+{% block header_title %}Edit Scout Log{% endblock %}
+
+{% block content %}
+<div class="scouting-container" style="display: flex; gap: 1.5rem; justify-content: center;">
+
+    <div
+        style="flex: 1; max-width: 900px; background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="color: var(--fi-primary); display: flex; align-items: center; gap: 10px; margin: 0;">
+                <i class="fa-solid fa-pen-to-square"></i> Edit Observation
+            </h3>
+            <a href="{% url 'scout_logs' %}" style="text-decoration: none; color: #888; font-weight: 500;">
+                <i class="fa-solid fa-xmark"></i> Cancel
+            </a>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" action="{% url 'edit_scout_log' log.id %}">
+            {% csrf_token %}
+
+            <!-- Plot Selection -->
+            <div style="margin-bottom: 1.5rem;">
+                <label
+                    style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: var(--fi-text);">Select
+                    Plot <span style="color:red;">*</span></label>
+                <select name="plot_id" required
+                    style="width: 100%; padding: 0.8rem; border: 1px solid var(--fi-border); border-radius: 8px; outline: none; font-family: 'Outfit'; font-size: 1rem;">
+                    {% for plot in plots %}
+                    <option value="{{ plot.id }}" {% if log.plot.id==plot.id %}selected{% endif %}>Plot {{
+                        plot.plot_code }} - {{ plot.farmer.name|default:"Unknown Farmer" }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+
+                <!-- Crop Monitoring -->
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-seedling"
+                            style="color:#2ca6a4;"></i> Crop Monitoring</h4>
+
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Plant
+                        Height</label>
+                    <input type="text" name="plant_height" value="{{ log.plant_height|default_if_none:'' }}"
+                        placeholder="e.g. 1.2 meters"
+                        style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Growth
+                        Stage</label>
+                    <select name="growth_stage"
+                        style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                        <option value="">-- Select Stage --</option>
+                        <option value="Germination" {% if log.growth_stage=='Germination' %}selected{% endif %}>
+                            Germination</option>
+                        <option value="Vegetative" {% if log.growth_stage=='Vegetative' %}selected{% endif %}>Vegetative
+                        </option>
+                        <option value="Flowering" {% if log.growth_stage=='Flowering' %}selected{% endif %}>Flowering
+                        </option>
+                        <option value="Fruiting" {% if log.growth_stage=='Fruiting' %}selected{% endif %}>Fruiting
+                        </option>
+                        <option value="Harvest" {% if log.growth_stage=='Harvest' %}selected{% endif %}>Harvest</option>
+                    </select>
+                </div>
+
+                <!-- Pest Inspection -->
+                <div style="background: #fff5f5; padding: 1.5rem; border-radius: 12px; border: 1px solid #ffe3e3;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-bug"
+                            style="color:#e63946;"></i> Pest Inspection</h4>
+
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="pest_presence" id="pest_check" {% if log.pest_presence %}checked{%
+                            endif %}> <span>Pest Attack Identified?</span>
+                    </label>
+
+                    <div id="pest_details" style="display: {% if log.pest_presence %}block{% else %}none{% endif %};">
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Pest
+                            Type</label>
+                        <input type="text" name="pest_type" value="{{ log.pest_type|default_if_none:'' }}"
+                            placeholder="e.g. Aphids, Caterpillars"
+                            style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+
+                        <label
+                            style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Severity</label>
+                        <select name="pest_severity"
+                            style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                            <option value="">-- Select --</option>
+                            <option value="Low" {% if log.pest_severity=='Low' %}selected{% endif %}>Low</option>
+                            <option value="Medium" {% if log.pest_severity=='Medium' %}selected{% endif %}>Medium
+                            </option>
+                            <option value="High" {% if log.pest_severity=='High' %}selected{% endif %}>High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Disease Detection -->
+                <div style="background: #fff3e0; padding: 1.5rem; border-radius: 12px; border: 1px solid #ffe0b2;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-leaf"
+                            style="color:#f57c00;"></i> Disease Detection</h4>
+
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="disease_presence" id="disease_check" {% if log.disease_presence
+                            %}checked{% endif %}> <span>Disease Identified?</span>
+                    </label>
+
+                    <div id="disease_details"
+                        style="display: {% if log.disease_presence %}block{% else %}none{% endif %};">
+                        <label
+                            style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Disease
+                            Type</label>
+                        <input type="text" name="disease_type" value="{{ log.disease_type|default_if_none:'' }}"
+                            placeholder="e.g. Leaf Spot, Wilt, Rust"
+                            style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+
+                        <label
+                            style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Upload
+                            Photo (Leave blank to keep existing)</label>
+                        <input type="file" name="disease_photo" accept="image/*"
+                            style="width: 100%; padding: 0.4rem; font-family: 'Outfit';">
+                        {% if log.disease_photo %}
+                        <p style="font-size: 0.8rem; margin-top: 5px;"><a href="{{ log.disease_photo.url }}"
+                                target="_blank">View current photo</a></p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Irrigation Monitoring -->
+                <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 12px; border: 1px solid #bbdefb;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-droplet"
+                            style="color:#1976d2;"></i> Irrigation Check</h4>
+
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Water
+                        Sufficiency</label>
+                    <select name="water_sufficiency"
+                        style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+                        <option value="">-- Select --</option>
+                        <option value="Adequate" {% if log.water_sufficiency=='Adequate' %}selected{% endif %}>Adequate
+                        </option>
+                        <option value="Insufficient" {% if log.water_sufficiency=='Insufficient' %}selected{% endif %}>
+                            Insufficient</option>
+                        <option value="Excess" {% if log.water_sufficiency=='Excess' %}selected{% endif %}>Excess
+                        </option>
+                    </select>
+
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="water_stress_symptoms" {% if log.water_stress_symptoms %}checked{%
+                            endif %}> <span>Water Stress Symptoms Observed?</span>
+                    </label>
+                </div>
+
+                <!-- Nutrient Deficiency -->
+                <div
+                    style="background: #f3e5f5; padding: 1.5rem; border-radius: 12px; border: 1px solid #e1bee7; grid-column: 1 / -1;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-flask"
+                            style="color:#8e24aa;"></i> Nutrient Deficiency Check</h4>
+
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="nutrient_deficiency" id="nutrient_check" {% if
+                            log.nutrient_deficiency %}checked{% endif %}> <span>Deficiency Symptoms Observed?</span>
+                    </label>
+
+                    <div id="nutrient_details"
+                        style="display: {% if log.nutrient_deficiency %}block{% else %}none{% endif %};">
+                        <label
+                            style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Deficiency
+                            Symptoms (e.g. N, P, K)</label>
+                        <input type="text" name="deficiency_symptoms"
+                            value="{{ log.deficiency_symptoms|default_if_none:'' }}"
+                            placeholder="e.g. Yellowing of older leaves (Nitrogen)"
+                            style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+
+                        <label
+                            style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Fertilizer
+                            Recommendation</label>
+                        <textarea name="fertilizer_recommendation" rows="3"
+                            style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; resize: vertical; font-family: 'Outfit';"
+                            placeholder="Enter recommendations...">{{ log.fertilizer_recommendation|default_if_none:'' }}</textarea>
+                    </div>
+                </div>
+
+            </div>
+
+            <button type="submit"
+                style="width: 100%; background: var(--fi-primary, #4361ee); color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: 'Outfit'; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);"
+                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <i class="fa-solid fa-save"></i> Update Observation
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggles = [
+            { check: 'pest_check', details: 'pest_details' },
+            { check: 'disease_check', details: 'disease_details' },
+            { check: 'nutrient_check', details: 'nutrient_details' }
+        ];
+
+        toggles.forEach(t => {
+            const checkbox = document.getElementById(t.check);
+            const details = document.getElementById(t.details);
+            if (checkbox && details) {
+                checkbox.addEventListener('change', function () {
+                    details.style.display = this.checked ? 'block' : 'none';
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

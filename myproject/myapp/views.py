@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog
 
 import json
 
@@ -226,6 +226,69 @@ def index(request):
                 'message': 'Soil types fetched successfully',
                 'data': data
             })
+
+        # ==========================================
+        # 9. MOBILE API: Add Scouting Log
+        # ==========================================
+        elif request.POST.get('add_scouting_log', '').lower() == 'true':
+            plot_id = request.POST.get('plot_id')
+            officer_id = request.POST.get('officer_id')
+            
+            plant_height = request.POST.get('plant_height')
+            growth_stage = request.POST.get('growth_stage')
+            
+            pest_presence = request.POST.get('pest_presence', '').lower() in ['true', '1', 'yes']
+            pest_type = request.POST.get('pest_type')
+            pest_severity = request.POST.get('pest_severity')
+            
+            disease_presence = request.POST.get('disease_presence', '').lower() in ['true', '1', 'yes']
+            disease_type = request.POST.get('disease_type')
+            disease_photo = request.FILES.get('disease_photo')
+            
+            water_sufficiency = request.POST.get('water_sufficiency')
+            water_stress_symptoms = request.POST.get('water_stress_symptoms', '').lower() in ['true', '1', 'yes']
+            
+            nutrient_deficiency = request.POST.get('nutrient_deficiency', '').lower() in ['true', '1', 'yes']
+            deficiency_symptoms = request.POST.get('deficiency_symptoms')
+            fertilizer_recommendation = request.POST.get('fertilizer_recommendation')
+
+            try:
+                plot = Plot.objects.get(id=plot_id)
+                officer = Officer.objects.filter(id=officer_id).first() if officer_id else None
+                
+                scout_log = ScoutingLog.objects.create(
+                    group=plot.group,
+                    group_name=plot.group_name,
+                    factory=plot.factory,
+                    division=plot.division,
+                    section=plot.section,
+                    village=plot.village,
+                    plot=plot,
+                    officer=officer,
+                    plant_height=plant_height,
+                    growth_stage=growth_stage,
+                    pest_presence=pest_presence,
+                    pest_type=pest_type,
+                    pest_severity=pest_severity,
+                    disease_presence=disease_presence,
+                    disease_type=disease_type,
+                    disease_photo=disease_photo,
+                    water_sufficiency=water_sufficiency,
+                    water_stress_symptoms=water_stress_symptoms,
+                    nutrient_deficiency=nutrient_deficiency,
+                    deficiency_symptoms=deficiency_symptoms,
+                    fertilizer_recommendation=fertilizer_recommendation
+                )
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Scouting log added successfully',
+                    'data': {'log_id': scout_log.id}
+                })
+            except Plot.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Plot not found'}, status=404)
+            except Exception as e:
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
         # Invalid API Request fallback
         elif request.headers.get('Accept') == 'application/json':
@@ -485,7 +548,42 @@ def officers(request):
     return render(request, 'officers.html', {'officers': officers_list})
 
 def field_intelligence(request):
-    return render(request, 'field_intelligence.html')
+    base_plots = Plot.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+    plots = filter_by_factory(base_plots, 'farmer__section__division__factory_name_id', request)
+    
+    plots_data = []
+    for p in plots:
+        try:
+            # Handle potential JSON parsing issues if stored weirdly
+            lat_str = str(p.latitude).strip("[]'\"")
+            lon_str = str(p.longitude).strip("[]'\"")
+            if not lat_str or not lon_str:
+                continue
+            
+            lat = float(lat_str)
+            lon = float(lon_str)
+            
+            plots_data.append({
+                'id': p.id,
+                'plot_code': p.plot_code or 'Unknown',
+                'lat': lat,
+                'lon': lon,
+                'division': p.division_name or (p.division.name if p.division else '-'),
+                'section': p.section_name or (p.section.section_name if p.section else '-'),
+                'village': p.village_name or (p.village.village_name if p.village else '-'),
+                'farmer_name': p.farmer.name if p.farmer else '-',
+                'planting_date': str(p.planting_date) if p.planting_date else '-',
+                'acres': str(p.area_acre) if p.area_acre else '-',
+                'soil_type': p.soil_type.soil_name if p.soil_type else '-',
+                'status': p.status or '-'
+            })
+        except (ValueError, TypeError):
+            continue
+
+    context = {
+        'plots_json': json.dumps(plots_data)
+    }
+    return render(request, 'field_intelligence.html', context)
 
 def analytics(request):
     return render(request, 'analytics.html')
@@ -494,7 +592,111 @@ def ndvi_monitoring(request):
     return render(request, 'ndvi_monitoring.html')
 
 def scouting(request):
-    return render(request, 'scouting.html')
+    # Fetch allowed plots for dropdown
+    plots = filter_by_factory(Plot.objects.all(), 'farmer__section__division__factory_name_id', request)
+
+    if request.method == 'POST':
+        plot_id = request.POST.get('plot_id')
+        plant_height = request.POST.get('plant_height')
+        growth_stage = request.POST.get('growth_stage')
+        pest_presence = request.POST.get('pest_presence') == 'on'
+        pest_type = request.POST.get('pest_type')
+        pest_severity = request.POST.get('pest_severity')
+        disease_presence = request.POST.get('disease_presence') == 'on'
+        disease_type = request.POST.get('disease_type')
+        disease_photo = request.FILES.get('disease_photo')
+        water_sufficiency = request.POST.get('water_sufficiency')
+        water_stress_symptoms = request.POST.get('water_stress_symptoms') == 'on'
+        nutrient_deficiency = request.POST.get('nutrient_deficiency') == 'on'
+        deficiency_symptoms = request.POST.get('deficiency_symptoms')
+        fertilizer_recommendation = request.POST.get('fertilizer_recommendation')
+
+        user_id = request.session.get('user_id')
+        officer = Officer.objects.filter(user_id=user_id).first() if user_id else None
+
+        if plot_id:
+            plot = Plot.objects.get(id=plot_id)
+            ScoutingLog.objects.create(
+                group=plot.group,
+                group_name=plot.group_name,
+                factory=plot.factory,
+                division=plot.division,
+                section=plot.section,
+                village=plot.village,
+                plot=plot,
+                officer=officer,
+                plant_height=plant_height,
+                growth_stage=growth_stage,
+                pest_presence=pest_presence,
+                pest_type=pest_type,
+                pest_severity=pest_severity,
+                disease_presence=disease_presence,
+                disease_type=disease_type,
+                disease_photo=disease_photo,
+                water_sufficiency=water_sufficiency,
+                water_stress_symptoms=water_stress_symptoms,
+                nutrient_deficiency=nutrient_deficiency,
+                deficiency_symptoms=deficiency_symptoms,
+                fertilizer_recommendation=fertilizer_recommendation
+            )
+            messages.success(request, 'Scouting log added successfully!')
+            return redirect('scout_logs')
+
+    # Fetch logs history
+    logs = filter_by_factory(ScoutingLog.objects.all(), 'plot__farmer__section__division__factory_name_id', request).order_by('-created_at')
+    
+    return render(request, 'scouting.html', {'plots': plots, 'logs': logs})
+
+def scout_logs(request):
+    logs = filter_by_factory(ScoutingLog.objects.all(), 'plot__farmer__section__division__factory_name_id', request).order_by('-created_at')
+    return render(request, 'scout_logs.html', {'logs': logs})
+
+def edit_scout_log(request, id):
+    log = ScoutingLog.objects.get(id=id)
+    plots = filter_by_factory(Plot.objects.all(), 'farmer__section__division__factory_name_id', request)
+    
+    if request.method == 'POST':
+        plot_id = request.POST.get('plot_id')
+        if plot_id:
+            plot = Plot.objects.get(id=plot_id)
+            log.plot = plot
+            log.group = plot.group
+            log.group_name = plot.group_name
+            log.factory = plot.factory
+            log.division = plot.division
+            log.section = plot.section
+            log.village = plot.village
+
+        log.plant_height = request.POST.get('plant_height')
+        log.growth_stage = request.POST.get('growth_stage')
+        
+        log.pest_presence = request.POST.get('pest_presence') == 'on'
+        log.pest_type = request.POST.get('pest_type')
+        log.pest_severity = request.POST.get('pest_severity')
+        
+        log.disease_presence = request.POST.get('disease_presence') == 'on'
+        log.disease_type = request.POST.get('disease_type')
+        if request.FILES.get('disease_photo'):
+            log.disease_photo = request.FILES.get('disease_photo')
+            
+        log.water_sufficiency = request.POST.get('water_sufficiency')
+        log.water_stress_symptoms = request.POST.get('water_stress_symptoms') == 'on'
+        
+        log.nutrient_deficiency = request.POST.get('nutrient_deficiency') == 'on'
+        log.deficiency_symptoms = request.POST.get('deficiency_symptoms')
+        log.fertilizer_recommendation = request.POST.get('fertilizer_recommendation')
+
+        log.save()
+        messages.success(request, 'Scouting log updated successfully!')
+        return redirect('scout_logs')
+
+    return render(request, 'edit_scout_log.html', {'log': log, 'plots': plots})
+
+def delete_scout_log(request, id):
+    log = ScoutingLog.objects.get(id=id)
+    log.delete()
+    messages.success(request, 'Scouting log deleted successfully!')
+    return redirect('scout_logs')
 
 def reports(request):
     return render(request, 'reports.html')

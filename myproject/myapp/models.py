@@ -382,3 +382,46 @@ class SoilType(models.Model):
 
     def __str__(self):
         return f"{self.soil_code} - {self.soil_name}"
+
+class ScoutingLog(models.Model):
+    # Hierarchy
+    group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True)
+    group_name = models.CharField(max_length=100, blank=True, null=True)
+    factory = models.ForeignKey(Factory, on_delete=models.SET_NULL, null=True, blank=True)
+    division = models.ForeignKey(Division, on_delete=models.SET_NULL, null=True, blank=True)
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
+    village = models.ForeignKey(Village, on_delete=models.SET_NULL, null=True, blank=True)
+    plot = models.ForeignKey(Plot, on_delete=models.CASCADE, related_name="scouting_logs")
+    officer = models.ForeignKey(Officer, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Crop Monitoring
+    plant_height = models.CharField(max_length=100, blank=True, null=True)
+    growth_stage = models.CharField(max_length=100, blank=True, null=True)
+
+    # Pest Inspection
+    pest_presence = models.BooleanField(default=False)
+    pest_type = models.CharField(max_length=150, blank=True, null=True)
+    pest_severity = models.CharField(max_length=50, blank=True, null=True) # Low, Medium, High
+
+    # Disease Detection
+    disease_presence = models.BooleanField(default=False)
+    disease_type = models.CharField(max_length=150, blank=True, null=True)
+    disease_photo = models.ImageField(upload_to='scouting_photos/', blank=True, null=True)
+
+    # Irrigation Monitoring
+    water_sufficiency = models.CharField(max_length=100, blank=True, null=True)
+    water_stress_symptoms = models.BooleanField(default=False)
+
+    # Nutrient Deficiency Check
+    nutrient_deficiency = models.BooleanField(default=False)
+    deficiency_symptoms = models.CharField(max_length=200, blank=True, null=True) # e.g. N, P, K
+    fertilizer_recommendation = models.TextField(blank=True, null=True)
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "scouting_log"
+
+    def __str__(self):
+        return f"Scouting for Plot {self.plot.plot_code} on {self.created_at.strftime('%Y-%m-%d')}"

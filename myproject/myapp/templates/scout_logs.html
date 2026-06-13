@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Scout Logs{% endblock %}
+{% block header_title %}Scout Logs{% endblock %}
+
+{% block content %}
+<style>
+    .table-container {
+        background: #ffffff;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .table-header h2 {
+        color: var(--fi-primary, #2b2d42);
+        margin: 0;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .data-table th {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        padding: 15px;
+        text-align: left;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .data-table td {
+        padding: 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid #e9ecef;
+        color: #495057;
+    }
+
+    .data-table tbody tr:hover {
+        background-color: #fdfdfe;
+    }
+
+    .data-table .actions a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        text-decoration: none;
+        margin-right: 5px;
+        transition: 0.2s;
+    }
+
+    .data-table .btn-edit {
+        background-color: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .data-table .btn-edit:hover {
+        background-color: #bbdefb;
+    }
+
+    .data-table .btn-delete {
+        background-color: #ffebee;
+        color: #d32f2f;
+    }
+
+    .data-table .btn-delete:hover {
+        background-color: #ffcdd2;
+    }
+</style>
+
+<div class="table-container">
+    <div class="table-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>All Scouting Records</h2>
+        <a href="{% url 'scouting' %}" class="btn-add"
+            style="background-color: var(--primary-color); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;"><i
+                class="fa-solid fa-plus"></i> New Log</a>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Plot Code</th>
+                    <th>Farmer</th>
+                    <th>Pest</th>
+                    <th>Disease</th>
+                    <th>Water Stress</th>
+                    <th>Nutrient Issue</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.created_at|date:"M d, Y" }}</td>
+                    <td><strong>{{ log.plot.plot_code }}</strong></td>
+                    <td>{{ log.plot.farmer.name|default:"-" }}</td>
+
+                    <!-- Pest -->
+                    <td>
+                        {% if log.pest_presence %}
+                        <span style="color: #e63946; font-weight: bold;"><i class="fa-solid fa-bug"></i> {{ log.pest_severity }}</span>
+                        {% else %}
+                        <span style="color: #ccc;">-</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Disease -->
+                    <td>
+                        {% if log.disease_presence %}
+                        <span style="color: #f57c00; font-weight: bold;"><i class="fa-solid fa-leaf"></i> Yes</span>
+                        {% else %}
+                        <span style="color: #ccc;">-</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Water Stress -->
+                    <td>
+                        {% if log.water_stress_symptoms %}
+                        <span style="color: #1976d2; font-weight: bold;"><i class="fa-solid fa-droplet"></i> Yes</span>
+                        {% else %}
+                        <span style="color: #ccc;">-</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Nutrient Issue -->
+                    <td>
+                        {% if log.nutrient_deficiency %}
+                        <span style="color: #8e24aa; font-weight: bold;"><i class="fa-solid fa-flask"></i> Yes</span>
+                        {% else %}
+                        <span style="color: #ccc;">-</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="actions">
+                        <a href="{% url 'edit_scout_log' log.id %}" class="btn-edit" title="Edit"><i
+                                class="fas fa-edit"></i></a>
+                        <a href="{% url 'delete_scout_log' log.id %}" class="btn-delete" title="Delete"
+                            onclick="return confirm('Are you sure you want to delete this log?');"><i
+                                class="fas fa-trash-alt"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem;">No scouting logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

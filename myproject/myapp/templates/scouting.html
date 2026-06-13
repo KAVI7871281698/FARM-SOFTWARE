@@ -4,68 +4,206 @@
 {% block header_title %}Scouting{% endblock %}
 
 {% block content %}
-<div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-        <!-- Tasks List -->
-        <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3>Upcoming Tasks</h3>
-                <button style="background: var(--primary-light); color: var(--primary-color); border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600;"><i class="fa-solid fa-filter"></i> Filter</button>
-            </div>
-            
-            <div style="background: #fff8e1; border-left: 4px solid var(--warning); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <h4 style="color: #333; margin-bottom: 0.3rem;">Pest Inspection</h4>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-location-dot"></i> Plot #P-102 &bull; Due: Today</p>
-                <span style="background: #ffe082; color: #ff8f00; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">High Priority</span>
-            </div>
-            
-            <div style="background: #e3f2fd; border-left: 4px solid var(--info); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <h4 style="color: #333; margin-bottom: 0.3rem;">Soil Moisture Check</h4>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-location-dot"></i> Plot #P-101 &bull; Due: Tomorrow</p>
-                <span style="background: #bbdefb; color: #1976d2; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Routine</span>
-            </div>
+<div class="scouting-container" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+
+    <!-- Left Column: Log Form -->
+    <div style="flex: 2; min-width: 350px; background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="color: var(--fi-primary); display: flex; align-items: center; gap: 10px; margin: 0;">
+                <i class="fa-solid fa-clipboard-list"></i> Log New Observation
+            </h3>
+            <a href="{% url 'scout_logs' %}" style="text-decoration: none; background: #e3f2fd; color: #1976d2; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: 0.3s;" onmouseover="this.style.background='#bbdefb'" onmouseout="this.style.background='#e3f2fd'">
+                <i class="fa-solid fa-table"></i> View All Scouts
+            </a>
         </div>
 
-        <!-- Log Form -->
-        <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-            <h3>Log New Observation</h3>
-            <form style="margin-top: 1.5rem;">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Select Plot</label>
-                    <select style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
-                        <option>#P-101 (Wheat)</option>
-                        <option>#P-102 (Cotton)</option>
-                        <option>#P-103 (Sugarcane)</option>
+        {% if messages %}
+            {% for message in messages %}
+                <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" action="{% url 'scouting' %}">
+            {% csrf_token %}
+            
+            <!-- Plot Selection -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: var(--fi-text);">Select Plot <span style="color:red;">*</span></label>
+                <select name="plot_id" required style="width: 100%; padding: 0.8rem; border: 1px solid var(--fi-border); border-radius: 8px; outline: none; font-family: 'Outfit'; font-size: 1rem;">
+                    <option value="">-- Choose a Plot --</option>
+                    {% for plot in plots %}
+                        <option value="{{ plot.id }}">Plot {{ plot.plot_code }} - {{ plot.farmer.name|default:"Unknown Farmer" }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                
+                <!-- Crop Monitoring -->
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-seedling" style="color:#2ca6a4;"></i> Crop Monitoring</h4>
+                    
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Plant Height</label>
+                    <input type="text" name="plant_height" placeholder="e.g. 1.2 meters" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+                    
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Growth Stage</label>
+                    <select name="growth_stage" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                        <option value="">-- Select Stage --</option>
+                        <option value="Germination">Germination</option>
+                        <option value="Vegetative">Vegetative</option>
+                        <option value="Flowering">Flowering</option>
+                        <option value="Fruiting">Fruiting</option>
+                        <option value="Harvest">Harvest</option>
                     </select>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Observation Type</label>
-                    <select style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
-                        <option>Pest / Disease</option>
-                        <option>Water Stress</option>
-                        <option>Nutrient Deficiency</option>
-                        <option>General Health</option>
+
+                <!-- Pest Inspection -->
+                <div style="background: #fff5f5; padding: 1.5rem; border-radius: 12px; border: 1px solid #ffe3e3;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-bug" style="color:#e63946;"></i> Pest Inspection</h4>
+                    
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="pest_presence" id="pest_check"> <span>Pest Attack Identified?</span>
+                    </label>
+
+                    <div id="pest_details" style="display: none;">
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Pest Type</label>
+                        <input type="text" name="pest_type" placeholder="e.g. Aphids, Caterpillars" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Severity</label>
+                        <select name="pest_severity" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                            <option value="">-- Select --</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Disease Detection -->
+                <div style="background: #fff3e0; padding: 1.5rem; border-radius: 12px; border: 1px solid #ffe0b2;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-leaf" style="color:#f57c00;"></i> Disease Detection</h4>
+                    
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="disease_presence" id="disease_check"> <span>Disease Identified?</span>
+                    </label>
+
+                    <div id="disease_details" style="display: none;">
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Disease Type</label>
+                        <input type="text" name="disease_type" placeholder="e.g. Leaf Spot, Wilt, Rust" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Upload Photo</label>
+                        <input type="file" name="disease_photo" accept="image/*" style="width: 100%; padding: 0.4rem; font-family: 'Outfit';">
+                    </div>
+                </div>
+
+                <!-- Irrigation Monitoring -->
+                <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 12px; border: 1px solid #bbdefb;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-droplet" style="color:#1976d2;"></i> Irrigation Check</h4>
+                    
+                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Water Sufficiency</label>
+                    <select name="water_sufficiency" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+                        <option value="">-- Select --</option>
+                        <option value="Adequate">Adequate</option>
+                        <option value="Insufficient">Insufficient</option>
+                        <option value="Excess">Excess</option>
                     </select>
+
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="water_stress_symptoms"> <span>Water Stress Symptoms Observed?</span>
+                    </label>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Notes</label>
-                    <textarea rows="4" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; resize: none; font-family: 'Outfit';" placeholder="Enter details..."></textarea>
+
+                <!-- Nutrient Deficiency -->
+                <div style="background: #f3e5f5; padding: 1.5rem; border-radius: 12px; border: 1px solid #e1bee7; grid-column: 1 / -1;">
+                    <h4 style="margin-bottom: 1rem; color: #2b2d42;"><i class="fa-solid fa-flask" style="color:#8e24aa;"></i> Nutrient Deficiency Check</h4>
+                    
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer; font-weight: 500;">
+                        <input type="checkbox" name="nutrient_deficiency" id="nutrient_check"> <span>Deficiency Symptoms Observed?</span>
+                    </label>
+
+                    <div id="nutrient_details" style="display: none;">
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Deficiency Symptoms (e.g. N, P, K)</label>
+                        <input type="text" name="deficiency_symptoms" placeholder="e.g. Yellowing of older leaves (Nitrogen)" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1rem; font-family: 'Outfit';">
+
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem;">Fertilizer Recommendation</label>
+                        <textarea name="fertilizer_recommendation" rows="3" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; outline: none; resize: vertical; font-family: 'Outfit';" placeholder="Enter recommendations..."></textarea>
+                    </div>
                 </div>
-                <button type="button" style="width: 100%; background: var(--primary-color); color: white; border: none; padding: 0.8rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; font-family: 'Outfit'; font-size: 1rem;" onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary-color)'">Submit Report</button>
-            </form>
+
+            </div>
+
+            <button type="submit" style="width: 100%; background: var(--fi-primary, #4361ee); color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: 'Outfit'; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <i class="fa-solid fa-paper-plane"></i> Submit Scouting Report
+            </button>
+        </form>
+    </div>
+
+    <!-- Right Column: History -->
+    <div style="flex: 1; min-width: 300px; max-width: 450px;">
+        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-height: 800px; overflow-y: auto;">
+            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                Recent Logs
+                <span style="background: rgba(67, 97, 238, 0.1); color: var(--fi-primary); font-size: 0.8rem; padding: 4px 10px; border-radius: 20px;">{{ logs|length }} Total</span>
+            </h3>
+
+            {% if logs %}
+                {% for log in logs %}
+                    <div style="background: #fdfdfd; border: 1px solid #eee; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; border-left: 4px solid var(--fi-primary);">
+                        <h4 style="color: #333; margin-bottom: 0.3rem; display: flex; justify-content: space-between;">
+                            Plot {{ log.plot.plot_code }}
+                            <span style="font-size: 0.8rem; font-weight: 500; color: #888;">{{ log.created_at|date:"M d, Y" }}</span>
+                        </h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-location-dot"></i> {{ log.village.village_name|default:"Unknown" }}</p>
+                        
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px;">
+                            {% if log.pest_presence %}
+                                <span style="background: #ffe3e3; color: #e63946; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Pest: {{ log.pest_severity }}</span>
+                            {% endif %}
+                            {% if log.disease_presence %}
+                                <span style="background: #ffe0b2; color: #f57c00; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Disease Detected</span>
+                            {% endif %}
+                            {% if log.water_stress_symptoms %}
+                                <span style="background: #bbdefb; color: #1976d2; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Water Stress</span>
+                            {% endif %}
+                            {% if log.nutrient_deficiency %}
+                                <span style="background: #e1bee7; color: #8e24aa; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Nutrient Issue</span>
+                            {% endif %}
+                            {% if not log.pest_presence and not log.disease_presence and not log.water_stress_symptoms and not log.nutrient_deficiency %}
+                                <span style="background: #d4edda; color: #155724; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">Healthy</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #888; margin-top: 2rem;">No scouting logs recorded yet.</p>
+            {% endif %}
         </div>
     </div>
+
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuToggle = document.getElementById('menuToggle');
-            const sidebar = document.querySelector('.sidebar');
-            if(menuToggle && sidebar) {
-                menuToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('open');
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle sections based on checkboxes
+        const toggles = [
+            { check: 'pest_check', details: 'pest_details' },
+            { check: 'disease_check', details: 'disease_details' },
+            { check: 'nutrient_check', details: 'nutrient_details' }
+        ];
+
+        toggles.forEach(t => {
+            const checkbox = document.getElementById(t.check);
+            const details = document.getElementById(t.details);
+            if (checkbox && details) {
+                checkbox.addEventListener('change', function() {
+                    details.style.display = this.checked ? 'block' : 'none';
                 });
             }
         });
-    </script>
+    });
+</script>
 {% endblock %}

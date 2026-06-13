@@ -227,14 +227,6 @@
             max-width: 100%;
         }
 
-            {
-            % block extra_css %
-        }
-
-            {
-            % endblock %
-        }
-
         /* Responsive Design */
         @media (max-width: 1024px) {
             .charts-grid {
@@ -278,6 +270,7 @@
             }
         }
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
 
 <body>
@@ -356,7 +349,8 @@
             <li class=""><a href="{% url 'dashboard' %}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
             {% endif %}
             {% if 'field_intelligence' in request.session.permissions or request.session.role_id == 1 %}
-            <li class=""><a href="{% url 'field_intelligence' %}"><i class="fa-solid fa-earth-americas"></i> Field</a></li>
+            <li class=""><a href="{% url 'field_intelligence' %}"><i class="fa-solid fa-earth-americas"></i> Field</a>
+            </li>
             {% endif %}
             {% if 'analytics' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'analytics' %}"><i class="fa-solid fa-chart-simple"></i> Analytics</a></li>
