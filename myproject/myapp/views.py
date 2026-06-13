@@ -1869,7 +1869,7 @@ def api_add_plot(request):
                         uploaded_urls.append(default_storage.url(filename))
                     
                     if isinstance(plot.boundary_image, list):
-                        plot.boundary_image.extend(uploaded_urls)
+                        plot.boundary_image = list(plot.boundary_image) + uploaded_urls
                     else:
                         plot.boundary_image = uploaded_urls
                 
