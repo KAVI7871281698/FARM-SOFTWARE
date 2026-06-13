@@ -1861,6 +1861,18 @@ def api_add_plot(request):
                     except:
                         plot.boundary_image = [boundary_img_val] if boundary_img_val else []
                 
+                if request.FILES.getlist('boundary_image'):
+                    from django.core.files.storage import default_storage
+                    uploaded_urls = []
+                    for file in request.FILES.getlist('boundary_image'):
+                        filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                        uploaded_urls.append(default_storage.url(filename))
+                    
+                    if isinstance(plot.boundary_image, list):
+                        plot.boundary_image.extend(uploaded_urls)
+                    else:
+                        plot.boundary_image = uploaded_urls
+                
                 if 'boundaries' in request.POST:
                     boundaries_val = request.POST.get('boundaries')
                     try:
@@ -1923,6 +1935,12 @@ def api_add_plot(request):
                     boundary_image_data = json.loads(boundary_img_val) if boundary_img_val else []
                 except:
                     boundary_image_data = [boundary_img_val] if boundary_img_val else []
+
+                if request.FILES.getlist('boundary_image'):
+                    from django.core.files.storage import default_storage
+                    for file in request.FILES.getlist('boundary_image'):
+                        filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                        boundary_image_data.append(default_storage.url(filename))
 
                 boundaries_val = request.POST.get('boundaries')
                 try:
