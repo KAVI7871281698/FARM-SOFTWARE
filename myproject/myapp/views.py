@@ -283,7 +283,26 @@ def index(request):
                 return JsonResponse({
                     'status': 'success',
                     'message': 'Scouting log added successfully',
-                    'data': {'log_id': scout_log.id}
+                    'data': {
+                        'log_id': scout_log.id,
+                        'plot_id': scout_log.plot.id if scout_log.plot else None,
+                        'plot_code': scout_log.plot.plot_code if scout_log.plot else None,
+                        'officer_id': scout_log.officer.id if scout_log.officer else None,
+                        'plant_height': scout_log.plant_height,
+                        'growth_stage': scout_log.growth_stage,
+                        'pest_presence': scout_log.pest_presence,
+                        'pest_type': scout_log.pest_type,
+                        'pest_severity': scout_log.pest_severity,
+                        'disease_presence': scout_log.disease_presence,
+                        'disease_type': scout_log.disease_type,
+                        'disease_photo_url': scout_log.disease_photo.url if scout_log.disease_photo else None,
+                        'water_sufficiency': scout_log.water_sufficiency,
+                        'water_stress_symptoms': scout_log.water_stress_symptoms,
+                        'nutrient_deficiency': scout_log.nutrient_deficiency,
+                        'deficiency_symptoms': scout_log.deficiency_symptoms,
+                        'fertilizer_recommendation': scout_log.fertilizer_recommendation,
+                        'created_at': scout_log.created_at.isoformat() if scout_log.created_at else None
+                    }
                 })
             except Plot.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Plot not found'}, status=404)
