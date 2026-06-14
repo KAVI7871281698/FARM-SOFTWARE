@@ -16,6 +16,22 @@ def parse_legacy_field(val):
             pass
     return [x.strip() for x in val.split(',')] if val else []
 
+def format_boundaries_list(boundaries_data):
+    if not isinstance(boundaries_data, list):
+        return boundaries_data
+    formatted = []
+    for b in boundaries_data:
+        if isinstance(b, dict):
+            lat = b.get('lat', b.get('point1'))
+            lng = b.get('lng', b.get('point2', b.get('pont2')))
+            if lat is not None and lng is not None:
+                formatted.append({"point1": lat, "point2": lng})
+            else:
+                formatted.append(b)
+        else:
+            formatted.append(b)
+    return formatted
+
 from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
@@ -1880,18 +1896,7 @@ def api_add_plot(request):
                     try:
                         import json
                         b_data = json.loads(boundaries_val) if boundaries_val else []
-                        formatted_boundaries = []
-                        for b in b_data:
-                            if isinstance(b, dict):
-                                lat = b.get('lat', b.get('point1'))
-                                lng = b.get('lng', b.get('point2', b.get('pont2')))
-                                if lat is not None and lng is not None:
-                                    formatted_boundaries.append({"point1": lat, "point2": lng})
-                                else:
-                                    formatted_boundaries.append(b)
-                            else:
-                                formatted_boundaries.append(b)
-                        plot.boundaries = formatted_boundaries
+                        plot.boundaries = format_boundaries_list(b_data)
                     except:
                         plot.boundaries = [boundaries_val] if boundaries_val else []
                 
@@ -1961,17 +1966,7 @@ def api_add_plot(request):
                 try:
                     import json
                     b_data = json.loads(boundaries_val) if boundaries_val else []
-                    boundaries_data = []
-                    for b in b_data:
-                        if isinstance(b, dict):
-                            lat = b.get('lat', b.get('point1'))
-                            lng = b.get('lng', b.get('point2', b.get('pont2')))
-                            if lat is not None and lng is not None:
-                                boundaries_data.append({"point1": lat, "point2": lng})
-                            else:
-                                boundaries_data.append(b)
-                        else:
-                            boundaries_data.append(b)
+                    boundaries_data = format_boundaries_list(b_data)
                 except:
                     boundaries_data = [boundaries_val] if boundaries_val else []
 
@@ -2070,7 +2065,7 @@ def api_add_plot(request):
                 "factory_name": plot.factory_name if plot else None,
                 "officer_name": plot.officer.name if plot and plot.officer else None,
                 "boundary_image": plot.boundary_image if plot else None,
-                "boundaries": plot.boundaries if plot else None
+                "boundaries": format_boundaries_list(plot.boundaries) if plot and plot.boundaries else None
             }
         }, status=201)
 
@@ -2116,7 +2111,7 @@ def api_get_plots(request):
             "factory_name": plot.factory_name,
             "officer_name": plot.officer.name if plot.officer else None,
             "boundary_image": plot.boundary_image,
-            "boundaries": plot.boundaries
+            "boundaries": format_boundaries_list(plot.boundaries) if plot.boundaries else None
         })
         
     return JsonResponse({
