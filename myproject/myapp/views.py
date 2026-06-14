@@ -82,6 +82,40 @@ def extract_boundary_image_from_request(request):
                 parsed_imgs.append(val)
     return parsed_imgs
 
+def upload_file_to_supabase(file_obj, original_filename):
+    import os
+    import uuid
+    from supabase import create_client, Client
+    
+    url = os.environ.get("SUPABASE_URL")
+    if url and url.endswith('/rest/v1/'):
+        url = url[:-9]
+    key = os.environ.get("SUPABASE_KEY")
+    
+    if not url or not key:
+        return None
+        
+    try:
+        supabase: Client = create_client(url, key)
+        file_bytes = file_obj.read()
+        file_obj.seek(0) # reset file pointer in case it's used again
+        
+        # Generate unique filename to avoid overwrites
+        ext = os.path.splitext(original_filename)[1]
+        unique_filename = f"{uuid.uuid4().hex}{ext}"
+        
+        res = supabase.storage.from_('plot_boundaries').upload(
+            file=file_bytes,
+            path=unique_filename,
+            file_options={"content-type": getattr(file_obj, 'content_type', 'application/octet-stream')}
+        )
+        
+        public_url = supabase.storage.from_('plot_boundaries').get_public_url(unique_filename)
+        return public_url
+    except Exception as e:
+        print(f"Supabase upload error: {e}")
+        return None
+
 from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
@@ -1932,9 +1966,13 @@ def api_add_plot(request):
                     if 'boundary_image' in key:
                         for file in request.FILES.getlist(key):
                             try:
-                                filename = default_storage.save(f"plot_boundaries/{file.name}", file)
-                                uploaded_urls.append(default_storage.url(filename))
-                            except OSError as e:
+                                supabase_url = upload_file_to_supabase(file, file.name)
+                                if supabase_url:
+                                    uploaded_urls.append(supabase_url)
+                                else:
+                                    filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                                    uploaded_urls.append(default_storage.url(filename))
+                            except OSError:
                                 # Vercel is read-only, saving files to disk will fail.
                                 # Log or ignore the error so it doesn't break the entire plot update
                                 pass
@@ -2011,8 +2049,12 @@ def api_add_plot(request):
                     if 'boundary_image' in key:
                         for file in request.FILES.getlist(key):
                             try:
-                                filename = default_storage.save(f"plot_boundaries/{file.name}", file)
-                                boundary_image_data.append(default_storage.url(filename))
+                                supabase_url = upload_file_to_supabase(file, file.name)
+                                if supabase_url:
+                                    boundary_image_data.append(supabase_url)
+                                else:
+                                    filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                                    boundary_image_data.append(default_storage.url(filename))
                             except OSError:
                                 pass
 
