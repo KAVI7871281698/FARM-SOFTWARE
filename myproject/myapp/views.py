@@ -36,7 +36,10 @@ def extract_boundaries_from_request(request):
     boundaries_list = []
     # Check all keys that might contain boundary data
     for k in request.POST.keys():
-        if 'boundaries' in k:
+        k_lower = k.lower()
+        if 'boundar' in k_lower:
+            if 'image' in k_lower:
+                continue
             for val in request.POST.getlist(k):
                 boundaries_list.append(val)
                 
