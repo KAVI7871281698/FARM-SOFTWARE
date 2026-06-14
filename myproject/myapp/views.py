@@ -93,7 +93,7 @@ def upload_file_to_supabase(file_obj, original_filename):
     key = os.environ.get("SUPABASE_KEY")
     
     if not url or not key:
-        return None
+        return None, "Supabase URL or Key missing in environment"
         
     try:
         supabase: Client = create_client(url, key)
@@ -111,10 +111,10 @@ def upload_file_to_supabase(file_obj, original_filename):
         )
         
         public_url = supabase.storage.from_('plot_boundaries').get_public_url(unique_filename)
-        return public_url
+        return public_url, None
     except Exception as e:
         print(f"Supabase upload error: {e}")
-        return None
+        return None, str(e)
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -1962,17 +1962,21 @@ def api_add_plot(request):
                 
                 from django.core.files.storage import default_storage
                 uploaded_urls = []
+                debug_files = list(request.FILES.keys())
+                supabase_errors = []
                 for key in request.FILES.keys():
                     if 'boundary_image' in key:
                         for file in request.FILES.getlist(key):
                             try:
-                                supabase_url = upload_file_to_supabase(file, file.name)
+                                supabase_url, sb_err = upload_file_to_supabase(file, file.name)
                                 if supabase_url:
                                     uploaded_urls.append(supabase_url)
                                 else:
+                                    if sb_err: supabase_errors.append(sb_err)
                                     filename = default_storage.save(f"plot_boundaries/{file.name}", file)
                                     uploaded_urls.append(default_storage.url(filename))
-                            except OSError:
+                            except OSError as err:
+                                supabase_errors.append(f"Fallback local storage failed: {str(err)}")
                                 # Vercel is read-only, saving files to disk will fail.
                                 # Log or ignore the error so it doesn't break the entire plot update
                                 pass
@@ -2112,16 +2116,17 @@ def api_add_plot(request):
                     boundary_image=boundary_image_data,
                     boundaries=boundaries_data
                 )
-        except OSError as e:
-            if e.errno == 30: # Read-only file system (Vercel)
+        except OSError as err_os:
+            if err_os.errno == 30: # Read-only file system (Vercel)
                 pass # Just ignore if we can't save on Vercel
             else:
-                return JsonResponse({"status": "error", "message": f"File System Error: {str(e)}"}, status=400)
-        except Exception as e:
+                return JsonResponse({"status": "error", "message": f"File System Error: {str(err_os)}"}, status=400)
+        except Exception as err_ex:
             from django.core.exceptions import ValidationError
-            error_msg = str(e)
-            if isinstance(e, ValidationError):
-                error_msg = "; ".join(e.messages)
+            import traceback
+            error_msg = traceback.format_exc()
+            if isinstance(err_ex, ValidationError):
+                error_msg = "; ".join(err_ex.messages)
             return JsonResponse({"status": "error", "message": f"Data Validation Error: {error_msg}"}, status=400)
 
         return JsonResponse({
@@ -2159,7 +2164,9 @@ def api_add_plot(request):
                 "factory_name": plot.factory_name if plot else None,
                 "officer_name": plot.officer.name if plot and plot.officer else None,
                 "boundary_image": plot.boundary_image if plot else None,
-                "boundaries": plot.boundaries if plot else None
+                "boundaries": plot.boundaries if plot else None,
+                "debug_files_keys": debug_files,
+                "debug_supabase_errors": supabase_errors
             }
         }, status=201)
 
