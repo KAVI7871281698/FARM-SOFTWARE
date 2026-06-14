@@ -1929,8 +1929,10 @@ def api_add_plot(request):
                             plot.boundaries = json.loads(raw_b)
                         except:
                             plot.boundaries = [raw_b]
-                
+                debug_before_save = plot.boundaries
                 plot.save()
+                plot.refresh_from_db()
+                debug_after_save = plot.boundaries
             else:
                 # Create new plot
                 area_acre = request.POST.get('area_acre')
@@ -2096,7 +2098,9 @@ def api_add_plot(request):
                 "boundaries": plot.boundaries if plot else None,
                 "debug_keys_received": list(request.POST.keys()),
                 "debug_raw_boundaries": request.POST.get('boundaries'),
-                "debug_extracted": extract_boundaries_from_request(request)
+                "debug_extracted": extract_boundaries_from_request(request),
+                "debug_before_save": debug_before_save if 'debug_before_save' in locals() else None,
+                "debug_after_save": debug_after_save if 'debug_after_save' in locals() else None
             }
         }, status=201)
 
