@@ -1921,6 +1921,14 @@ def api_add_plot(request):
                 extracted_boundaries = extract_boundaries_from_request(request)
                 if extracted_boundaries is not None:
                     plot.boundaries = extracted_boundaries
+                else:
+                    raw_b = request.POST.get('boundaries')
+                    if raw_b:
+                        try:
+                            import json
+                            plot.boundaries = json.loads(raw_b)
+                        except:
+                            plot.boundaries = [raw_b]
                 
                 plot.save()
             else:
@@ -2087,7 +2095,8 @@ def api_add_plot(request):
                 "boundary_image": plot.boundary_image if plot else None,
                 "boundaries": plot.boundaries if plot else None,
                 "debug_keys_received": list(request.POST.keys()),
-                "debug_raw_boundaries": request.POST.get('boundaries')
+                "debug_raw_boundaries": request.POST.get('boundaries'),
+                "debug_extracted": extract_boundaries_from_request(request)
             }
         }, status=201)
 
