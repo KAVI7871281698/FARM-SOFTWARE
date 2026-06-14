@@ -2085,7 +2085,8 @@ def api_add_plot(request):
                 "factory_name": plot.factory_name if plot else None,
                 "officer_name": plot.officer.name if plot and plot.officer else None,
                 "boundary_image": plot.boundary_image if plot else None,
-                "boundaries": plot.boundaries if plot else None
+                "boundaries": plot.boundaries if plot else None,
+                "debug_keys_received": list(request.POST.keys())
             }
         }, status=201)
 
