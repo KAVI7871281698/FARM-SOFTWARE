@@ -54,7 +54,7 @@ def extract_boundaries_from_request(request):
                 b_data.append(parsed)
         except:
             b_data.append(val)
-    return format_boundaries_list(b_data)
+    return b_data
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -2082,7 +2082,7 @@ def api_add_plot(request):
                 "factory_name": plot.factory_name if plot else None,
                 "officer_name": plot.officer.name if plot and plot.officer else None,
                 "boundary_image": plot.boundary_image if plot else None,
-                "boundaries": format_boundaries_list(plot.boundaries) if plot and plot.boundaries else None
+                "boundaries": plot.boundaries if plot else None
             }
         }, status=201)
 
@@ -2128,7 +2128,7 @@ def api_get_plots(request):
             "factory_name": plot.factory_name,
             "officer_name": plot.officer.name if plot.officer else None,
             "boundary_image": plot.boundary_image,
-            "boundaries": format_boundaries_list(plot.boundaries) if plot.boundaries else None
+            "boundaries": plot.boundaries
         })
         
     return JsonResponse({
