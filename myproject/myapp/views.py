@@ -59,6 +59,29 @@ def extract_boundaries_from_request(request):
             b_data.append(val)
     return b_data
 
+def extract_boundary_image_from_request(request):
+    img_list = []
+    for k in request.POST.keys():
+        if 'boundary_image' in k.lower():
+            for val in request.POST.getlist(k):
+                if str(val).strip():
+                    img_list.append(val)
+                    
+    parsed_imgs = []
+    for val in img_list:
+        try:
+            import json
+            parsed = json.loads(val)
+            if isinstance(parsed, list):
+                parsed_imgs.extend(parsed)
+            else:
+                if parsed:
+                    parsed_imgs.append(parsed)
+        except:
+            if val:
+                parsed_imgs.append(val)
+    return parsed_imgs
+
 from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
@@ -1897,26 +1920,24 @@ def api_add_plot(request):
                     plot.yield_ton_acre = yield_ton_acre if yield_ton_acre and str(yield_ton_acre).strip() != '' else None
                 
                 if 'boundary_image' in request.POST:
-                    boundary_img_val = request.POST.get('boundary_image')
-                    try:
-                        import json
-                        plot.boundary_image = json.loads(boundary_img_val)
-                    except:
-                        plot.boundary_image = [boundary_img_val] if boundary_img_val else []
+                    extracted_imgs = extract_boundary_image_from_request(request)
+                    if extracted_imgs:
+                        plot.boundary_image = extracted_imgs
+                    else:
+                        plot.boundary_image = []
                 
                 from django.core.files.storage import default_storage
                 uploaded_urls = []
-                debug_file_details = []
                 for key in request.FILES.keys():
                     if 'boundary_image' in key:
                         for file in request.FILES.getlist(key):
                             try:
                                 filename = default_storage.save(f"plot_boundaries/{file.name}", file)
-                                url = default_storage.url(filename)
-                                uploaded_urls.append(url)
-                                debug_file_details.append({"name": file.name, "url": url, "size": file.size})
-                            except Exception as e:
-                                debug_file_details.append({"name": file.name, "error": str(e)})
+                                uploaded_urls.append(default_storage.url(filename))
+                            except OSError as e:
+                                # Vercel is read-only, saving files to disk will fail.
+                                # Log or ignore the error so it doesn't break the entire plot update
+                                pass
                 
                 if uploaded_urls:
                     if isinstance(plot.boundary_image, list):
@@ -1935,10 +1956,7 @@ def api_add_plot(request):
                             plot.boundaries = json.loads(raw_b)
                         except:
                             plot.boundaries = [raw_b]
-                debug_before_save = plot.boundaries
                 plot.save()
-                plot.refresh_from_db()
-                debug_after_save = plot.boundaries
             else:
                 # Create new plot
                 area_acre = request.POST.get('area_acre')
@@ -1986,19 +2004,17 @@ def api_add_plot(request):
                 yield_ton_acre = request.POST.get('yield_ton_acre')
                 if not yield_ton_acre or str(yield_ton_acre).strip() == '': yield_ton_acre = None
 
-                boundary_img_val = request.POST.get('boundary_image')
-                try:
-                    import json
-                    boundary_image_data = json.loads(boundary_img_val) if boundary_img_val else []
-                except:
-                    boundary_image_data = [boundary_img_val] if boundary_img_val else []
+                boundary_image_data = extract_boundary_image_from_request(request)
 
                 from django.core.files.storage import default_storage
                 for key in request.FILES.keys():
                     if 'boundary_image' in key:
                         for file in request.FILES.getlist(key):
-                            filename = default_storage.save(f"plot_boundaries/{file.name}", file)
-                            boundary_image_data.append(default_storage.url(filename))
+                            try:
+                                filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                                boundary_image_data.append(default_storage.url(filename))
+                            except OSError:
+                                pass
 
                 extracted_boundaries = extract_boundaries_from_request(request)
                 if extracted_boundaries is not None:
@@ -2101,16 +2117,7 @@ def api_add_plot(request):
                 "factory_name": plot.factory_name if plot else None,
                 "officer_name": plot.officer.name if plot and plot.officer else None,
                 "boundary_image": plot.boundary_image if plot else None,
-                "boundaries": plot.boundaries if plot else None,
-                "debug_keys_received": list(request.POST.keys()),
-                "debug_raw_boundaries": request.POST.get('boundaries'),
-                "debug_extracted": extract_boundaries_from_request(request),
-                "debug_before_save": debug_before_save if 'debug_before_save' in locals() else None,
-                "debug_after_save": debug_after_save if 'debug_after_save' in locals() else None,
-                "debug_boundary_image_post": request.POST.get('boundary_image'),
-                "debug_files_keys": list(request.FILES.keys()),
-                "debug_file_details": debug_file_details if 'debug_file_details' in locals() else None,
-                "debug_uploaded_urls": uploaded_urls if 'uploaded_urls' in locals() else None
+                "boundaries": plot.boundaries if plot else None
             }
         }, status=201)
 
