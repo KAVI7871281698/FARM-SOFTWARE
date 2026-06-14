@@ -1861,13 +1861,15 @@ def api_add_plot(request):
                     except:
                         plot.boundary_image = [boundary_img_val] if boundary_img_val else []
                 
-                if request.FILES.getlist('boundary_image'):
-                    from django.core.files.storage import default_storage
-                    uploaded_urls = []
-                    for file in request.FILES.getlist('boundary_image'):
-                        filename = default_storage.save(f"plot_boundaries/{file.name}", file)
-                        uploaded_urls.append(default_storage.url(filename))
-                    
+                from django.core.files.storage import default_storage
+                uploaded_urls = []
+                for key in request.FILES.keys():
+                    if 'boundary_image' in key:
+                        for file in request.FILES.getlist(key):
+                            filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                            uploaded_urls.append(default_storage.url(filename))
+                
+                if uploaded_urls:
                     if isinstance(plot.boundary_image, list):
                         plot.boundary_image = list(plot.boundary_image) + uploaded_urls
                     else:
@@ -1877,7 +1879,19 @@ def api_add_plot(request):
                     boundaries_val = request.POST.get('boundaries')
                     try:
                         import json
-                        plot.boundaries = json.loads(boundaries_val)
+                        b_data = json.loads(boundaries_val) if boundaries_val else []
+                        formatted_boundaries = []
+                        for b in b_data:
+                            if isinstance(b, dict):
+                                lat = b.get('lat', b.get('point1'))
+                                lng = b.get('lng', b.get('point2', b.get('pont2')))
+                                if lat is not None and lng is not None:
+                                    formatted_boundaries.append({"point1": lat, "point2": lng})
+                                else:
+                                    formatted_boundaries.append(b)
+                            else:
+                                formatted_boundaries.append(b)
+                        plot.boundaries = formatted_boundaries
                     except:
                         plot.boundaries = [boundaries_val] if boundaries_val else []
                 
@@ -1936,16 +1950,28 @@ def api_add_plot(request):
                 except:
                     boundary_image_data = [boundary_img_val] if boundary_img_val else []
 
-                if request.FILES.getlist('boundary_image'):
-                    from django.core.files.storage import default_storage
-                    for file in request.FILES.getlist('boundary_image'):
-                        filename = default_storage.save(f"plot_boundaries/{file.name}", file)
-                        boundary_image_data.append(default_storage.url(filename))
+                from django.core.files.storage import default_storage
+                for key in request.FILES.keys():
+                    if 'boundary_image' in key:
+                        for file in request.FILES.getlist(key):
+                            filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                            boundary_image_data.append(default_storage.url(filename))
 
                 boundaries_val = request.POST.get('boundaries')
                 try:
                     import json
-                    boundaries_data = json.loads(boundaries_val) if boundaries_val else []
+                    b_data = json.loads(boundaries_val) if boundaries_val else []
+                    boundaries_data = []
+                    for b in b_data:
+                        if isinstance(b, dict):
+                            lat = b.get('lat', b.get('point1'))
+                            lng = b.get('lng', b.get('point2', b.get('pont2')))
+                            if lat is not None and lng is not None:
+                                boundaries_data.append({"point1": lat, "point2": lng})
+                            else:
+                                boundaries_data.append(b)
+                        else:
+                            boundaries_data.append(b)
                 except:
                     boundaries_data = [boundaries_val] if boundaries_val else []
 
