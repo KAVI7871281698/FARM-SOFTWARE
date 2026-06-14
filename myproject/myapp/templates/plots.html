@@ -24,6 +24,7 @@
                     <th style="padding: 1rem 1.5rem;">Planting Date</th>
                     <th style="padding: 1rem 1.5rem;">Soil Type</th>
                     <th style="padding: 1rem 1.5rem;">Status</th>
+                    <th style="padding: 1rem 1.5rem;">Land Image</th>
                     <th style="padding: 1rem 1.5rem;">Action</th>
                 </tr>
             </thead>
@@ -54,6 +55,17 @@
                             Mapped</span>
                         {% endif %}
                     </td>
+                    <td style="padding: 1rem 1.5rem;">
+                        {% if plot.boundary_image and plot.boundary_image|length > 0 %}
+                        <button onclick="openImageModal(this)"
+                            data-images="{% for img in plot.boundary_image %}{{ img }}{% if not forloop.last %}|||{% endif %}{% endfor %}"
+                            style="background: #e3f2fd; color: #1976d2; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap;">
+                            <i class="fa-solid fa-image"></i> View Land
+                        </button>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
                     <td style="padding: 1rem 1.5rem; white-space: nowrap;">
                         <button onclick="window.location.href='{% url 'edit_plot' plot.id %}'"
                             style="background: transparent; border: none; color: #1976d2; cursor: pointer; margin-right: 0.5rem;"><i
@@ -75,18 +87,68 @@
             </tbody>
         </table>
     </div>
-    {% endblock %}
 
-    {% block scripts %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const menuToggle = document.getElementById('menuToggle');
-            const sidebar = document.querySelector('.sidebar');
-            if (menuToggle && sidebar) {
-                menuToggle.addEventListener('click', function () {
-                    sidebar.classList.toggle('open');
-                });
+    <!-- Image Modal -->
+    <div id="imageModal"
+        style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8);">
+        <div
+            style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 600px; border-radius: 12px; position: relative;">
+            <span onclick="closeImageModal()"
+                style="color: #666; float: right; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1;">&times;</span>
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--primary-color);">Land Images</h3>
+            <div id="modalImagesContainer"
+                style="display: flex; flex-direction: column; gap: 15px; max-height: 70vh; overflow-y: auto;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (menuToggle && sidebar) {
+            menuToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('open');
+            });
+        }
+    });
+
+    function openImageModal(btn) {
+        const imagesStr = btn.getAttribute('data-images');
+        if (!imagesStr) return;
+
+        const urls = imagesStr.split('|||');
+        const container = document.getElementById('modalImagesContainer');
+        container.innerHTML = ''; // Clear old images
+
+        urls.forEach(url => {
+            if (url.trim()) {
+                const img = document.createElement('img');
+                img.src = url.trim();
+                img.style.width = '100%';
+                img.style.borderRadius = '8px';
+                img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                img.style.objectFit = 'contain';
+                container.appendChild(img);
             }
         });
-    </script>
-    {% endblock %}
+
+        document.getElementById('imageModal').style.display = 'block';
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function (event) {
+        const modal = document.getElementById('imageModal');
+        if (event.target == modal) {
+            closeImageModal();
+        }
+    }
+</script>
+{% endblock %}
