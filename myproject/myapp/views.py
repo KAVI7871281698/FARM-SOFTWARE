@@ -1906,11 +1906,17 @@ def api_add_plot(request):
                 
                 from django.core.files.storage import default_storage
                 uploaded_urls = []
+                debug_file_details = []
                 for key in request.FILES.keys():
                     if 'boundary_image' in key:
                         for file in request.FILES.getlist(key):
-                            filename = default_storage.save(f"plot_boundaries/{file.name}", file)
-                            uploaded_urls.append(default_storage.url(filename))
+                            try:
+                                filename = default_storage.save(f"plot_boundaries/{file.name}", file)
+                                url = default_storage.url(filename)
+                                uploaded_urls.append(url)
+                                debug_file_details.append({"name": file.name, "url": url, "size": file.size})
+                            except Exception as e:
+                                debug_file_details.append({"name": file.name, "error": str(e)})
                 
                 if uploaded_urls:
                     if isinstance(plot.boundary_image, list):
@@ -2102,7 +2108,9 @@ def api_add_plot(request):
                 "debug_before_save": debug_before_save if 'debug_before_save' in locals() else None,
                 "debug_after_save": debug_after_save if 'debug_after_save' in locals() else None,
                 "debug_boundary_image_post": request.POST.get('boundary_image'),
-                "debug_files_keys": list(request.FILES.keys())
+                "debug_files_keys": list(request.FILES.keys()),
+                "debug_file_details": debug_file_details if 'debug_file_details' in locals() else None,
+                "debug_uploaded_urls": uploaded_urls if 'uploaded_urls' in locals() else None
             }
         }, status=201)
 
