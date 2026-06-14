@@ -32,6 +32,30 @@ def format_boundaries_list(boundaries_data):
             formatted.append(b)
     return formatted
 
+def extract_boundaries_from_request(request):
+    boundaries_list = []
+    # Check all keys that might contain boundary data
+    for k in request.POST.keys():
+        if 'boundaries' in k:
+            for val in request.POST.getlist(k):
+                boundaries_list.append(val)
+                
+    if not boundaries_list:
+        return None
+        
+    b_data = []
+    for val in boundaries_list:
+        try:
+            import json
+            parsed = json.loads(val)
+            if isinstance(parsed, list):
+                b_data.extend(parsed)
+            else:
+                b_data.append(parsed)
+        except:
+            b_data.append(val)
+    return format_boundaries_list(b_data)
+
 from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
@@ -1891,14 +1915,9 @@ def api_add_plot(request):
                     else:
                         plot.boundary_image = uploaded_urls
                 
-                if 'boundaries' in request.POST:
-                    boundaries_val = request.POST.get('boundaries')
-                    try:
-                        import json
-                        b_data = json.loads(boundaries_val) if boundaries_val else []
-                        plot.boundaries = format_boundaries_list(b_data)
-                    except:
-                        plot.boundaries = [boundaries_val] if boundaries_val else []
+                extracted_boundaries = extract_boundaries_from_request(request)
+                if extracted_boundaries is not None:
+                    plot.boundaries = extracted_boundaries
                 
                 plot.save()
             else:
@@ -1962,13 +1981,11 @@ def api_add_plot(request):
                             filename = default_storage.save(f"plot_boundaries/{file.name}", file)
                             boundary_image_data.append(default_storage.url(filename))
 
-                boundaries_val = request.POST.get('boundaries')
-                try:
-                    import json
-                    b_data = json.loads(boundaries_val) if boundaries_val else []
-                    boundaries_data = format_boundaries_list(b_data)
-                except:
-                    boundaries_data = [boundaries_val] if boundaries_val else []
+                extracted_boundaries = extract_boundaries_from_request(request)
+                if extracted_boundaries is not None:
+                    boundaries_data = extracted_boundaries
+                else:
+                    boundaries_data = []
 
                 division = farmer.section.division if farmer.section and farmer.section.division else None
                 division_name = division.name if division else None
