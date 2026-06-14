@@ -2100,7 +2100,9 @@ def api_add_plot(request):
                 "debug_raw_boundaries": request.POST.get('boundaries'),
                 "debug_extracted": extract_boundaries_from_request(request),
                 "debug_before_save": debug_before_save if 'debug_before_save' in locals() else None,
-                "debug_after_save": debug_after_save if 'debug_after_save' in locals() else None
+                "debug_after_save": debug_after_save if 'debug_after_save' in locals() else None,
+                "debug_boundary_image_post": request.POST.get('boundary_image'),
+                "debug_files_keys": list(request.FILES.keys())
             }
         }, status=201)
 
