@@ -6,51 +6,64 @@
 {% block content %}
 <div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
         <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Survey Details</h2>
-        <form>
+        <form method="POST" action="{% url 'add_survey' %}">
+            {% csrf_token %}
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey Title</label>
-                    <input type="text" placeholder="e.g. Q3 Crop Health Assessment" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                    <input type="text" name="title" placeholder="e.g. Q3 Crop Health Assessment" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';" required>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Select Plot / Farmer</label>
-                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <select name="plot_id" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;" required>
                         <option value="" disabled selected>Select Plot</option>
-                        <option value="p101">#P-101 (John Doe)</option>
-                        <option value="p102">#P-102 (Ramesh Kumar)</option>
+                        {% for plot in plots %}
+                        <option value="{{ plot.id }}">{{ plot.plot_code }} ({{ plot.farmer.name }})</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Assign Officer</label>
-                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <select name="officer_id" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;" required>
                         <option value="" disabled selected>Select Officer</option>
-                        <option value="suresh">Suresh VP</option>
-                        <option value="anita">Anita R&D</option>
+                        {% for officer in officers %}
+                        <option value="{{ officer.id }}">{{ officer.name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey Stage</label>
-                    <select style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
-                        <option value="pre-planting">Pre-Planting</option>
-                        <option value="growing">Growing</option>
-                        <option value="harvest">Harvest</option>
-                        <option value="post-harvest">Post-Harvest</option>
+                    <select name="survey_stage" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                        <option value="Pre-Planting">Pre-Planting</option>
+                        <option value="Growing">Growing</option>
+                        <option value="Harvest">Harvest</option>
+                        <option value="Post-Harvest">Post-Harvest</option>
                     </select>
                 </div>
+                
                 <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Due Date</label>
-                    <input type="date" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey Month</label>
+                    <input type="month" name="survey_month" id="survey_month" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';" required>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Number of Survey Days</label>
+                    <input type="number" name="number_of_days" id="number_of_days" min="1" max="31" placeholder="e.g. 3" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';" required>
                 </div>
                 
                 <div style="grid-column: 1 / -1;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey Description</label>
-                    <textarea rows="4" placeholder="Objectives and specific instructions for this survey..." style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;"></textarea>
+                    <textarea name="description" rows="3" placeholder="Objectives and specific instructions for this survey..." style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;"></textarea>
+                </div>
+                
+                <div id="allocated_dates_container" style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <!-- Date inputs will be dynamically generated here -->
                 </div>
             </div>
             
             <div style="text-align: right;">
                 <button type="button" onclick="window.location.href='{% url 'surveys' %}'" style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
-                <button type="button" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Create Survey</button>
+                <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Create Survey</button>
             </div>
         </form>
     </div>
@@ -189,4 +202,38 @@
             }
         });
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const daysInput = document.getElementById('number_of_days');
+            const monthInput = document.getElementById('survey_month');
+            const container = document.getElementById('allocated_dates_container');
+
+            function generateDateInputs() {
+                container.innerHTML = '';
+                const days = parseInt(daysInput.value);
+                const monthVal = monthInput.value;
+                
+                if (days > 0 && monthVal) {
+                    const [year, month] = monthVal.split('-');
+                    const lastDay = new Date(year, month, 0).getDate();
+                    
+                    for (let i = 1; i <= days; i++) {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Allocated Date ${i}</label>
+                            <input type="date" name="allocated_date_${i}" required
+                                   min="${monthVal}-01" 
+                                   max="${monthVal}-${lastDay}"
+                                   style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+                        `;
+                        container.appendChild(div);
+                    }
+                }
+            }
+
+            if(daysInput && monthInput) {
+                daysInput.addEventListener('input', generateDateInputs);
+                monthInput.addEventListener('change', generateDateInputs);
+            }
+        });
 {% endblock %}

@@ -426,3 +426,33 @@ class ScoutingLog(models.Model):
 
     def __str__(self):
         return f"Scouting for Plot {self.plot.plot_code} on {self.created_at.strftime('%Y-%m-%d')}"
+
+class Survey(models.Model):
+    survey_id = models.CharField(max_length=50, unique=True, blank=True)
+    title = models.CharField(max_length=200, blank=True, null=True)
+    plot = models.ForeignKey(Plot, on_delete=models.CASCADE, related_name="surveys")
+    officer = models.ForeignKey(Officer, on_delete=models.SET_NULL, null=True, blank=True, related_name="surveys")
+    survey_stage = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    survey_month = models.CharField(max_length=50, blank=True, null=True)
+    number_of_days = models.IntegerField(default=0)
+    allocated_dates = models.JSONField(blank=True, null=True)
+    status = models.CharField(max_length=50, default="Active")
+    completion_percentage = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "survey"
+
+    def save(self, *args, **kwargs):
+        if not self.survey_id:
+            last_survey = Survey.objects.all().order_by('id').last()
+            if last_survey:
+                last_id = last_survey.id
+                self.survey_id = f"SRV-{last_id + 1:03d}"
+            else:
+                self.survey_id = "SRV-001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.survey_id} - {self.title}"

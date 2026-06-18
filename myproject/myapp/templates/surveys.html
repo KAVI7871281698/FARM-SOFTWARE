@@ -8,22 +8,22 @@
     <div class="metrics-grid">
         <div class="metric-card">
             <div class="metric-title">Active Surveys</div>
-            <div class="metric-value">12</div>
+            <div class="metric-value">{{ active_count }}</div>
             <i class="fa-solid fa-clipboard-check metric-icon"></i>
         </div>
         <div class="metric-card warning">
             <div class="metric-title">Pending Surveys</div>
-            <div class="metric-value">4</div>
+            <div class="metric-value">{{ pending_count }}</div>
             <i class="fa-solid fa-clock metric-icon"></i>
         </div>
         <div class="metric-card info">
-            <div class="metric-title">Overall Stage Progress</div>
-            <div class="metric-value">68%</div>
+            <div class="metric-title">Total Surveys</div>
+            <div class="metric-value">{{ surveys.count }}</div>
             <i class="fa-solid fa-list-check metric-icon"></i>
         </div>
         <div class="metric-card">
             <div class="metric-title">Completion Rate</div>
-            <div class="metric-value">85%</div>
+            <div class="metric-value">{{ completion_rate }}%</div>
             <i class="fa-solid fa-chart-line metric-icon"></i>
         </div>
     </div>
@@ -38,55 +38,45 @@
                 <thead style="background: var(--primary-light); color: var(--primary-color);">
                     <tr>
                         <th style="padding: 1rem;">Survey ID</th>
+                        <th style="padding: 1rem;">Title</th>
                         <th style="padding: 1rem;">Plot / Farmer</th>
+                        <th style="padding: 1rem;">Officer</th>
                         <th style="padding: 1rem;">Current Stage</th>
                         <th style="padding: 1rem;">Status</th>
                         <th style="padding: 1rem; width: 200px;">Completion %</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for survey in surveys %}
                     <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 1rem; font-weight: 500;">SRV-045</td>
-                        <td style="padding: 1rem;">#P-101 (John Doe)</td>
-                        <td style="padding: 1rem;">Pre-Planting</td>
-                        <td style="padding: 1rem;"><span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Active</span></td>
+                        <td style="padding: 1rem; font-weight: 500;">{{ survey.survey_id }}</td>
+                        <td style="padding: 1rem;">{{ survey.title|default:"-" }}</td>
+                        <td style="padding: 1rem;">{{ survey.plot.plot_code }} ({{ survey.plot.farmer.name }})</td>
+                        <td style="padding: 1rem;">{{ survey.officer.name|default:"Unassigned" }}</td>
+                        <td style="padding: 1rem;">{{ survey.survey_stage|default:"-" }}</td>
+                        <td style="padding: 1rem;">
+                            {% if survey.status == 'Active' %}
+                            <span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Active</span>
+                            {% elif survey.status == 'Pending' %}
+                            <span style="background: #fff3e0; color: #f57c00; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Pending</span>
+                            {% else %}
+                            <span style="background: #e3f2fd; color: #1565c0; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">{{ survey.status }}</span>
+                            {% endif %}
+                        </td>
                         <td style="padding: 1rem;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div style="flex: 1; background: #eee; border-radius: 5px; height: 8px; overflow: hidden;">
-                                    <div style="width: 75%; background: var(--primary-color); height: 100%;"></div>
+                                    <div style="width: {{ survey.completion_percentage }}%; background: var(--primary-color); height: 100%;"></div>
                                 </div>
-                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">75%</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">{{ survey.completion_percentage }}%</span>
                             </div>
                         </td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 1rem; font-weight: 500;">SRV-046</td>
-                        <td style="padding: 1rem;">#P-102 (Ramesh K)</td>
-                        <td style="padding: 1rem;">Growing</td>
-                        <td style="padding: 1rem;"><span style="background: #fff3e0; color: #f57c00; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Pending</span></td>
-                        <td style="padding: 1rem;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="flex: 1; background: #eee; border-radius: 5px; height: 8px; overflow: hidden;">
-                                    <div style="width: 30%; background: var(--warning); height: 100%;"></div>
-                                </div>
-                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">30%</span>
-                            </div>
-                        </td>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">No surveys found. Click 'Create Survey' to add one.</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 1rem; font-weight: 500;">SRV-047</td>
-                        <td style="padding: 1rem;">#P-103 (Anita)</td>
-                        <td style="padding: 1rem;">Harvest</td>
-                        <td style="padding: 1rem;"><span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Active</span></td>
-                        <td style="padding: 1rem;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="flex: 1; background: #eee; border-radius: 5px; height: 8px; overflow: hidden;">
-                                    <div style="width: 90%; background: var(--primary-color); height: 100%;"></div>
-                                </div>
-                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">90%</span>
-                            </div>
-                        </td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

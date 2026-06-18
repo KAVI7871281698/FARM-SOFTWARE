@@ -79,4 +79,5 @@ urlpatterns = [
     path('edit_soil_type/<int:id>/', views.edit_soil_type, name='edit_soil_type'),
     path('delete_soil_type/<int:id>/', views.delete_soil_type, name='delete_soil_type'),
     path('api/field_intelligence_plots/', views.api_field_intelligence_plots, name='api_field_intelligence_plots'),
+    path('api/surveys/', views.api_surveys, name='api_surveys'),
 ]

@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey
 
 import json
 
@@ -861,7 +861,22 @@ def plots(request):
     return render(request, 'plots.html', {'plots': plots_list})
 
 def surveys(request):
-    return render(request, 'surveys.html')
+    surveys_list = Survey.objects.all().order_by('-id')
+    
+    active_count = surveys_list.filter(status='Active').count()
+    pending_count = surveys_list.filter(status='Pending').count()
+    
+    total = surveys_list.count()
+    completed_surveys = surveys_list.filter(status='Completed').count()
+    completion_rate = int((completed_surveys / total) * 100) if total > 0 else 0
+    
+    context = {
+        'surveys': surveys_list,
+        'active_count': active_count,
+        'pending_count': pending_count,
+        'completion_rate': completion_rate
+    }
+    return render(request, 'surveys.html', context)
 
 def add_farmer(request):
     if request.method == 'POST':
@@ -1198,7 +1213,46 @@ def add_section(request):
     return render(request, 'add_section.html', {'divisions': divisions})
 
 def add_survey(request):
-    return render(request, 'add_survey.html')
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        plot_id = request.POST.get('plot_id')
+        officer_id = request.POST.get('officer_id')
+        survey_stage = request.POST.get('survey_stage')
+        description = request.POST.get('description')
+        survey_month = request.POST.get('survey_month')
+        number_of_days = request.POST.get('number_of_days')
+        
+        try:
+            days_count = int(number_of_days)
+        except:
+            days_count = 0
+            
+        allocated_dates = []
+        for i in range(1, days_count + 1):
+            date_val = request.POST.get(f'allocated_date_{i}')
+            if date_val:
+                allocated_dates.append(date_val)
+                
+        plot = Plot.objects.filter(id=plot_id).first()
+        officer = Officer.objects.filter(id=officer_id).first()
+        
+        if plot:
+            survey = Survey(
+                title=title,
+                plot=plot,
+                officer=officer,
+                survey_stage=survey_stage,
+                description=description,
+                survey_month=survey_month,
+                number_of_days=days_count,
+                allocated_dates=allocated_dates
+            )
+            survey.save()
+            return redirect('surveys')
+            
+    plots = Plot.objects.all()
+    officers = Officer.objects.all()
+    return render(request, 'add_survey.html', {'plots': plots, 'officers': officers})
 
 def add_user(request):
     return render(request, 'add_user.html')
@@ -2467,4 +2521,46 @@ def api_field_intelligence_plots(request):
     return JsonResponse({
         "status": "success",
         "data": plots_data
+    }, status=200)
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def api_surveys(request):
+    officer_id = request.GET.get('officer_id') or request.POST.get('officer_id')
+    lt = request.GET.get('lt') or request.POST.get('lt')
+    ln = request.GET.get('ln') or request.POST.get('ln')
+    device_id = request.GET.get('device_id') or request.POST.get('device_id')
+    survey_flag = request.GET.get('survey') or request.POST.get('survey') or request.GET.get('servey') or request.POST.get('servey')
+    
+    if str(survey_flag).lower() != 'true':
+        return JsonResponse({"status": "error", "message": "survey param must be 'true'"}, status=400)
+    
+    if not officer_id:
+        return JsonResponse({"status": "error", "message": "officer_id is required"}, status=400)
+        
+    surveys = Survey.objects.filter(officer__user_id=officer_id) | Survey.objects.filter(officer_id=officer_id)
+    surveys = surveys.distinct().order_by('-id')
+    
+    surveys_data = []
+    for s in surveys:
+        plot_code = s.plot.plot_code if s.plot else '-'
+        farmer_name = s.plot.farmer.name if s.plot and s.plot.farmer else '-'
+        surveys_data.append({
+            'survey_id': s.survey_id,
+            'title': s.title or '-',
+            'plot_code': plot_code,
+            'farmer_name': farmer_name,
+            'survey_stage': s.survey_stage or '-',
+            'survey_month': s.survey_month or '-',
+            'number_of_days': s.number_of_days,
+            'allocated_dates': s.allocated_dates or [],
+            'status': s.status,
+            'completion_percentage': s.completion_percentage,
+            'description': s.description or '-'
+        })
+        
+    return JsonResponse({
+        "status": "success",
+        "data": surveys_data
     }, status=200)
