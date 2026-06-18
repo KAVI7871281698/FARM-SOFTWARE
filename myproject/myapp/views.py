@@ -1715,12 +1715,11 @@ def mobile_get_work_assigns(request):
         lt = request.POST.get('lt')
         ln = request.POST.get('ln')
         device_id = request.POST.get('device_id')
+        survey_view = request.POST.get('survey_view')
         
         if not officer_id:
             return JsonResponse({'status': 'error', 'message': 'officer_id is required'}, status=400)
             
-        # Optional: You can log or use lt, ln, device_id here if needed
-        
         work_assigns = WorkAssign.objects.filter(officer_id=officer_id)
         data = []
         for wa in work_assigns:
@@ -1736,11 +1735,33 @@ def mobile_get_work_assigns(request):
                 'created_at': wa.created_at.strftime('%Y-%m-%d %H:%M:%S') if wa.created_at else None
             })
         
-        return JsonResponse({
+        response_dict = {
             'status': 'success',
             'message': 'Work assigns fetched successfully',
             'data': data
-        })
+        }
+        
+        if str(survey_view).lower() == 'true':
+            surveys = Survey.objects.filter(officer__user_id=officer_id) | Survey.objects.filter(officer_id=officer_id)
+            surveys = surveys.distinct().order_by('-id')
+            surveys_data = []
+            for s in surveys:
+                surveys_data.append({
+                    'survey_id': s.survey_id,
+                    'title': s.title or '-',
+                    'plot_code': s.plot.plot_code if s.plot else '-',
+                    'farmer_name': s.plot.farmer.name if s.plot and s.plot.farmer else '-',
+                    'survey_stage': s.survey_stage or '-',
+                    'survey_month': s.survey_month or '-',
+                    'number_of_days': s.number_of_days,
+                    'allocated_dates': s.allocated_dates or [],
+                    'status': s.status,
+                    'completion_percentage': s.completion_percentage,
+                    'description': s.description or '-'
+                })
+            response_dict['survey_data'] = surveys_data
+            
+        return JsonResponse(response_dict)
         
     return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
 
