@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey
@@ -1245,18 +1245,9 @@ def add_survey(request):
         survey_stage = request.POST.get('survey_stage')
         description = request.POST.get('description')
         survey_month = request.POST.get('survey_month')
-        number_of_days = request.POST.get('number_of_days')
-        
-        try:
-            days_count = int(number_of_days)
-        except:
-            days_count = 0
-            
-        allocated_dates = []
-        for i in range(1, days_count + 1):
-            date_val = request.POST.get(f'allocated_date_{i}')
-            if date_val:
-                allocated_dates.append(date_val)
+        allocated_dates_raw = request.POST.get('allocated_dates')
+        allocated_dates = [d.strip() for d in allocated_dates_raw.split(',')] if allocated_dates_raw else []
+        days_count = len(allocated_dates)
                 
         plot = Plot.objects.filter(id=plot_id).first()
         officer = Officer.objects.filter(id=officer_id).first()
@@ -1278,6 +1269,43 @@ def add_survey(request):
     plots = Plot.objects.all()
     officers = Officer.objects.all()
     return render(request, 'add_survey.html', {'plots': plots, 'officers': officers})
+
+def edit_survey(request, id):
+    survey = get_object_or_404(Survey, id=id)
+    if request.method == 'POST':
+        survey.title = request.POST.get('title')
+        plot_id = request.POST.get('plot_id')
+        if plot_id:
+            survey.plot = Plot.objects.filter(id=plot_id).first()
+        officer_id = request.POST.get('officer_id')
+        if officer_id:
+            survey.officer = Officer.objects.filter(id=officer_id).first()
+            
+        survey.survey_stage = request.POST.get('survey_stage')
+        survey.description = request.POST.get('description')
+        survey.survey_month = request.POST.get('survey_month')
+        survey.status = request.POST.get('status', survey.status)
+        
+        allocated_dates_raw = request.POST.get('allocated_dates')
+        if allocated_dates_raw:
+            allocated_dates = [d.strip() for d in allocated_dates_raw.split(',')]
+            survey.allocated_dates = allocated_dates
+            survey.number_of_days = len(allocated_dates)
+        else:
+            survey.allocated_dates = []
+            survey.number_of_days = 0
+            
+        survey.save()
+        return redirect('surveys')
+        
+    plots = Plot.objects.all()
+    officers = Officer.objects.all()
+    return render(request, 'edit_survey.html', {'survey': survey, 'plots': plots, 'officers': officers})
+
+def delete_survey(request, id):
+    survey = get_object_or_404(Survey, id=id)
+    survey.delete()
+    return redirect('surveys')
 
 def add_user(request):
     return render(request, 'add_user.html')

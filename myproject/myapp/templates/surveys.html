@@ -42,8 +42,10 @@
                         <th style="padding: 1rem;">Plot / Farmer</th>
                         <th style="padding: 1rem;">Officer</th>
                         <th style="padding: 1rem;">Current Stage</th>
+                        <th style="padding: 1rem;">Allocated Dates</th>
                         <th style="padding: 1rem;">Status</th>
-                        <th style="padding: 1rem; width: 200px;">Completion %</th>
+                        <th style="padding: 1rem; width: 150px;">Completion %</th>
+                        <th style="padding: 1rem; text-align: center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -54,6 +56,17 @@
                         <td style="padding: 1rem;">{{ survey.plot.plot_code }} ({{ survey.plot.farmer.name }})</td>
                         <td style="padding: 1rem;">{{ survey.officer.name|default:"Unassigned" }}</td>
                         <td style="padding: 1rem;">{{ survey.survey_stage|default:"-" }}</td>
+                        <td style="padding: 1rem;">
+                            {% if survey.allocated_dates %}
+                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                {% for date in survey.allocated_dates %}
+                                    <span style="background: #f0f4f8; border: 1px solid #cce4f7; color: #0288d1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; white-space: nowrap;">{{ date }}</span>
+                                {% endfor %}
+                                </div>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                         <td style="padding: 1rem;">
                             {% if survey.status == 'Active' %}
                             <span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Active</span>
@@ -71,10 +84,14 @@
                                 <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">{{ survey.completion_percentage }}%</span>
                             </div>
                         </td>
+                        <td style="padding: 1rem; text-align: center;">
+                            <a href="{% url 'edit_survey' survey.id %}" style="color: #0288d1; margin-right: 10px; text-decoration: none;" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+                            <a href="{% url 'delete_survey' survey.id %}" style="color: #d32f2f; text-decoration: none;" title="Delete" onclick="return confirm('Are you sure you want to delete this survey?');"><i class="fa-solid fa-trash"></i></a>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">No surveys found. Click 'Create Survey' to add one.</td>
+                        <td colspan="9" style="padding: 2rem; text-align: center; color: var(--text-muted);">No surveys found. Click 'Create Survey' to add one.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

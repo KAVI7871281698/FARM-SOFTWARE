@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
-{% block title %}Add Survey{% endblock %}
-{% block header_title %}Add Survey{% endblock %}
+{% block title %}Edit Survey{% endblock %}
+{% block header_title %}Edit Survey{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -15,16 +15,16 @@
 {% block content %}
 <div
     style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
-    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Survey Details
+    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Edit Survey Details
     </h2>
-    <form method="POST" action="{% url 'add_survey' %}">
+    <form method="POST" action="{% url 'edit_survey' survey.id %}">
         {% csrf_token %}
         <div
             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey
                     Title</label>
-                <input type="text" name="title" placeholder="e.g. Q3 Crop Health Assessment"
+                <input type="text" name="title" value="{{ survey.title|default:'' }}" placeholder="e.g. Q3 Crop Health Assessment"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';"
                     required>
             </div>
@@ -34,9 +34,9 @@
                 <select name="plot_id"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;"
                     required>
-                    <option value="" disabled selected>Select Plot</option>
+                    <option value="" disabled>Select Plot</option>
                     {% for plot in plots %}
-                    <option value="{{ plot.id }}">{{ plot.plot_code }} ({{ plot.farmer.name }})</option>
+                    <option value="{{ plot.id }}" {% if survey.plot_id == plot.id %}selected{% endif %}>{{ plot.plot_code }} ({{ plot.farmer.name }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -46,9 +46,9 @@
                 <select name="officer_id"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;"
                     required>
-                    <option value="" disabled selected>Select Officer</option>
+                    <option value="" disabled>Select Officer</option>
                     {% for officer in officers %}
-                    <option value="{{ officer.id }}">{{ officer.name }}</option>
+                    <option value="{{ officer.id }}" {% if survey.officer_id == officer.id %}selected{% endif %}>{{ officer.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -57,19 +57,29 @@
                     Stage</label>
                 <select name="survey_stage"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
-                    <option value="Pre-Planting">Pre-Planting</option>
-                    <option value="Growing">Growing</option>
-                    <option value="Harvest">Harvest</option>
-                    <option value="Post-Harvest">Post-Harvest</option>
+                    <option value="Pre-Planting" {% if survey.survey_stage == 'Pre-Planting' %}selected{% endif %}>Pre-Planting</option>
+                    <option value="Growing" {% if survey.survey_stage == 'Growing' %}selected{% endif %}>Growing</option>
+                    <option value="Harvest" {% if survey.survey_stage == 'Harvest' %}selected{% endif %}>Harvest</option>
+                    <option value="Post-Harvest" {% if survey.survey_stage == 'Post-Harvest' %}selected{% endif %}>Post-Harvest</option>
                 </select>
             </div>
 
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Survey
                     Month</label>
-                <input type="month" name="survey_month" id="survey_month"
+                <input type="month" name="survey_month" id="survey_month" value="{{ survey.survey_month }}"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';"
                     required>
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Status</label>
+                <select name="status"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+                    <option value="Active" {% if survey.status == 'Active' %}selected{% endif %}>Active</option>
+                    <option value="Pending" {% if survey.status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Completed" {% if survey.status == 'Completed' %}selected{% endif %}>Completed</option>
+                </select>
             </div>
 
             <div style="grid-column: 1 / -1;">
@@ -77,7 +87,7 @@
                     Description</label>
                 <textarea name="description" rows="3"
                     placeholder="Objectives and specific instructions for this survey..."
-                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;"></textarea>
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;">{{ survey.description|default:'' }}</textarea>
             </div>
 
             <div style="grid-column: 1 / -1;">
@@ -94,21 +104,13 @@
             <button type="button" onclick="window.location.href='{% url 'surveys' %}'"
                 style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 1rem; font-family: 'Outfit';">Cancel</button>
             <button type="submit"
-                style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Create
-                Survey</button>
+                style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Outfit';">Save Changes</button>
         </div>
     </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-    // Chart default settings
-    Chart.defaults.font.family = "'Outfit', sans-serif";
-    Chart.defaults.color = "#666";
-    // ... skipping chart setup ...
-</script>
-
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -119,11 +121,15 @@
                 sidebar.classList.toggle('open');
             });
         }
+        
+        // Pass existing dates to JS properly
+        const existingDates = {{ survey.allocated_dates|safe|default:"[]" }};
 
         flatpickr("#allocated_dates", {
             mode: "multiple",
             dateFormat: "Y-m-d",
             placeholder: "Select multiple dates...",
+            defaultDate: existingDates
         });
     });
 </script>
