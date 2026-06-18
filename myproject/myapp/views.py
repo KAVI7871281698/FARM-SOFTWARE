@@ -666,21 +666,37 @@ def officers(request):
         officer.display_divisions = ", ".join(display_divs) if display_divs else "-"
     return render(request, 'officers.html', {'officers': officers_list})
 
+from django.db.models import Q
+
 def field_intelligence(request):
-    base_plots = Plot.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+    base_plots = Plot.objects.filter(
+        Q(center_lt_ln__isnull=False) | 
+        (Q(latitude__isnull=False) & Q(longitude__isnull=False))
+    )
     plots = filter_by_factory(base_plots, 'farmer__section__division__factory_name_id', request)
     
     plots_data = []
+    print("IN_VIEW_PLOTS_COUNT:", plots.count())
     for p in plots:
         try:
-            # Handle potential JSON parsing issues if stored weirdly
-            lat_str = str(p.latitude).strip("[]'\"")
-            lon_str = str(p.longitude).strip("[]'\"")
-            if not lat_str or not lon_str:
-                continue
+            lat, lon = None, None
             
-            lat = float(lat_str)
-            lon = float(lon_str)
+            # First try center_lt_ln
+            if p.center_lt_ln:
+                if isinstance(p.center_lt_ln, list) and len(p.center_lt_ln) >= 2:
+                    lat = float(p.center_lt_ln[0])
+                    lon = float(p.center_lt_ln[1])
+            
+            # Fallback to latitude/longitude fields
+            if lat is None or lon is None:
+                lat_str = str(p.latitude).strip("[]'\"")
+                lon_str = str(p.longitude).strip("[]'\"")
+                if lat_str and lon_str and lat_str != 'None' and lon_str != 'None':
+                    lat = float(lat_str)
+                    lon = float(lon_str)
+            
+            if lat is None or lon is None:
+                continue
             
             plots_data.append({
                 'id': p.id,
@@ -696,12 +712,13 @@ def field_intelligence(request):
                 'soil_type': p.soil_type.soil_name if p.soil_type else '-',
                 'status': p.status or '-'
             })
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, IndexError):
             continue
 
     context = {
         'plots_json': json.dumps(plots_data)
     }
+    print("DEBUG PLOTS_JSON:", context['plots_json'])
     return render(request, 'field_intelligence.html', context)
 
 def analytics(request):
@@ -2273,11 +2290,68 @@ def field_intelligence(request):
             
             return redirect('field_intelligence')
             
+    from django.db.models import Q
+    base_plots = Plot.objects.filter(
+        Q(center_lt_ln__isnull=False) | 
+        (Q(latitude__isnull=False) & Q(longitude__isnull=False))
+    )
+    plots = filter_by_factory(base_plots, 'farmer__section__division__factory_name_id', request)
+    
+    plots_data = []
+    for p in plots:
+        try:
+            lat, lon = None, None
+            
+            # First try center_lt_ln
+            if p.center_lt_ln:
+                if isinstance(p.center_lt_ln, list) and len(p.center_lt_ln) >= 2:
+                    lat = float(p.center_lt_ln[0])
+                    lon = float(p.center_lt_ln[1])
+                elif isinstance(p.center_lt_ln, str):
+                    try:
+                        import json
+                        parsed = json.loads(p.center_lt_ln)
+                        if isinstance(parsed, list) and len(parsed) >= 2:
+                            lat = float(parsed[0])
+                            lon = float(parsed[1])
+                    except:
+                        pass
+            
+            # Fallback to latitude/longitude fields
+            if lat is None or lon is None:
+                lat_str = str(p.latitude).strip("[]'\"")
+                lon_str = str(p.longitude).strip("[]'\"")
+                if lat_str and lon_str and lat_str != 'None' and lon_str != 'None':
+                    lat = float(lat_str)
+                    lon = float(lon_str)
+            
+            if lat is None or lon is None:
+                continue
+            
+            plots_data.append({
+                'id': p.id,
+                'plot_code': p.plot_code or 'Unknown',
+                'lat': lat,
+                'lon': lon,
+                'division': p.division_name or (p.division.name if p.division else '-'),
+                'section': p.section_name or (p.section.section_name if p.section else '-'),
+                'village': p.village_name or (p.village.village_name if p.village else '-'),
+                'farmer_name': p.farmer.name if p.farmer else '-',
+                'planting_date': str(p.planting_date) if p.planting_date else '-',
+                'acres': str(p.area_acre) if p.area_acre else '-',
+                'soil_type': p.soil_type.soil_name if p.soil_type else '-',
+                'status': p.status or '-'
+            })
+        except (ValueError, TypeError, IndexError):
+            continue
+
+    import json
     farmers = Farmer.objects.all()
     is_superadmin = request.session.get('role_id') == 1
     return render(request, 'field_intelligence.html', {
         'farmers': farmers,
-        'is_superadmin': is_superadmin
+        'is_superadmin': is_superadmin,
+        'plots_json': json.dumps(plots_data)
     })
 
 def soil_types(request):
@@ -2305,3 +2379,92 @@ def delete_soil_type(request, id):
     soil_type = get_object_or_404(SoilType, id=id)
     soil_type.delete()
     return redirect('soil_types')
+
+@csrf_exempt
+def api_field_intelligence_plots(request):
+    officer_id = request.GET.get('officer_id') or request.POST.get('officer_id')
+    lt = request.GET.get('lt') or request.POST.get('lt')
+    ln = request.GET.get('ln') or request.POST.get('ln')
+    device_id = request.GET.get('device_id') or request.POST.get('device_id')
+    field_map = request.GET.get('field_inteliigence_map') or request.POST.get('field_inteliigence_map') or request.GET.get('field_intelligence_map') or request.POST.get('field_intelligence_map')
+    
+    if str(field_map).lower() != 'true':
+        return JsonResponse({"status": "error", "message": "field_inteliigence_map must be 'true'"}, status=400)
+    
+    if not officer_id:
+        return JsonResponse({"status": "error", "message": "officer_id is required"}, status=400)
+        
+    officer = Officer.objects.filter(id=officer_id).first()
+    if not officer:
+        return JsonResponse({"status": "error", "message": "Invalid officer_id"}, status=400)
+    
+    from django.db.models import Q
+    import json
+    
+    base_plots = Plot.objects.filter(
+        Q(center_lt_ln__isnull=False) | 
+        (Q(latitude__isnull=False) & Q(longitude__isnull=False))
+    )
+    
+    # Filter by factories allowed for the officer
+    is_superadmin = (str(officer.role_id) == '1') if getattr(officer, 'role_id', None) else False
+    if is_superadmin:
+        plots = base_plots
+    else:
+        fids = [int(x.strip()) for x in str(officer.factory_ids).split(',') if x.strip().isdigit()] if getattr(officer, 'factory_ids', None) else []
+        if fids:
+            plots = base_plots.filter(farmer__section__division__factory_name_id__in=fids)
+        else:
+            plots = base_plots.none()
+        
+    plots_data = []
+    for p in plots:
+        try:
+            lat, lon = None, None
+            
+            # First try center_lt_ln
+            if p.center_lt_ln:
+                if isinstance(p.center_lt_ln, list) and len(p.center_lt_ln) >= 2:
+                    lat = float(p.center_lt_ln[0])
+                    lon = float(p.center_lt_ln[1])
+                elif isinstance(p.center_lt_ln, str):
+                    try:
+                        parsed = json.loads(p.center_lt_ln)
+                        if isinstance(parsed, list) and len(parsed) >= 2:
+                            lat = float(parsed[0])
+                            lon = float(parsed[1])
+                    except:
+                        pass
+            
+            # Fallback to latitude/longitude fields
+            if lat is None or lon is None:
+                lat_str = str(p.latitude).strip("[]'\"")
+                lon_str = str(p.longitude).strip("[]'\"")
+                if lat_str and lon_str and lat_str != 'None' and lon_str != 'None':
+                    lat = float(lat_str)
+                    lon = float(lon_str)
+            
+            if lat is None or lon is None:
+                continue
+            
+            plots_data.append({
+                'id': p.id,
+                'plot_code': p.plot_code or 'Unknown',
+                'lat': lat,
+                'lon': lon,
+                'division': p.division_name or (p.division.name if p.division else '-'),
+                'section': p.section_name or (p.section.section_name if p.section else '-'),
+                'village': p.village_name or (p.village.village_name if p.village else '-'),
+                'farmer_name': p.farmer.name if p.farmer else '-',
+                'planting_date': str(p.planting_date) if p.planting_date else '-',
+                'acres': str(p.area_acre) if p.area_acre else '-',
+                'soil_type': p.soil_type.soil_name if p.soil_type else '-',
+                'status': p.status or '-'
+            })
+        except (ValueError, TypeError, IndexError):
+            continue
+
+    return JsonResponse({
+        "status": "success",
+        "data": plots_data
+    }, status=200)

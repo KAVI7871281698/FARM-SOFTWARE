@@ -562,37 +562,7 @@
         return p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180;
     });
 
-    // Fallback sample data if no valid plots are found
-    if (plotsData.length === 0) {
-        plotsData = [
-            {
-                plot_code: "PLT-D001",
-                lat: 11.0168,
-                lon: 76.9558,
-                farmer_name: "Kannan (Sample)",
-                division: "Coimbatore",
-                section: "Thudiyalur",
-                village: "Vellakinar",
-                planting_date: "2023-10-15",
-                acres: "5.5",
-                soil_type: "Red Soil",
-                status: "Active"
-            },
-            {
-                plot_code: "PLT-D002",
-                lat: 11.0250,
-                lon: 76.9600,
-                farmer_name: "Murugan (Sample)",
-                division: "Coimbatore",
-                section: "Thudiyalur",
-                village: "Vellakinar",
-                planting_date: "2024-01-10",
-                acres: "2.0",
-                soil_type: "Black Soil",
-                status: "Harvested"
-            }
-        ];
-    }
+    // Fallback sample data removed as requested by the user
 
     var plotMarkersGroup = L.featureGroup().addTo(map);
 
