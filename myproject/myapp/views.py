@@ -2716,6 +2716,35 @@ def api_update_survey(request):
             survey.field_photo3 = request.FILES.get('field_photo3')
             
         survey.save()
-        return JsonResponse({"status": "success", "message": "Survey updated successfully"})
+        
+        survey_data = {
+            'survey_id': survey.survey_id,
+            'title': survey.title or '-',
+            'plot_code': survey.plot.plot_code if survey.plot else '-',
+            'farmer_name': survey.plot.farmer.name if survey.plot and survey.plot.farmer else '-',
+            'survey_stage': survey.survey_stage or '-',
+            'survey_month': survey.survey_month or '-',
+            'number_of_days': survey.number_of_days,
+            'allocated_dates': survey.allocated_dates or [],
+            'status': survey.status,
+            'completion_percentage': survey.completion_percentage,
+            'description': survey.description or '-',
+            'weed_infestation': survey.weed_infestation or '-',
+            'tillering_vigour': survey.tillering_vigour or '-',
+            'pest_incidence': survey.pest_incidence or '-',
+            'disease_incidence': survey.disease_incidence or '-',
+            'irrigation_status': survey.irrigation_status or '-',
+            'nutrition_status': survey.nutrition_status or '-',
+            'remarks': survey.remarks or '-',
+            'field_photo1': survey.field_photo1.url if survey.field_photo1 else None,
+            'field_photo2': survey.field_photo2.url if survey.field_photo2 else None,
+            'field_photo3': survey.field_photo3.url if survey.field_photo3 else None,
+        }
+        
+        return JsonResponse({
+            "status": "success", 
+            "message": "Survey updated successfully",
+            "data": survey_data
+        })
         
     return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)
