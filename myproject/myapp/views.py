@@ -1291,6 +1291,7 @@ def add_survey(request):
                 result.field_photo2 = field_photo2
             if field_photo3:
                 result.field_photo3 = field_photo3
+            result.status = 'Completed'
             result.save()
             return redirect('surveys')
             
@@ -1340,6 +1341,7 @@ def edit_survey(request, id):
             result.field_photo2 = request.POST.get('field_photo2')
         if request.POST.get('field_photo3'):
             result.field_photo3 = request.POST.get('field_photo3')
+        result.status = 'Completed'
         result.save()
         
         allocated_dates_raw = request.POST.get('allocated_dates')
@@ -2676,6 +2678,15 @@ def api_surveys(request):
     for s in surveys:
         plot_code = s.plot.plot_code if s.plot else '-'
         farmer_name = s.plot.farmer.name if s.plot and s.plot.farmer else '-'
+        
+        results_data = []
+        for r in s.results.all():
+            if r.survey_date:
+                results_data.append({
+                    "date": r.survey_date.strftime('%Y-%m-%d'),
+                    "status": r.status
+                })
+
         surveys_data.append({
             'survey_id': s.survey_id,
             'title': s.title or '-',
@@ -2687,7 +2698,8 @@ def api_surveys(request):
             'allocated_dates': s.allocated_dates or [],
             'status': s.status,
             'completion_percentage': s.completion_percentage,
-            'description': s.description or '-'
+            'description': s.description or '-',
+            'survey_results': results_data
         })
         
     return JsonResponse({
@@ -2745,8 +2757,10 @@ def api_update_survey(request):
         if request.POST.get('field_photo3'):
             survey_result.field_photo3 = request.POST.get('field_photo3')
             
+        survey_result.status = 'Completed'
         survey_result.save()
-        survey.save()
+        
+        survey.refresh_from_db()
         
         survey_data = {
             'survey_id': survey.survey_id,

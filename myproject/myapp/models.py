@@ -453,16 +453,6 @@ class Survey(models.Model):
                 self.survey_id = f"SRV-{last_id + 1:03d}"
             else:
                 self.survey_id = "SRV-001"
-                
-        # Base completion percentage based on basic fields
-        fields_to_check = [
-            self.title, self.officer, self.survey_stage, self.description,
-            self.survey_month, self.allocated_dates
-        ]
-        
-        filled = sum(1 for field in fields_to_check if field)
-        total = len(fields_to_check)
-        self.completion_percentage = int((filled / total) * 100)
 
         super().save(*args, **kwargs)
 
@@ -491,6 +481,9 @@ class SurveyResult(models.Model):
     
     # Remarks
     remarks = models.TextField(blank=True, null=True)
+    
+    # Status
+    status = models.CharField(max_length=50, default='Pending')
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -498,17 +491,27 @@ class SurveyResult(models.Model):
         db_table = "survey_result"
 
     def save(self, *args, **kwargs):
+        # Auto-update status if data is present
+        if self.weed_infestation or self.tillering_vigour or self.remarks or self.field_photo1:
+            self.status = 'Completed'
+            
         super().save(*args, **kwargs)
-        # Update survey completion percentage
+        
+        # Update survey completion percentage based only on Completed results
         survey = self.survey
         allocated_count = survey.number_of_days
         if allocated_count and allocated_count > 0:
-            completed_count = survey.results.values('survey_date').distinct().count()
+            completed_count = survey.results.filter(status='Completed').values('survey_date').distinct().count()
             survey.completion_percentage = min(int((completed_count / allocated_count) * 100), 100)
         else:
             survey.completion_percentage = 100
             
-        Survey.objects.filter(pk=survey.pk).update(completion_percentage=survey.completion_percentage)
+        update_kwargs = {'completion_percentage': survey.completion_percentage}
+        if survey.completion_percentage == 100:
+            survey.status = 'Completed'
+            update_kwargs['status'] = 'Completed'
+            
+        Survey.objects.filter(pk=survey.pk).update(**update_kwargs)
 
     def __str__(self):
         return f"Result for {self.survey.survey_id}"
