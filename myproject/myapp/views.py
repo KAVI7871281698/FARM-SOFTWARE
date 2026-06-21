@@ -1263,9 +1263,9 @@ def add_survey(request):
         nutrition_status = request.POST.get('nutrition_status')
         remarks = request.POST.get('remarks')
         
-        field_photo1 = request.FILES.get('field_photo1')
-        field_photo2 = request.FILES.get('field_photo2')
-        field_photo3 = request.FILES.get('field_photo3')
+        field_photo1 = request.POST.get('field_photo1')
+        field_photo2 = request.POST.get('field_photo2')
+        field_photo3 = request.POST.get('field_photo3')
                 
         plot = Plot.objects.filter(id=plot_id).first()
         officer = Officer.objects.filter(id=officer_id).first()
@@ -1334,12 +1334,12 @@ def edit_survey(request, id):
         result.irrigation_status = request.POST.get('irrigation_status')
         result.nutrition_status = request.POST.get('nutrition_status')
         result.remarks = request.POST.get('remarks')
-        if request.FILES.get('field_photo1'):
-            result.field_photo1 = request.FILES.get('field_photo1')
-        if request.FILES.get('field_photo2'):
-            result.field_photo2 = request.FILES.get('field_photo2')
-        if request.FILES.get('field_photo3'):
-            result.field_photo3 = request.FILES.get('field_photo3')
+        if request.POST.get('field_photo1'):
+            result.field_photo1 = request.POST.get('field_photo1')
+        if request.POST.get('field_photo2'):
+            result.field_photo2 = request.POST.get('field_photo2')
+        if request.POST.get('field_photo3'):
+            result.field_photo3 = request.POST.get('field_photo3')
         result.save()
         
         allocated_dates_raw = request.POST.get('allocated_dates')
@@ -2733,12 +2733,17 @@ def api_update_survey(request):
         if status_val:
             survey.status = status_val
         
-        if request.FILES.get('field_photo1'):
-            survey_result.field_photo1 = request.FILES.get('field_photo1')
-        if request.FILES.get('field_photo2'):
-            survey_result.field_photo2 = request.FILES.get('field_photo2')
-        if request.FILES.get('field_photo3'):
-            survey_result.field_photo3 = request.FILES.get('field_photo3')
+        if request.POST.get('field_photo1'):
+            survey_result.field_photo1 = request.POST.get('field_photo1')
+        elif request.FILES.get('field_photo1'):
+            # Just in case they still send a file, but URLField won't like it.
+            pass
+            
+        if request.POST.get('field_photo2'):
+            survey_result.field_photo2 = request.POST.get('field_photo2')
+            
+        if request.POST.get('field_photo3'):
+            survey_result.field_photo3 = request.POST.get('field_photo3')
             
         survey_result.save()
         survey.save()
@@ -2762,9 +2767,9 @@ def api_update_survey(request):
             'irrigation_status': survey_result.irrigation_status or '-',
             'nutrition_status': survey_result.nutrition_status or '-',
             'remarks': survey_result.remarks or '-',
-            'field_photo1': survey_result.field_photo1.url if survey_result.field_photo1 else None,
-            'field_photo2': survey_result.field_photo2.url if survey_result.field_photo2 else None,
-            'field_photo3': survey_result.field_photo3.url if survey_result.field_photo3 else None,
+            'field_photo1': survey_result.field_photo1 if survey_result.field_photo1 else None,
+            'field_photo2': survey_result.field_photo2 if survey_result.field_photo2 else None,
+            'field_photo3': survey_result.field_photo3 if survey_result.field_photo3 else None,
         }
         
         return JsonResponse({

@@ -480,9 +480,9 @@ class SurveyResult(models.Model):
     nutrition_status = models.CharField(max_length=100, blank=True, null=True)
     
     # Field Photos
-    field_photo1 = models.ImageField(upload_to='survey_photos/', blank=True, null=True)
-    field_photo2 = models.ImageField(upload_to='survey_photos/', blank=True, null=True)
-    field_photo3 = models.ImageField(upload_to='survey_photos/', blank=True, null=True)
+    field_photo1 = models.URLField(max_length=1000, blank=True, null=True)
+    field_photo2 = models.URLField(max_length=1000, blank=True, null=True)
+    field_photo3 = models.URLField(max_length=1000, blank=True, null=True)
     
     # Remarks
     remarks = models.TextField(blank=True, null=True)

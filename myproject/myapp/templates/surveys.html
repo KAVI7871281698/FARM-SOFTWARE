@@ -128,9 +128,9 @@
                 <div class="survey-photos">
                     <strong>Photos:</strong>
                     <div class="photo-gallery">
-                        {% if result.field_photo1 %}<a href="{{ result.field_photo1.url }}" target="_blank"><img src="{{ result.field_photo1.url }}" alt="Photo 1" class="thumbnail"></a>{% endif %}
-                        {% if result.field_photo2 %}<a href="{{ result.field_photo2.url }}" target="_blank"><img src="{{ result.field_photo2.url }}" alt="Photo 2" class="thumbnail"></a>{% endif %}
-                        {% if result.field_photo3 %}<a href="{{ result.field_photo3.url }}" target="_blank"><img src="{{ result.field_photo3.url }}" alt="Photo 3" class="thumbnail"></a>{% endif %}
+                        {% if result.field_photo1 %}<a href="{{ result.field_photo1 }}" target="_blank"><img src="{{ result.field_photo1 }}" alt="Photo 1" class="thumbnail"></a>{% endif %}
+                        {% if result.field_photo2 %}<a href="{{ result.field_photo2 }}" target="_blank"><img src="{{ result.field_photo2 }}" alt="Photo 2" class="thumbnail"></a>{% endif %}
+                        {% if result.field_photo3 %}<a href="{{ result.field_photo3 }}" target="_blank"><img src="{{ result.field_photo3 }}" alt="Photo 3" class="thumbnail"></a>{% endif %}
                         {% if not result.field_photo1 and not result.field_photo2 and not result.field_photo3 %}
                         <span class="no-photos">No photos uploaded.</span>
                         {% endif %}
