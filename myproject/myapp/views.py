@@ -2779,6 +2779,8 @@ def api_update_survey(request):
             'survey_month': survey.survey_month or '-',
             'number_of_days': survey.number_of_days,
             'allocated_dates': survey.allocated_dates or [],
+            'survey_status': survey_result.survey_status,
+            'completion_percentage': survey_result.completion_percentage,
             'description': survey.description or '-',
             'weed_infestation': survey_result.weed_infestation or '-',
             'tillering_vigour': survey_result.tillering_vigour or '-',
