@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult
 
 import json
 
@@ -1271,30 +1271,27 @@ def add_survey(request):
         officer = Officer.objects.filter(id=officer_id).first()
         
         if plot:
-            survey = Survey(
-                title=title,
-                plot=plot,
-                officer=officer,
-                survey_stage=survey_stage,
-                description=description,
-                survey_month=survey_month,
-                number_of_days=days_count,
-                allocated_dates=allocated_dates,
-                weed_infestation=weed_infestation,
-                tillering_vigour=tillering_vigour,
-                pest_incidence=pest_incidence,
-                disease_incidence=disease_incidence,
-                irrigation_status=irrigation_status,
-                nutrition_status=nutrition_status,
-                remarks=remarks
-            )
-            if field_photo1:
-                survey.field_photo1 = field_photo1
-            if field_photo2:
-                survey.field_photo2 = field_photo2
-            if field_photo3:
-                survey.field_photo3 = field_photo3
+            survey = Survey(title=title, plot=plot, officer=officer, survey_stage=survey_stage, description=description, survey_month=survey_month, number_of_days=days_count, allocated_dates=allocated_dates)
             survey.save()
+            from datetime import date
+            survey_date_str = request.POST.get('survey_date')
+            if survey_date_str:
+                try:
+                    from datetime import datetime
+                    survey_date = datetime.strptime(survey_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    survey_date = date.today()
+            else:
+                survey_date = date.today()
+
+            result = SurveyResult(survey=survey, survey_date=survey_date, weed_infestation=weed_infestation, tillering_vigour=tillering_vigour, pest_incidence=pest_incidence, disease_incidence=disease_incidence, irrigation_status=irrigation_status, nutrition_status=nutrition_status, remarks=remarks)
+            if field_photo1:
+                result.field_photo1 = field_photo1
+            if field_photo2:
+                result.field_photo2 = field_photo2
+            if field_photo3:
+                result.field_photo3 = field_photo3
+            result.save()
             return redirect('surveys')
             
     plots = Plot.objects.all()
@@ -1317,20 +1314,33 @@ def edit_survey(request, id):
         survey.survey_month = request.POST.get('survey_month')
         survey.status = request.POST.get('status', survey.status)
         
-        survey.weed_infestation = request.POST.get('weed_infestation')
-        survey.tillering_vigour = request.POST.get('tillering_vigour')
-        survey.pest_incidence = request.POST.get('pest_incidence')
-        survey.disease_incidence = request.POST.get('disease_incidence')
-        survey.irrigation_status = request.POST.get('irrigation_status')
-        survey.nutrition_status = request.POST.get('nutrition_status')
-        survey.remarks = request.POST.get('remarks')
-        
+        # Get survey_date from POST or default to today
+        from datetime import date
+        survey_date_str = request.POST.get('survey_date')
+        if survey_date_str:
+            try:
+                from datetime import datetime
+                survey_date = datetime.strptime(survey_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                survey_date = date.today()
+        else:
+            survey_date = date.today()
+
+        result, _ = SurveyResult.objects.get_or_create(survey=survey, survey_date=survey_date)
+        result.weed_infestation = request.POST.get('weed_infestation')
+        result.tillering_vigour = request.POST.get('tillering_vigour')
+        result.pest_incidence = request.POST.get('pest_incidence')
+        result.disease_incidence = request.POST.get('disease_incidence')
+        result.irrigation_status = request.POST.get('irrigation_status')
+        result.nutrition_status = request.POST.get('nutrition_status')
+        result.remarks = request.POST.get('remarks')
         if request.FILES.get('field_photo1'):
-            survey.field_photo1 = request.FILES.get('field_photo1')
+            result.field_photo1 = request.FILES.get('field_photo1')
         if request.FILES.get('field_photo2'):
-            survey.field_photo2 = request.FILES.get('field_photo2')
+            result.field_photo2 = request.FILES.get('field_photo2')
         if request.FILES.get('field_photo3'):
-            survey.field_photo3 = request.FILES.get('field_photo3')
+            result.field_photo3 = request.FILES.get('field_photo3')
+        result.save()
         
         allocated_dates_raw = request.POST.get('allocated_dates')
         if allocated_dates_raw:
@@ -2696,25 +2706,41 @@ def api_update_survey(request):
         if not survey:
             return JsonResponse({"status": "error", "message": "Survey not found"}, status=404)
             
-        survey.weed_infestation = request.POST.get('weed_infestation', survey.weed_infestation)
-        survey.tillering_vigour = request.POST.get('tillering_vigour', survey.tillering_vigour)
-        survey.pest_incidence = request.POST.get('pest_incidence', survey.pest_incidence)
-        survey.disease_incidence = request.POST.get('disease_incidence', survey.disease_incidence)
-        survey.irrigation_status = request.POST.get('irrigation_status', survey.irrigation_status)
-        survey.nutrition_status = request.POST.get('nutrition_status', survey.nutrition_status)
-        survey.remarks = request.POST.get('remarks', survey.remarks)
+        # Get survey_date from POST or default to today
+        from datetime import date
+        survey_date_str = request.POST.get('survey_date')
+        if survey_date_str:
+            try:
+                from datetime import datetime
+                survey_date = datetime.strptime(survey_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                survey_date = date.today()
+        else:
+            survey_date = date.today()
+
+        # Create or update SurveyResult for this specific date
+        survey_result, created = SurveyResult.objects.get_or_create(survey=survey, survey_date=survey_date)
+        
+        survey_result.weed_infestation = request.POST.get('weed_infestation', survey_result.weed_infestation)
+        survey_result.tillering_vigour = request.POST.get('tillering_vigour', survey_result.tillering_vigour)
+        survey_result.pest_incidence = request.POST.get('pest_incidence', survey_result.pest_incidence)
+        survey_result.disease_incidence = request.POST.get('disease_incidence', survey_result.disease_incidence)
+        survey_result.irrigation_status = request.POST.get('irrigation_status', survey_result.irrigation_status)
+        survey_result.nutrition_status = request.POST.get('nutrition_status', survey_result.nutrition_status)
+        survey_result.remarks = request.POST.get('remarks', survey_result.remarks)
         
         status_val = request.POST.get('status')
         if status_val:
             survey.status = status_val
         
         if request.FILES.get('field_photo1'):
-            survey.field_photo1 = request.FILES.get('field_photo1')
+            survey_result.field_photo1 = request.FILES.get('field_photo1')
         if request.FILES.get('field_photo2'):
-            survey.field_photo2 = request.FILES.get('field_photo2')
+            survey_result.field_photo2 = request.FILES.get('field_photo2')
         if request.FILES.get('field_photo3'):
-            survey.field_photo3 = request.FILES.get('field_photo3')
+            survey_result.field_photo3 = request.FILES.get('field_photo3')
             
+        survey_result.save()
         survey.save()
         
         survey_data = {
@@ -2729,16 +2755,16 @@ def api_update_survey(request):
             'status': survey.status,
             'completion_percentage': survey.completion_percentage,
             'description': survey.description or '-',
-            'weed_infestation': survey.weed_infestation or '-',
-            'tillering_vigour': survey.tillering_vigour or '-',
-            'pest_incidence': survey.pest_incidence or '-',
-            'disease_incidence': survey.disease_incidence or '-',
-            'irrigation_status': survey.irrigation_status or '-',
-            'nutrition_status': survey.nutrition_status or '-',
-            'remarks': survey.remarks or '-',
-            'field_photo1': survey.field_photo1.url if survey.field_photo1 else None,
-            'field_photo2': survey.field_photo2.url if survey.field_photo2 else None,
-            'field_photo3': survey.field_photo3.url if survey.field_photo3 else None,
+            'weed_infestation': survey_result.weed_infestation or '-',
+            'tillering_vigour': survey_result.tillering_vigour or '-',
+            'pest_incidence': survey_result.pest_incidence or '-',
+            'disease_incidence': survey_result.disease_incidence or '-',
+            'irrigation_status': survey_result.irrigation_status or '-',
+            'nutrition_status': survey_result.nutrition_status or '-',
+            'remarks': survey_result.remarks or '-',
+            'field_photo1': survey_result.field_photo1.url if survey_result.field_photo1 else None,
+            'field_photo2': survey_result.field_photo2.url if survey_result.field_photo2 else None,
+            'field_photo3': survey_result.field_photo3.url if survey_result.field_photo3 else None,
         }
         
         return JsonResponse({

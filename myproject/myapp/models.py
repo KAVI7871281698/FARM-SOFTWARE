@@ -440,7 +440,38 @@ class Survey(models.Model):
     status = models.CharField(max_length=50, default="Active")
     completion_percentage = models.IntegerField(default=0)
 
-    # Newly added fields
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "survey"
+
+    def save(self, *args, **kwargs):
+        if not self.survey_id:
+            last_survey = Survey.objects.all().order_by('id').last()
+            if last_survey:
+                last_id = last_survey.id
+                self.survey_id = f"SRV-{last_id + 1:03d}"
+            else:
+                self.survey_id = "SRV-001"
+                
+        # Base completion percentage based on basic fields
+        fields_to_check = [
+            self.title, self.officer, self.survey_stage, self.description,
+            self.survey_month, self.allocated_dates
+        ]
+        
+        filled = sum(1 for field in fields_to_check if field)
+        total = len(fields_to_check)
+        self.completion_percentage = int((filled / total) * 100)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.survey_id} - {self.title}"
+
+class SurveyResult(models.Model):
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="results")
+    survey_date = models.DateField(blank=True, null=True, help_text="Date when this survey result was taken")
     weed_infestation = models.CharField(max_length=100, blank=True, null=True)
     tillering_vigour = models.CharField(max_length=100, blank=True, null=True)
     pest_incidence = models.CharField(max_length=100, blank=True, null=True)
@@ -459,34 +490,26 @@ class Survey(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "survey"
+        db_table = "survey_result"
 
     def save(self, *args, **kwargs):
-        if not self.survey_id:
-            last_survey = Survey.objects.all().order_by('id').last()
-            if last_survey:
-                last_id = last_survey.id
-                self.survey_id = f"SRV-{last_id + 1:03d}"
-            else:
-                self.survey_id = "SRV-001"
-                
-        # Calculate completion percentage
+        super().save(*args, **kwargs)
+        # Update survey completion percentage
+        survey = self.survey
         fields_to_check = [
-            self.title, self.officer, self.survey_stage, self.description,
-            self.survey_month, self.allocated_dates, self.weed_infestation,
+            survey.title, survey.officer, survey.survey_stage, survey.description,
+            survey.survey_month, survey.allocated_dates, self.weed_infestation,
             self.tillering_vigour, self.pest_incidence, self.disease_incidence,
             self.irrigation_status, self.nutrition_status, self.field_photo1,
             self.field_photo2, self.field_photo3, self.remarks
         ]
-        
         filled = sum(1 for field in fields_to_check if field)
         total = len(fields_to_check)
-        self.completion_percentage = int((filled / total) * 100)
-        
-        if self.completion_percentage == 100 and self.status != "Completed":
-            pass # Or automatically set to completed? Probably better not to overwrite user status.
-
-        super().save(*args, **kwargs)
+        survey.completion_percentage = int((filled / total) * 100)
+        # Prevent recursion by ignoring completion percentage re-calculation in Survey.save
+        # Wait, if we call survey.save(), it will recalculate based on only basic fields!
+        # So we should save only the completion_percentage field, or update the logic in Survey.
+        Survey.objects.filter(pk=survey.pk).update(completion_percentage=survey.completion_percentage)
 
     def __str__(self):
-        return f"{self.survey_id} - {self.title}"
+        return f"Result for {self.survey.survey_id}"

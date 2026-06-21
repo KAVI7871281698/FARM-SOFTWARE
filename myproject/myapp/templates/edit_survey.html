@@ -102,55 +102,55 @@
             <!-- New Fields -->
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Weed Infestation</label>
-                <input type="text" name="weed_infestation" value="{{ survey.weed_infestation|default:'' }}" placeholder="e.g. Low, High"
+                <input type="text" name="weed_infestation" value="{{ survey.results.first.weed_infestation|default:'' }}" placeholder="e.g. Low, High"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Tillering Vigour</label>
-                <input type="text" name="tillering_vigour" value="{{ survey.tillering_vigour|default:'' }}" placeholder="e.g. Good"
+                <input type="text" name="tillering_vigour" value="{{ survey.results.first.tillering_vigour|default:'' }}" placeholder="e.g. Good"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Pest Incidence</label>
-                <input type="text" name="pest_incidence" value="{{ survey.pest_incidence|default:'' }}" placeholder="e.g. None"
+                <input type="text" name="pest_incidence" value="{{ survey.results.first.pest_incidence|default:'' }}" placeholder="e.g. None"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Disease Incidence</label>
-                <input type="text" name="disease_incidence" value="{{ survey.disease_incidence|default:'' }}" placeholder="e.g. None"
+                <input type="text" name="disease_incidence" value="{{ survey.results.first.disease_incidence|default:'' }}" placeholder="e.g. None"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Irrigation Status</label>
-                <input type="text" name="irrigation_status" value="{{ survey.irrigation_status|default:'' }}" placeholder="e.g. Sufficient"
+                <input type="text" name="irrigation_status" value="{{ survey.results.first.irrigation_status|default:'' }}" placeholder="e.g. Sufficient"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Nutrition Status</label>
-                <input type="text" name="nutrition_status" value="{{ survey.nutrition_status|default:'' }}" placeholder="e.g. Optimal"
+                <input type="text" name="nutrition_status" value="{{ survey.results.first.nutrition_status|default:'' }}" placeholder="e.g. Optimal"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
             </div>
 
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Field Photo 1</label>
-                {% if survey.field_photo1 %}
-                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.field_photo1.url }}" target="_blank">View Current Photo</a></div>
+                {% if survey.results.first.field_photo1 %}
+                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.results.first.field_photo1.url }}" target="_blank">View Current Photo</a></div>
                 {% endif %}
                 <input type="file" name="field_photo1" accept="image/*"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Field Photo 2</label>
-                {% if survey.field_photo2 %}
-                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.field_photo2.url }}" target="_blank">View Current Photo</a></div>
+                {% if survey.results.first.field_photo2 %}
+                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.results.first.field_photo2.url }}" target="_blank">View Current Photo</a></div>
                 {% endif %}
                 <input type="file" name="field_photo2" accept="image/*"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Field Photo 3</label>
-                {% if survey.field_photo3 %}
-                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.field_photo3.url }}" target="_blank">View Current Photo</a></div>
+                {% if survey.results.first.field_photo3 %}
+                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.results.first.field_photo3.url }}" target="_blank">View Current Photo</a></div>
                 {% endif %}
                 <input type="file" name="field_photo3" accept="image/*"
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
@@ -159,7 +159,7 @@
             <div style="grid-column: 1 / -1;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Remarks</label>
                 <textarea name="remarks" rows="2" placeholder="Any additional remarks..."
-                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;">{{ survey.remarks|default:'' }}</textarea>
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;">{{ survey.results.first.remarks|default:'' }}</textarea>
             </div>
         </div>
 
