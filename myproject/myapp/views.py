@@ -130,6 +130,12 @@ def index(request):
             return api_add_plot(request)
             
         # ==========================================
+        # 2. MOBILE API: Update Survey
+        # ==========================================
+        elif 'survey_id' in keys and 'weed_infestation' in keys:
+            return api_update_survey(request)
+            
+        # ==========================================
         # 3. MOBILE API & WEB: Login
         # ==========================================
         elif 'user_id' in keys and 'password' in keys:
