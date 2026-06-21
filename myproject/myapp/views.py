@@ -2691,6 +2691,7 @@ def api_surveys(request):
         for r in s.results.all():
             if r.survey_date:
                 results_data.append({
+                    "result_id": r.id,
                     "date": r.survey_date.strftime('%Y-%m-%d') if r.survey_date else None,
                     "survey_status": r.survey_status,
                     "completion_percentage": r.completion_percentage
@@ -2778,7 +2779,8 @@ def api_update_survey(request):
             'survey_stage': survey.survey_stage or '-',
             'survey_month': survey.survey_month or '-',
             'number_of_days': survey.number_of_days,
-            'allocated_dates': survey.allocated_dates or [],
+            'result_id': survey_result.id,
+            'survey_date': survey_result.survey_date.strftime('%Y-%m-%d') if survey_result.survey_date else None,
             'survey_status': survey_result.survey_status,
             'completion_percentage': survey_result.completion_percentage,
             'description': survey.description or '-',
