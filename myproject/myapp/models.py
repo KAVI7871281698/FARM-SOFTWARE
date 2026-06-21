@@ -466,6 +466,11 @@ class Survey(models.Model):
 
         super().save(*args, **kwargs)
 
+    @property
+    def completed_dates_list(self):
+        dates = self.results.values_list('survey_date', flat=True)
+        return [d.strftime('%Y-%m-%d') if d else '' for d in dates]
+
     def __str__(self):
         return f"{self.survey_id} - {self.title}"
 
@@ -496,19 +501,13 @@ class SurveyResult(models.Model):
         super().save(*args, **kwargs)
         # Update survey completion percentage
         survey = self.survey
-        fields_to_check = [
-            survey.title, survey.officer, survey.survey_stage, survey.description,
-            survey.survey_month, survey.allocated_dates, self.weed_infestation,
-            self.tillering_vigour, self.pest_incidence, self.disease_incidence,
-            self.irrigation_status, self.nutrition_status, self.field_photo1,
-            self.field_photo2, self.field_photo3, self.remarks
-        ]
-        filled = sum(1 for field in fields_to_check if field)
-        total = len(fields_to_check)
-        survey.completion_percentage = int((filled / total) * 100)
-        # Prevent recursion by ignoring completion percentage re-calculation in Survey.save
-        # Wait, if we call survey.save(), it will recalculate based on only basic fields!
-        # So we should save only the completion_percentage field, or update the logic in Survey.
+        allocated_count = survey.number_of_days
+        if allocated_count and allocated_count > 0:
+            completed_count = survey.results.values('survey_date').distinct().count()
+            survey.completion_percentage = min(int((completed_count / allocated_count) * 100), 100)
+        else:
+            survey.completion_percentage = 100
+            
         Survey.objects.filter(pk=survey.pk).update(completion_percentage=survey.completion_percentage)
 
     def __str__(self):

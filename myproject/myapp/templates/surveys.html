@@ -42,7 +42,8 @@
         <div class="survey-card-header">
             <div class="survey-info-main">
                 <h4>{{ survey.plot.plot_code }} ({{ survey.plot.farmer.name }})</h4>
-                <p class="survey-subtitle">Survey ID: <strong>{{ survey.survey_id }}</strong> | Month: {{ survey.survey_month|default:"Not Set" }}</p>
+                <p class="survey-subtitle">Survey ID: <strong>{{ survey.survey_id }}</strong> | Month: {{
+                    survey.survey_month|default:"Not Set" }}</p>
             </div>
             <div class="survey-status">
                 {% if survey.status == 'Active' %}
@@ -58,7 +59,7 @@
         <!-- Card Body -->
         <div class="survey-card-body">
             <div class="survey-officer">
-                <i class="fa-solid fa-user-tie"></i> 
+                <i class="fa-solid fa-user-tie"></i>
                 <strong>Officer:</strong> {{ survey.officer.name|default:"Unassigned" }}
             </div>
             <div class="survey-stage">
@@ -71,17 +72,25 @@
                 <h5><i class="fa-regular fa-calendar-check"></i> Allocated Dates</h5>
                 <div class="timeline-track">
                     {% if survey.allocated_dates %}
-                        {% for date in survey.allocated_dates %}
-                        <div class="timeline-step">
-                            <div class="step-circle"><i class="fa-solid fa-check"></i></div>
-                            <div class="step-label">{{ date }}</div>
-                        </div>
-                        {% if not forloop.last %}
-                        <div class="step-line"></div>
-                        {% endif %}
-                        {% endfor %}
+                    {% for date in survey.allocated_dates %}
+                    {% if date in survey.completed_dates_list %}
+                    <div class="timeline-step">
+                        <div class="step-circle"><i class="fa-solid fa-check"></i></div>
+                        <div class="step-label">{{ date }}</div>
+                    </div>
                     {% else %}
-                        <div class="no-dates">No dates allocated</div>
+                    <div class="timeline-step">
+                        <div class="step-circle" style="background: #e0e0e0; color: #888;"><i
+                                class="fa-regular fa-clock"></i></div>
+                        <div class="step-label" style="color: #888;">{{ date }}</div>
+                    </div>
+                    {% endif %}
+                    {% if not forloop.last %}
+                    <div class="step-line"></div>
+                    {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    <div class="no-dates">No dates allocated</div>
                     {% endif %}
                 </div>
             </div>
@@ -104,8 +113,11 @@
                 <i class="fa-solid fa-chevron-down"></i> View Results
             </button>
             <div class="survey-actions">
-                <a href="{% url 'edit_survey' survey.id %}" class="btn-icon btn-edit" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
-                <a href="{% url 'delete_survey' survey.id %}" class="btn-icon btn-delete" title="Delete" onclick="return confirm('Are you sure you want to delete this survey?');"><i class="fa-solid fa-trash"></i></a>
+                <a href="{% url 'edit_survey' survey.id %}" class="btn-icon btn-edit" title="Edit"><i
+                        class="fa-solid fa-pen-to-square"></i></a>
+                <a href="{% url 'delete_survey' survey.id %}" class="btn-icon btn-delete" title="Delete"
+                    onclick="return confirm('Are you sure you want to delete this survey?');"><i
+                        class="fa-solid fa-trash"></i></a>
             </div>
         </div>
 
@@ -113,24 +125,34 @@
         <div class="survey-details-panel" id="details-{{ survey.id }}" style="display: none;">
             {% for result in survey.results.all|dictsortreversed:"survey_date" %}
             <div class="result-entry" style="margin-bottom: 2rem;">
-                <h6 style="margin-top: 0; color: var(--primary-color, #2e7d32); border-bottom: 1px solid #eee; padding-bottom: 8px; font-size: 1rem;">
-                    <i class="fa-regular fa-calendar-check"></i> Survey Done On: {{ result.survey_date|date:"M d, Y"|default:"Unknown Date" }}
+                <h6
+                    style="margin-top: 0; color: var(--primary-color, #2e7d32); border-bottom: 1px solid #eee; padding-bottom: 8px; font-size: 1rem;">
+                    <i class="fa-regular fa-calendar-check"></i> Survey Done On: {{ result.survey_date|date:"M d,
+                    Y"|default:"Unknown Date" }}
                 </h6>
                 <div class="details-grid">
-                    <div class="detail-item"><strong>Weed Infestation:</strong> {{ result.weed_infestation|default:"-" }}</div>
-                    <div class="detail-item"><strong>Tillering Vigour:</strong> {{ result.tillering_vigour|default:"-" }}</div>
-                    <div class="detail-item"><strong>Pest Incidence:</strong> {{ result.pest_incidence|default:"-" }}</div>
-                    <div class="detail-item"><strong>Disease Incidence:</strong> {{ result.disease_incidence|default:"-" }}</div>
-                    <div class="detail-item"><strong>Irrigation:</strong> {{ result.irrigation_status|default:"-" }}</div>
+                    <div class="detail-item"><strong>Weed Infestation:</strong> {{ result.weed_infestation|default:"-"
+                        }}</div>
+                    <div class="detail-item"><strong>Tillering Vigour:</strong> {{ result.tillering_vigour|default:"-"
+                        }}</div>
+                    <div class="detail-item"><strong>Pest Incidence:</strong> {{ result.pest_incidence|default:"-" }}
+                    </div>
+                    <div class="detail-item"><strong>Disease Incidence:</strong> {{ result.disease_incidence|default:"-"
+                        }}</div>
+                    <div class="detail-item"><strong>Irrigation:</strong> {{ result.irrigation_status|default:"-" }}
+                    </div>
                     <div class="detail-item"><strong>Nutrition:</strong> {{ result.nutrition_status|default:"-" }}</div>
                     <div class="detail-item full-width"><strong>Remarks:</strong> {{ result.remarks|default:"-" }}</div>
                 </div>
                 <div class="survey-photos">
                     <strong>Photos:</strong>
                     <div class="photo-gallery">
-                        {% if result.field_photo1 %}<a href="{{ result.field_photo1 }}" target="_blank"><img src="{{ result.field_photo1 }}" alt="Photo 1" class="thumbnail"></a>{% endif %}
-                        {% if result.field_photo2 %}<a href="{{ result.field_photo2 }}" target="_blank"><img src="{{ result.field_photo2 }}" alt="Photo 2" class="thumbnail"></a>{% endif %}
-                        {% if result.field_photo3 %}<a href="{{ result.field_photo3 }}" target="_blank"><img src="{{ result.field_photo3 }}" alt="Photo 3" class="thumbnail"></a>{% endif %}
+                        {% if result.field_photo1 %}<a href="{{ result.field_photo1 }}" target="_blank"><img
+                                src="{{ result.field_photo1 }}" alt="Photo 1" class="thumbnail"></a>{% endif %}
+                        {% if result.field_photo2 %}<a href="{{ result.field_photo2 }}" target="_blank"><img
+                                src="{{ result.field_photo2 }}" alt="Photo 2" class="thumbnail"></a>{% endif %}
+                        {% if result.field_photo3 %}<a href="{{ result.field_photo3 }}" target="_blank"><img
+                                src="{{ result.field_photo3 }}" alt="Photo 3" class="thumbnail"></a>{% endif %}
                         {% if not result.field_photo1 and not result.field_photo2 and not result.field_photo3 %}
                         <span class="no-photos">No photos uploaded.</span>
                         {% endif %}
@@ -138,7 +160,8 @@
                 </div>
             </div>
             {% empty %}
-            <p style="color: #888; font-style: italic; text-align: center; padding: 2rem;">No results recorded yet for this survey.</p>
+            <p style="color: #888; font-style: italic; text-align: center; padding: 2rem;">No results recorded yet for
+                this survey.</p>
             {% endfor %}
         </div>
     </div>
@@ -159,7 +182,7 @@
         if (panel.style.display === "none" || panel.style.display === "") {
             panel.style.display = "block";
             panel.style.animation = "slideDown 0.3s ease-out forwards";
-            
+
             // Change button icon/text
             const btn = panel.previousElementSibling.querySelector('.btn-toggle-details');
             if (btn) btn.innerHTML = '<i class="fa-solid fa-chevron-up"></i> Hide Results';
@@ -173,298 +196,392 @@
 </script>
 
 <style>
-/* CSS styles for the new design */
-.surveys-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    margin-top: 2rem;
-}
-.btn-create {
-    background: var(--primary-color, #2e7d32);
-    color: white;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Outfit', sans-serif;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
-}
-.btn-create:hover {
-    background: #1b5e20;
-    transform: translateY(-2px);
-}
+    /* CSS styles for the new design */
+    .surveys-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        margin-top: 2rem;
+    }
 
-.survey-cards-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 1.5rem;
-}
+    .btn-create {
+        background: var(--primary-color, #2e7d32);
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Outfit', sans-serif;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
+    }
 
-.survey-card {
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    overflow: hidden;
-    transition: transform 0.3s ease;
-    border: 1px solid #f0f0f0;
-    display: flex;
-    flex-direction: column;
-}
-.survey-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-}
+    .btn-create:hover {
+        background: #1b5e20;
+        transform: translateY(-2px);
+    }
 
-.survey-card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid #f0f0f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    background: #fdfdfd;
-}
-.survey-info-main h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.2rem;
-    color: #333;
-}
-.survey-subtitle {
-    margin: 0;
-    font-size: 0.85rem;
-    color: #777;
-}
-
-.badge {
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-.badge-active { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-.badge-pending { background: #fff3e0; color: #f57c00; border: 1px solid #ffe0b2; }
-.badge-default { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
-
-.survey-card-body {
-    padding: 1.5rem;
-    flex-grow: 1;
-}
-
-.survey-officer, .survey-stage {
-    font-size: 0.95rem;
-    color: #555;
-    margin-bottom: 0.8rem;
-}
-.survey-officer i, .survey-stage i {
-    color: var(--primary-color, #2e7d32);
-    width: 20px;
-    text-align: center;
-    margin-right: 8px;
-}
-
-.survey-timeline {
-    margin-top: 1.5rem;
-    background: #f9fbfd;
-    padding: 1.2rem;
-    border-radius: 12px;
-    border: 1px solid #eef2f6;
-}
-.survey-timeline h5 {
-    margin: 0 0 1.2rem 0;
-    font-size: 0.9rem;
-    color: #444;
-}
-
-.timeline-track {
-    display: flex;
-    align-items: center;
-    overflow-x: auto;
-    padding-bottom: 5px;
-}
-.timeline-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 60px;
-}
-.step-circle {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #e3f2fd;
-    color: #0288d1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    margin-bottom: 8px;
-    border: 2px solid #fff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 2;
-}
-.step-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #555;
-    white-space: nowrap;
-}
-.step-line {
-    flex-grow: 1;
-    height: 3px;
-    background: #cce4f7;
-    margin: 0 -2px;
-    min-width: 30px;
-    transform: translateY(-11px);
-    z-index: 1;
-}
-
-.survey-progress-wrapper {
-    margin-top: 1.5rem;
-}
-.progress-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #555;
-}
-.progress-bar-bg {
-    width: 100%;
-    height: 8px;
-    background: #eee;
-    border-radius: 4px;
-    overflow: hidden;
-}
-.progress-bar-fill {
-    height: 100%;
-    background: var(--primary-color, #2e7d32);
-    border-radius: 4px;
-    transition: width 1s ease-in-out;
-}
-
-.survey-card-footer {
-    padding: 1.2rem 1.5rem;
-    background: #fafafa;
-    border-top: 1px solid #f0f0f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.btn-toggle-details {
-    background: none;
-    border: none;
-    color: #0288d1;
-    font-weight: 600;
-    font-family: 'Outfit', sans-serif;
-    cursor: pointer;
-    font-size: 0.9rem;
-    padding: 0.5rem 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: color 0.2s;
-}
-.btn-toggle-details:hover { color: #01579b; }
-
-.survey-actions {
-    display: flex;
-    gap: 10px;
-}
-.btn-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-.btn-edit { background: #e3f2fd; color: #0288d1; }
-.btn-edit:hover { background: #0288d1; color: white; }
-.btn-delete { background: #ffebee; color: #d32f2f; }
-.btn-delete:hover { background: #d32f2f; color: white; }
-
-.survey-details-panel {
-    background: #fff;
-    border-top: 1px dashed #ddd;
-    padding: 1.5rem;
-}
-
-.details-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-.detail-item {
-    font-size: 0.85rem;
-    color: #444;
-    background: #fdfdfd;
-    padding: 0.6rem;
-    border-radius: 6px;
-    border: 1px solid #f0f0f0;
-}
-.detail-item strong { color: #222; display: inline-block; width: 130px; }
-.full-width { grid-column: 1 / -1; }
-
-.photo-gallery {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 0.5rem;
-}
-.thumbnail {
-    width: 70px;
-    height: 70px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 2px solid #eee;
-    transition: transform 0.2s;
-}
-.thumbnail:hover { transform: scale(1.1); border-color: var(--primary-color, #2e7d32); }
-.no-photos { font-size: 0.85rem; color: #888; font-style: italic; background: #f9f9f9; padding: 0.5rem 1rem; border-radius: 6px; }
-
-.empty-state {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 4rem 2rem;
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-    color: #888;
-}
-.empty-state i {
-    font-size: 3rem;
-    color: #ddd;
-    margin-bottom: 1rem;
-}
-
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 768px) {
     .survey-cards-container {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 1.5rem;
     }
-    .details-grid {
-        grid-template-columns: 1fr;
+
+    .survey-card {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        border: 1px solid #f0f0f0;
+        display: flex;
+        flex-direction: column;
     }
+
+    .survey-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .survey-card-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        background: #fdfdfd;
+    }
+
+    .survey-info-main h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.2rem;
+        color: #333;
+    }
+
+    .survey-subtitle {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #777;
+    }
+
+    .badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-active {
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #c8e6c9;
+    }
+
+    .badge-pending {
+        background: #fff3e0;
+        color: #f57c00;
+        border: 1px solid #ffe0b2;
+    }
+
+    .badge-default {
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 1px solid #bbdefb;
+    }
+
+    .survey-card-body {
+        padding: 1.5rem;
+        flex-grow: 1;
+    }
+
+    .survey-officer,
+    .survey-stage {
+        font-size: 0.95rem;
+        color: #555;
+        margin-bottom: 0.8rem;
+    }
+
+    .survey-officer i,
+    .survey-stage i {
+        color: var(--primary-color, #2e7d32);
+        width: 20px;
+        text-align: center;
+        margin-right: 8px;
+    }
+
+    .survey-timeline {
+        margin-top: 1.5rem;
+        background: #f9fbfd;
+        padding: 1.2rem;
+        border-radius: 12px;
+        border: 1px solid #eef2f6;
+    }
+
+    .survey-timeline h5 {
+        margin: 0 0 1.2rem 0;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
     .timeline-track {
-        flex-wrap: wrap;
+        display: flex;
+        align-items: center;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .timeline-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 60px;
+    }
+
+    .step-circle {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #e3f2fd;
+        color: #0288d1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 2;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #555;
+        white-space: nowrap;
+    }
+
+    .step-line {
+        flex-grow: 1;
+        height: 3px;
+        background: #cce4f7;
+        margin: 0 -2px;
+        min-width: 30px;
+        transform: translateY(-11px);
+        z-index: 1;
+    }
+
+    .survey-progress-wrapper {
+        margin-top: 1.5rem;
+    }
+
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #555;
+    }
+
+    .progress-bar-bg {
+        width: 100%;
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: var(--primary-color, #2e7d32);
+        border-radius: 4px;
+        transition: width 1s ease-in-out;
+    }
+
+    .survey-card-footer {
+        padding: 1.2rem 1.5rem;
+        background: #fafafa;
+        border-top: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-toggle-details {
+        background: none;
+        border: none;
+        color: #0288d1;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s;
+    }
+
+    .btn-toggle-details:hover {
+        color: #01579b;
+    }
+
+    .survey-actions {
+        display: flex;
         gap: 10px;
     }
-    .step-line { display: none; }
-    .timeline-step { flex-direction: row; gap: 10px; width: 100%; }
-    .step-circle { margin-bottom: 0; }
-}
+
+    .btn-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-edit {
+        background: #e3f2fd;
+        color: #0288d1;
+    }
+
+    .btn-edit:hover {
+        background: #0288d1;
+        color: white;
+    }
+
+    .btn-delete {
+        background: #ffebee;
+        color: #d32f2f;
+    }
+
+    .btn-delete:hover {
+        background: #d32f2f;
+        color: white;
+    }
+
+    .survey-details-panel {
+        background: #fff;
+        border-top: 1px dashed #ddd;
+        padding: 1.5rem;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-item {
+        font-size: 0.85rem;
+        color: #444;
+        background: #fdfdfd;
+        padding: 0.6rem;
+        border-radius: 6px;
+        border: 1px solid #f0f0f0;
+    }
+
+    .detail-item strong {
+        color: #222;
+        display: inline-block;
+        width: 130px;
+    }
+
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+    .photo-gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 0.5rem;
+    }
+
+    .thumbnail {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #eee;
+        transition: transform 0.2s;
+    }
+
+    .thumbnail:hover {
+        transform: scale(1.1);
+        border-color: var(--primary-color, #2e7d32);
+    }
+
+    .no-photos {
+        font-size: 0.85rem;
+        color: #888;
+        font-style: italic;
+        background: #f9f9f9;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+    }
+
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 4rem 2rem;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        color: #888;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #ddd;
+        margin-bottom: 1rem;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .survey-cards-container {
+            grid-template-columns: 1fr;
+        }
+
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .timeline-track {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .step-line {
+            display: none;
+        }
+
+        .timeline-step {
+            flex-direction: row;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .step-circle {
+            margin-bottom: 0;
+        }
+    }
 </style>
 {% endblock %}
