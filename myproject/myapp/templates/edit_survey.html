@@ -17,7 +17,7 @@
     style="background: var(--card-bg); padding: 2rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 800px; margin: 0 auto;">
     <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Edit Survey Details
     </h2>
-    <form method="POST" action="{% url 'edit_survey' survey.id %}">
+    <form method="POST" action="{% url 'edit_survey' survey.id %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div
             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
@@ -97,6 +97,69 @@
                 <input type="text" name="allocated_dates" id="allocated_dates" placeholder="Select multiple dates..."
                     style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;"
                     required>
+            </div>
+
+            <!-- New Fields -->
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Weed Infestation</label>
+                <input type="text" name="weed_infestation" value="{{ survey.weed_infestation|default:'' }}" placeholder="e.g. Low, High"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Tillering Vigour</label>
+                <input type="text" name="tillering_vigour" value="{{ survey.tillering_vigour|default:'' }}" placeholder="e.g. Good"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Pest Incidence</label>
+                <input type="text" name="pest_incidence" value="{{ survey.pest_incidence|default:'' }}" placeholder="e.g. None"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Disease Incidence</label>
+                <input type="text" name="disease_incidence" value="{{ survey.disease_incidence|default:'' }}" placeholder="e.g. None"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Irrigation Status</label>
+                <input type="text" name="irrigation_status" value="{{ survey.irrigation_status|default:'' }}" placeholder="e.g. Sufficient"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Nutrition Status</label>
+                <input type="text" name="nutrition_status" value="{{ survey.nutrition_status|default:'' }}" placeholder="e.g. Optimal"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit';">
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Field Photo 1</label>
+                {% if survey.field_photo1 %}
+                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.field_photo1.url }}" target="_blank">View Current Photo</a></div>
+                {% endif %}
+                <input type="file" name="field_photo1" accept="image/*"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Field Photo 2</label>
+                {% if survey.field_photo2 %}
+                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.field_photo2.url }}" target="_blank">View Current Photo</a></div>
+                {% endif %}
+                <input type="file" name="field_photo2" accept="image/*"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Field Photo 3</label>
+                {% if survey.field_photo3 %}
+                    <div style="margin-bottom: 0.5rem;"><a href="{{ survey.field_photo3.url }}" target="_blank">View Current Photo</a></div>
+                {% endif %}
+                <input type="file" name="field_photo3" accept="image/*"
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; background: white;">
+            </div>
+
+            <div style="grid-column: 1 / -1;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted);">Remarks</label>
+                <textarea name="remarks" rows="2" placeholder="Any additional remarks..."
+                    style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; outline: none; font-family: 'Outfit'; resize: vertical;">{{ survey.remarks|default:'' }}</textarea>
             </div>
         </div>
 

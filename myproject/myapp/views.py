@@ -1248,6 +1248,18 @@ def add_survey(request):
         allocated_dates_raw = request.POST.get('allocated_dates')
         allocated_dates = [d.strip() for d in allocated_dates_raw.split(',')] if allocated_dates_raw else []
         days_count = len(allocated_dates)
+        
+        weed_infestation = request.POST.get('weed_infestation')
+        tillering_vigour = request.POST.get('tillering_vigour')
+        pest_incidence = request.POST.get('pest_incidence')
+        disease_incidence = request.POST.get('disease_incidence')
+        irrigation_status = request.POST.get('irrigation_status')
+        nutrition_status = request.POST.get('nutrition_status')
+        remarks = request.POST.get('remarks')
+        
+        field_photo1 = request.FILES.get('field_photo1')
+        field_photo2 = request.FILES.get('field_photo2')
+        field_photo3 = request.FILES.get('field_photo3')
                 
         plot = Plot.objects.filter(id=plot_id).first()
         officer = Officer.objects.filter(id=officer_id).first()
@@ -1261,8 +1273,21 @@ def add_survey(request):
                 description=description,
                 survey_month=survey_month,
                 number_of_days=days_count,
-                allocated_dates=allocated_dates
+                allocated_dates=allocated_dates,
+                weed_infestation=weed_infestation,
+                tillering_vigour=tillering_vigour,
+                pest_incidence=pest_incidence,
+                disease_incidence=disease_incidence,
+                irrigation_status=irrigation_status,
+                nutrition_status=nutrition_status,
+                remarks=remarks
             )
+            if field_photo1:
+                survey.field_photo1 = field_photo1
+            if field_photo2:
+                survey.field_photo2 = field_photo2
+            if field_photo3:
+                survey.field_photo3 = field_photo3
             survey.save()
             return redirect('surveys')
             
@@ -1285,6 +1310,21 @@ def edit_survey(request, id):
         survey.description = request.POST.get('description')
         survey.survey_month = request.POST.get('survey_month')
         survey.status = request.POST.get('status', survey.status)
+        
+        survey.weed_infestation = request.POST.get('weed_infestation')
+        survey.tillering_vigour = request.POST.get('tillering_vigour')
+        survey.pest_incidence = request.POST.get('pest_incidence')
+        survey.disease_incidence = request.POST.get('disease_incidence')
+        survey.irrigation_status = request.POST.get('irrigation_status')
+        survey.nutrition_status = request.POST.get('nutrition_status')
+        survey.remarks = request.POST.get('remarks')
+        
+        if request.FILES.get('field_photo1'):
+            survey.field_photo1 = request.FILES.get('field_photo1')
+        if request.FILES.get('field_photo2'):
+            survey.field_photo2 = request.FILES.get('field_photo2')
+        if request.FILES.get('field_photo3'):
+            survey.field_photo3 = request.FILES.get('field_photo3')
         
         allocated_dates_raw = request.POST.get('allocated_dates')
         if allocated_dates_raw:
@@ -2638,3 +2678,38 @@ def api_surveys(request):
         "status": "success",
         "data": surveys_data
     }, status=200)
+
+@csrf_exempt
+def api_update_survey(request):
+    if request.method == 'POST':
+        survey_id = request.POST.get('survey_id')
+        if not survey_id:
+            return JsonResponse({"status": "error", "message": "survey_id is required"}, status=400)
+            
+        survey = Survey.objects.filter(survey_id=survey_id).first()
+        if not survey:
+            return JsonResponse({"status": "error", "message": "Survey not found"}, status=404)
+            
+        survey.weed_infestation = request.POST.get('weed_infestation', survey.weed_infestation)
+        survey.tillering_vigour = request.POST.get('tillering_vigour', survey.tillering_vigour)
+        survey.pest_incidence = request.POST.get('pest_incidence', survey.pest_incidence)
+        survey.disease_incidence = request.POST.get('disease_incidence', survey.disease_incidence)
+        survey.irrigation_status = request.POST.get('irrigation_status', survey.irrigation_status)
+        survey.nutrition_status = request.POST.get('nutrition_status', survey.nutrition_status)
+        survey.remarks = request.POST.get('remarks', survey.remarks)
+        
+        status_val = request.POST.get('status')
+        if status_val:
+            survey.status = status_val
+        
+        if request.FILES.get('field_photo1'):
+            survey.field_photo1 = request.FILES.get('field_photo1')
+        if request.FILES.get('field_photo2'):
+            survey.field_photo2 = request.FILES.get('field_photo2')
+        if request.FILES.get('field_photo3'):
+            survey.field_photo3 = request.FILES.get('field_photo3')
+            
+        survey.save()
+        return JsonResponse({"status": "success", "message": "Survey updated successfully"})
+        
+    return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)

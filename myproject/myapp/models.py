@@ -439,6 +439,23 @@ class Survey(models.Model):
     allocated_dates = models.JSONField(blank=True, null=True)
     status = models.CharField(max_length=50, default="Active")
     completion_percentage = models.IntegerField(default=0)
+
+    # Newly added fields
+    weed_infestation = models.CharField(max_length=100, blank=True, null=True)
+    tillering_vigour = models.CharField(max_length=100, blank=True, null=True)
+    pest_incidence = models.CharField(max_length=100, blank=True, null=True)
+    disease_incidence = models.CharField(max_length=100, blank=True, null=True)
+    irrigation_status = models.CharField(max_length=100, blank=True, null=True)
+    nutrition_status = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Field Photos
+    field_photo1 = models.ImageField(upload_to='survey_photos/', blank=True, null=True)
+    field_photo2 = models.ImageField(upload_to='survey_photos/', blank=True, null=True)
+    field_photo3 = models.ImageField(upload_to='survey_photos/', blank=True, null=True)
+    
+    # Remarks
+    remarks = models.TextField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -452,6 +469,23 @@ class Survey(models.Model):
                 self.survey_id = f"SRV-{last_id + 1:03d}"
             else:
                 self.survey_id = "SRV-001"
+                
+        # Calculate completion percentage
+        fields_to_check = [
+            self.title, self.officer, self.survey_stage, self.description,
+            self.survey_month, self.allocated_dates, self.weed_infestation,
+            self.tillering_vigour, self.pest_incidence, self.disease_incidence,
+            self.irrigation_status, self.nutrition_status, self.field_photo1,
+            self.field_photo2, self.field_photo3, self.remarks
+        ]
+        
+        filled = sum(1 for field in fields_to_check if field)
+        total = len(fields_to_check)
+        self.completion_percentage = int((filled / total) * 100)
+        
+        if self.completion_percentage == 100 and self.status != "Completed":
+            pass # Or automatically set to completed? Probably better not to overwrite user status.
+
         super().save(*args, **kwargs)
 
     def __str__(self):
