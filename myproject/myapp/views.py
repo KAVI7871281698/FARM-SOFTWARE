@@ -892,13 +892,21 @@ def plots(request):
     return render(request, 'plots.html', {'plots': plots_list})
 
 def surveys(request):
-    surveys_list = Survey.objects.all().order_by('-id')
+    surveys_list = list(Survey.objects.prefetch_related('results').all().order_by('-id'))
     
-    active_count = surveys_list.filter(status='Active').count()
-    pending_count = surveys_list.filter(status='Pending').count()
+    active_count = 0
+    pending_count = 0
+    completed_surveys = 0
     
-    total = surveys_list.count()
-    completed_surveys = surveys_list.filter(status='Completed').count()
+    for s in surveys_list:
+        if s.status == 'Active':
+            active_count += 1
+        elif s.status == 'Pending':
+            pending_count += 1
+        elif s.status == 'Completed':
+            completed_surveys += 1
+            
+    total = len(surveys_list)
     completion_rate = int((completed_surveys / total) * 100) if total > 0 else 0
     
     context = {
@@ -1291,7 +1299,7 @@ def add_survey(request):
                 result.field_photo2 = field_photo2
             if field_photo3:
                 result.field_photo3 = field_photo3
-            result.status = 'Completed'
+            result.survey_status = 'Completed'
             result.save()
             return redirect('surveys')
             
@@ -1341,7 +1349,7 @@ def edit_survey(request, id):
             result.field_photo2 = request.POST.get('field_photo2')
         if request.POST.get('field_photo3'):
             result.field_photo3 = request.POST.get('field_photo3')
-        result.status = 'Completed'
+        result.survey_status = 'Completed'
         result.save()
         
         allocated_dates_raw = request.POST.get('allocated_dates')
@@ -2683,8 +2691,9 @@ def api_surveys(request):
         for r in s.results.all():
             if r.survey_date:
                 results_data.append({
-                    "date": r.survey_date.strftime('%Y-%m-%d'),
-                    "status": r.status
+                    "date": r.survey_date.strftime('%Y-%m-%d') if r.survey_date else None,
+                    "survey_status": r.survey_status,
+                    "completion_percentage": r.completion_percentage
                 })
 
         surveys_data.append({
@@ -2696,8 +2705,6 @@ def api_surveys(request):
             'survey_month': s.survey_month or '-',
             'number_of_days': s.number_of_days,
             'allocated_dates': s.allocated_dates or [],
-            'status': s.status,
-            'completion_percentage': s.completion_percentage,
             'description': s.description or '-',
             'survey_results': results_data
         })
@@ -2742,8 +2749,7 @@ def api_update_survey(request):
         survey_result.remarks = request.POST.get('remarks', survey_result.remarks)
         
         status_val = request.POST.get('status')
-        if status_val:
-            survey.status = status_val
+        # status is now a property computed dynamically based on completion_percentage
         
         if request.POST.get('field_photo1'):
             survey_result.field_photo1 = request.POST.get('field_photo1')
@@ -2756,8 +2762,10 @@ def api_update_survey(request):
             
         if request.POST.get('field_photo3'):
             survey_result.field_photo3 = request.POST.get('field_photo3')
+        elif request.FILES.get('field_photo3'):
+            survey_result.field_photo3 = request.FILES.get('field_photo3')
             
-        survey_result.status = 'Completed'
+        survey_result.survey_status = 'Completed'
         survey_result.save()
         
         survey.refresh_from_db()
@@ -2771,8 +2779,6 @@ def api_update_survey(request):
             'survey_month': survey.survey_month or '-',
             'number_of_days': survey.number_of_days,
             'allocated_dates': survey.allocated_dates or [],
-            'status': survey.status,
-            'completion_percentage': survey.completion_percentage,
             'description': survey.description or '-',
             'weed_infestation': survey_result.weed_infestation or '-',
             'tillering_vigour': survey_result.tillering_vigour or '-',

@@ -437,8 +437,6 @@ class Survey(models.Model):
     survey_month = models.CharField(max_length=50, blank=True, null=True)
     number_of_days = models.IntegerField(default=0)
     allocated_dates = models.JSONField(blank=True, null=True)
-    status = models.CharField(max_length=50, default="Active")
-    completion_percentage = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -457,8 +455,20 @@ class Survey(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def completion_percentage(self):
+        allocated_count = self.number_of_days
+        if allocated_count and allocated_count > 0:
+            completed_count = self.results.filter(survey_status='Completed').values('survey_date').distinct().count()
+            return min(int((completed_count / allocated_count) * 100), 100)
+        return 100
+        
+    @property
+    def status(self):
+        return 'Completed' if self.completion_percentage == 100 else 'Active'
+
+    @property
     def completed_dates_list(self):
-        dates = self.results.values_list('survey_date', flat=True)
+        dates = self.results.filter(survey_status='Completed').values_list('survey_date', flat=True)
         return [d.strftime('%Y-%m-%d') if d else '' for d in dates]
 
     def __str__(self):
@@ -483,7 +493,8 @@ class SurveyResult(models.Model):
     remarks = models.TextField(blank=True, null=True)
     
     # Status
-    status = models.CharField(max_length=50, default='Pending')
+    survey_status = models.CharField(max_length=50, default='Pending')
+    completion_percentage = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -493,25 +504,21 @@ class SurveyResult(models.Model):
     def save(self, *args, **kwargs):
         # Auto-update status if data is present
         if self.weed_infestation or self.tillering_vigour or self.remarks or self.field_photo1:
-            self.status = 'Completed'
+            self.survey_status = 'Completed'
             
         super().save(*args, **kwargs)
         
-        # Update survey completion percentage based only on Completed results
+        # Calculate completion percentage for the parent survey
         survey = self.survey
         allocated_count = survey.number_of_days
         if allocated_count and allocated_count > 0:
-            completed_count = survey.results.filter(status='Completed').values('survey_date').distinct().count()
-            survey.completion_percentage = min(int((completed_count / allocated_count) * 100), 100)
+            completed_count = survey.results.filter(survey_status='Completed').values('survey_date').distinct().count()
+            perc = min(int((completed_count / allocated_count) * 100), 100)
         else:
-            survey.completion_percentage = 100
+            perc = 100
             
-        update_kwargs = {'completion_percentage': survey.completion_percentage}
-        if survey.completion_percentage == 100:
-            survey.status = 'Completed'
-            update_kwargs['status'] = 'Completed'
-            
-        Survey.objects.filter(pk=survey.pk).update(**update_kwargs)
+        # Update completion_percentage across all SurveyResult rows for this survey
+        SurveyResult.objects.filter(survey=survey).update(completion_percentage=perc)
 
     def __str__(self):
         return f"Result for {self.survey.survey_id}"
