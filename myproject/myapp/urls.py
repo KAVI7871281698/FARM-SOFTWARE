@@ -1,5 +1,6 @@
 from django.urls import path
-from . import views 
+from . import views
+from . import mobile_api_views 
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -31,10 +32,10 @@ urlpatterns = [
     path('edit_survey/<int:id>/', views.edit_survey, name='edit_survey'),
     path('delete_survey/<int:id>/', views.delete_survey, name='delete_survey'),
     path('add_user/', views.add_user, name='add_user'),
-    path('get_mobile_varieties/', views.api_get_varieties, name='api_get_varieties'),
-    path('get_mobile_farmers/', views.api_get_farmers, name='api_get_farmers'),
-    path('api/add_plot/', views.api_add_plot, name='api_add_plot'),
-    path('api/get_plots/', views.api_get_plots, name='api_get_plots'),
+    path('get_mobile_varieties/', mobile_api_views.api_get_varieties, name='api_get_varieties'),
+    path('get_mobile_farmers/', mobile_api_views.api_get_farmers, name='api_get_farmers'),
+    path('api/add_plot/', mobile_api_views.api_add_plot, name='api_add_plot'),
+    path('api/get_plots/', mobile_api_views.api_get_plots, name='api_get_plots'),
     path('add_variety/', views.add_variety, name='add_variety'),
     path('add_village/', views.add_village, name='add_village'),
     path('edit_officer/<int:id>/', views.edit_officer, name='edit_officer'),
@@ -54,7 +55,7 @@ urlpatterns = [
     path('roles/', views.roles, name='roles'),
     path('add_role/', views.add_role, name='add_role'),
     path('edit_role/<int:id>/', views.edit_role, name='edit_role'),
-    path('api/mobile/', views.mobile_api, name='mobile_api'),
+    path('api/mobile/', mobile_api_views.mobile_api, name='mobile_api'),
     path('api/get_factories/', views.get_factories_by_group, name='get_factories'),
     path('api/get_divisions/', views.get_divisions_by_factories, name='get_divisions'),
     path('api/get_sections/', views.get_sections_by_divisions, name='get_sections'),
@@ -75,12 +76,12 @@ urlpatterns = [
     path('add_crop/', views.add_crop, name='add_crop'),
     path('edit_crop/<int:id>/', views.edit_crop, name='edit_crop'),
     path('delete_crop/<int:id>/', views.delete_crop, name='delete_crop'),
-    path('api/get_farmer_plots/', views.api_get_farmer_plots, name='api_get_farmer_plots'),
+    path('api/get_farmer_plots/', mobile_api_views.api_get_farmer_plots, name='api_get_farmer_plots'),
     path('soil_types/', views.soil_types, name='soil_types'),
     path('add_soil_type/', views.add_soil_type, name='add_soil_type'),
     path('edit_soil_type/<int:id>/', views.edit_soil_type, name='edit_soil_type'),
     path('delete_soil_type/<int:id>/', views.delete_soil_type, name='delete_soil_type'),
-    path('api/field_intelligence_plots/', views.api_field_intelligence_plots, name='api_field_intelligence_plots'),
-    path('api/surveys/', views.api_surveys, name='api_surveys'),
-    path('api/update_survey/', views.api_update_survey, name='api_update_survey'),
+    path('api/field_intelligence_plots/', mobile_api_views.api_field_intelligence_plots, name='api_field_intelligence_plots'),
+    path('api/surveys/', mobile_api_views.api_surveys, name='api_surveys'),
+    path('api/update_survey/', mobile_api_views.api_update_survey, name='api_update_survey'),
 ]
