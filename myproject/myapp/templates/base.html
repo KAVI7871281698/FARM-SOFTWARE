@@ -8,6 +8,13 @@
     <title>Farm Signals - {% block title %}Dashboard{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@hotwired/turbo@7.3.0/dist/turbo.es2017-umd.js"></script>
+    <style>
+        .turbo-progress-bar {
+            height: 3px;
+            background-color: #2e7d32;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -356,11 +363,11 @@
             <li class=""><a href="{% url 'analytics' %}"><i class="fa-solid fa-chart-simple"></i> Analytics</a></li>
             {% endif %}
             {% if 'ndvi_monitoring' in request.session.permissions or request.session.role_id == 1 %}
-            <li class=""><a href="{% url 'ndvi_monitoring' %}"><i class="fa-solid fa-satellite-dish"></i> NDVI
+            <li class=""><a href="{% url 'ndvi_dashboard' %}"><i class="fa-solid fa-satellite-dish"></i> NDVI
                     Monitoring</a></li>
             {% endif %}
             {% if 'scouting' in request.session.permissions or request.session.role_id == 1 %}
-            <li class=""><a href="{% url 'scouting' %}"><i class="fa-solid fa-clipboard-check"></i> Scouting</a></li>
+            <li class=""><a href="{% url 'scout_management' %}"><i class="fa-solid fa-clipboard-check"></i> Scouting</a></li>
             {% endif %}
             {% if 'reports' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'reports' %}"><i class="fa-solid fa-triangle-exclamation"></i> Reports</a></li>
@@ -450,6 +457,14 @@
     </script>
     {% block scripts %}
     {% endblock %}
+    <script>
+        document.addEventListener("turbo:load", function() {
+            if (window._turboLoaded) {
+                window.dispatchEvent(new Event('DOMContentLoaded'));
+            }
+            window._turboLoaded = true;
+        });
+    </script>
 </body>
 
 </html>

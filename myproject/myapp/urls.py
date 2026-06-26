@@ -8,7 +8,7 @@ urlpatterns = [
     path('officers/', views.officers, name='officers'),
     path('field_intelligence/', views.field_intelligence, name='field_intelligence'),
     path('analytics/', views.analytics, name='analytics'),
-    path('ndvi_monitoring/', views.ndvi_monitoring, name='ndvi_monitoring'),
+
     path('scouting/', views.scouting, name='scouting'),
     path('scout_logs/', views.scout_logs, name='scout_logs'),
     path('edit_scout_log/<int:id>/', views.edit_scout_log, name='edit_scout_log'),
@@ -84,4 +84,8 @@ urlpatterns = [
     path('api/field_intelligence_plots/', mobile_api_views.api_field_intelligence_plots, name='api_field_intelligence_plots'),
     path('api/surveys/', mobile_api_views.api_surveys, name='api_surveys'),
     path('api/update_survey/', mobile_api_views.api_update_survey, name='api_update_survey'),
+
+    path('ndvi_dashboard/', views.ndvi_dashboard, name='ndvi_dashboard'),
+    path('scout_management/', views.scout_management, name='scout_management'),
+    path('assign_scout/', views.assign_scout, name='assign_scout'),
 ]

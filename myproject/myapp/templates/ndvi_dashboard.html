@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+
+{% block title %}NDVI Dashboard{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .dashboard-header {
+        background-color: #2c3e50;
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #map {
+        height: 500px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .plot-card {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 15px;
+    }
+
+    .status-Healthy {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .status-Moderate {
+        color: #ffc107;
+        font-weight: bold;
+    }
+
+    .status-Critical {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .btn-mock {
+        background-color: #1abc9c;
+        color: white;
+        border: none;
+    }
+
+    .btn-mock:hover {
+        background-color: #16a085;
+        color: white;
+    }
+
+    @keyframes blink {
+        0% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.3;
+            transform: scale(1.2);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .blinking-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        animation: blink 1.5s infinite ease-in-out;
+    }
+
+    .custom-div-icon {
+        background: transparent;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block header_title %}NDVI Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="dashboard-header">
+        <h2>🛰️ Plot Health Monitoring Dashboard</h2>
+        <div>
+            <a href="{% url 'scout_management' %}" class="btn btn-light me-2">Manage Scouts</a>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- Interactive Map -->
+        <div class="col-md-8">
+            <div id="map"></div>
+        </div>
+
+        <!-- Plot List -->
+        <div class="col-md-4" style="height: 500px; overflow-y: auto;">
+            <h4>Plot Health Status</h4>
+            {% for plot in plots %}
+            <div class="plot-card">
+                <h5>{{ plot.plot_code }}</h5>
+                <p class="mb-1">Farmer: {{ plot.farmer }}</p>
+                <p class="mb-1">NDVI: <strong>{{ plot.ndvi_value }}</strong></p>
+                <p class="mb-0">Status: <span class="status-{{ plot.health_status }}">{{ plot.health_status }}</span>
+                </p>
+                <p class="text-muted small mt-2 mb-0">Last updated: {{ plot.date }}</p>
+            </div>
+            {% empty %}
+            <p class="text-muted">No plot data available with location coordinates.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script>
+    function isPointInPolygon(point, vs) {
+        var x = point[0], y = point[1];
+        var inside = false;
+        for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+            var xi = vs[i][0], yi = vs[i][1];
+            var xj = vs[j][0], yj = vs[j][1];
+            var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    function seededRandom(seed) {
+        var x = Math.sin(seed) * 10000;
+        return x - Math.floor(x);
+    }
+
+    const map = L.map('map').setView([20.5937, 78.9629], 5); // Default center India
+
+    // Use Real Satellite Map from ESRI
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    }).addTo(map);
+
+    const plotData = {{ plot_data_json| safe }};
+
+    if (plotData.length > 0) {
+        const bounds = [];
+
+        plotData.forEach(plot => {
+            let color = 'green';
+            if (plot.health_status === 'Moderate') color = '#ffc107'; // yellow
+            if (plot.health_status === 'Critical') color = 'red';
+
+            // Function to handle popup and fetch real-time data
+            const handlePopup = (layer) => {
+                const popupId = `weather-${plot.plot_code.replace(/[^a-zA-Z0-9]/g, '')}`;
+                let weatherHtml = `<i><i class="fa-solid fa-spinner fa-spin"></i> Fetching real-time plot data...</i>`;
+                let dataFetched = false;
+
+                // Bind initial popup so it exists
+                layer.bindPopup('');
+
+                layer.on('mouseover', function (e) {
+                    const popupContent = `
+                        <div style="min-width: 200px;">
+                            <b>${plot.plot_code}</b><br>
+                            Farmer: ${plot.farmer}<br>
+                            NDVI Status: <span style="color:${color}; font-weight:bold;">${plot.health_status}</span><br>
+                            <hr style="margin:8px 0;">
+                            <div id="${popupId}" style="font-size: 0.9em; background: #f8f9fa; padding: 5px; border-radius: 4px; color: #333;">
+                                ${weatherHtml}
+                            </div>
+                        </div>
+                    `;
+                    this.setPopupContent(popupContent);
+                    this.openPopup();
+
+                    // Fetch real-time weather and environment data from Open-Meteo (Free, No API Key needed)
+                    if (plot.lat && plot.lng && !dataFetched) {
+                        dataFetched = true;
+                        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${plot.lat}&longitude=${plot.lng}&current=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m`)
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.current) {
+                                    const curr = data.current;
+                                    weatherHtml = `
+                                        <b style="color:#2c3e50;">Real-time Field Conditions:</b><br>
+                                        🌡️ Temp: <b>${curr.temperature_2m} °C</b><br>
+                                        💧 Humidity: <b>${curr.relative_humidity_2m} %</b><br>
+                                        🌧️ Precipitation: <b>${curr.precipitation} mm</b><br>
+                                        💨 Wind: <b>${curr.wind_speed_10m} km/h</b><br>
+                                        <small style="color:#666; display:block; margin-top:5px;">Source: Open-Meteo</small>
+                                    `;
+                                    const weatherEl = document.getElementById(popupId);
+                                    if (weatherEl) {
+                                        weatherEl.innerHTML = weatherHtml;
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                weatherHtml = `<small style="color:red">Failed to fetch real-time data</small>`;
+                                const weatherEl = document.getElementById(popupId);
+                                if (weatherEl) {
+                                    weatherEl.innerHTML = weatherHtml;
+                                }
+                            });
+                    }
+                });
+            };
+
+            let latlngs = [];
+            if (plot.boundaries && plot.boundaries.length > 0) {
+                latlngs = plot.boundaries.map(pt => {
+                    if (Array.isArray(pt) && pt.length >= 2) return [parseFloat(pt[0]), parseFloat(pt[1])];
+                    if (pt.lat !== undefined && pt.lng !== undefined) return [parseFloat(pt.lat), parseFloat(pt.lng)];
+                    if (pt.point1 !== undefined && pt.pont2 !== undefined) return [parseFloat(pt.point1), parseFloat(pt.pont2)];
+                    if (pt.point1 !== undefined && pt.point2 !== undefined) return [parseFloat(pt.point1), parseFloat(pt.point2)];
+                    // Fallback to extract any two numeric values
+                    if (typeof pt === 'object') {
+                        const vals = Object.values(pt).filter(v => !isNaN(parseFloat(v)));
+                        if (vals.length >= 2) return [parseFloat(vals[0]), parseFloat(vals[1])]; // Note: order might be wrong here
+                    }
+                    return null;
+                }).filter(pt => pt !== null && !isNaN(pt[0]) && !isNaN(pt[1]));
+            }
+
+            if (latlngs.length > 0) {
+                const polygon = L.polygon(latlngs, {
+                    color: 'white',
+                    fillOpacity: 0.0,
+                    weight: 2
+                }).addTo(map);
+
+                // Generate Heatmap points inside the polygon
+                const polyBounds = polygon.getBounds();
+                const sw = polyBounds.getSouthWest();
+                const ne = polyBounds.getNorthEast();
+                const latStep = (ne.lat - sw.lat) / 15;
+                const lngStep = (ne.lng - sw.lng) / 15;
+
+                let seed = plot.plot_code.charCodeAt(plot.plot_code.length - 1) || 1;
+                let plotHeatPoints = [];
+
+                for (let i = 0; i <= 15; i++) {
+                    for (let j = 0; j <= 15; j++) {
+                        let ptLat = sw.lat + i * latStep;
+                        let ptLng = sw.lng + j * lngStep;
+
+                        if (isPointInPolygon([ptLat, ptLng], latlngs)) {
+                            // High base intensity, we will control colors with gradient instead
+                            let intensity = 0.5 + seededRandom(seed++) * 0.5;
+                            plotHeatPoints.push([ptLat, ptLng, intensity]);
+                        }
+                    }
+                }
+
+                let plotGradient = {};
+                if (plot.health_status === 'Healthy') {
+                    plotGradient = { 0.0: '#28a745', 1.0: '#1e7e34' }; // Stays completely green
+                } else if (plot.health_status === 'Moderate') {
+                    plotGradient = { 0.3: '#28a745', 1.0: '#ffc107' }; // Green to yellow
+                } else {
+                    plotGradient = { 0.2: '#28a745', 0.6: '#ffc107', 1.0: '#dc3545' }; // Green to red
+                }
+
+                if (plotHeatPoints.length > 0) {
+                    L.heatLayer(plotHeatPoints, {
+                        radius: 25,
+                        blur: 20,
+                        maxZoom: 19,
+                        max: 5.0, // Prevent rapid saturation
+                        gradient: plotGradient
+                    }).addTo(map);
+                }
+
+                const center = polygon.getBounds().getCenter();
+                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="blinking-dot" style="background-color: ${color};"></div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+                const blinkingMarker = L.marker(center, { icon: icon }).addTo(map);
+
+                handlePopup(polygon);
+                handlePopup(blinkingMarker);
+
+                latlngs.forEach(pt => bounds.push(pt));
+            } else if (plot.lat && plot.lng) {
+                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="blinking-dot" style="background-color: ${color};"></div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+                const blinkingMarker = L.marker([plot.lat, plot.lng], { icon: icon }).addTo(map);
+
+                handlePopup(blinkingMarker);
+                bounds.push([plot.lat, plot.lng]);
+            }
+        });
+
+        if (bounds.length > 0) {
+            map.fitBounds(bounds);
+        }
+    }
+</script>
+{% endblock %}

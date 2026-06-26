@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Scout Management{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    body {
+        background-color: #f4f6f9;
+    }
+
+    .stat-card {
+        border-radius: 8px;
+        padding: 20px;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .bg-pending {
+        background-color: #f39c12;
+    }
+
+    .bg-assigned {
+        background-color: #3498db;
+    }
+
+    .bg-completed {
+        background-color: #2ecc71;
+    }
+
+    .bg-critical {
+        background-color: #e74c3c;
+    }
+
+    .table-container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .badge-High {
+        background-color: #dc3545;
+    }
+
+    .badge-Medium {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .badge-Low {
+        background-color: #17a2b8;
+    }
+</style>
+{% endblock %}
+
+{% block header_title %}Scout Management{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📋 Scout Management</h2>
+        <a href="{% url 'ndvi_dashboard' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to
+            NDVI</a>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-info">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Stat Cards -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card bg-pending">
+                <h3>{{ pending_scouts }}</h3>
+                <p class="mb-0">Pending Assignment</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-assigned">
+                <h3>{{ assigned_scouts }}</h3>
+                <p class="mb-0">Assigned</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-completed">
+                <h3>{{ completed_scouts }}</h3>
+                <p class="mb-0">Completed</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-critical">
+                <h3>{{ critical_alerts }}</h3>
+                <p class="mb-0">Critical Alerts</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scouts Table -->
+    <div class="table-container mt-4">
+        <h4 class="mb-3">Recent Scout Alerts</h4>
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Scout ID</th>
+                    <th>Plot</th>
+                    <th>Farmer</th>
+                    <th>Alert Reason</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Assigned To</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scout in scouts %}
+                <tr>
+                    <td><strong>{{ scout.scout_id }}</strong></td>
+                    <td>{{ scout.plot.plot_code }}</td>
+                    <td>{{ scout.plot.farmer.name }}</td>
+                    <td>{{ scout.alert_reason }}</td>
+                    <td><span class="badge badge-{{ scout.priority }}">{{ scout.priority }}</span></td>
+                    <td>
+                        {% if scout.status == 'Pending Assignment' %}
+                        <span class="badge bg-warning text-dark">{{ scout.status }}</span>
+                        {% elif scout.status == 'Completed' %}
+                        <span class="badge bg-success">{{ scout.status }}</span>
+                        {% else %}
+                        <span class="badge bg-primary">{{ scout.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if scout.assignment %}
+                        {{ scout.assignment.officer.name }}
+                        {% else %}
+                        <em class="text-muted">Unassigned</em>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if scout.status == 'Pending Assignment' %}
+                        <button type="button" class="btn btn-sm btn-outline-primary assign-btn" data-bs-toggle="modal"
+                            data-bs-target="#assignModal" data-scout-id="{{ scout.id }}"
+                            data-scout-code="{{ scout.scout_id }}">
+                            Assign
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No scouts available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'assign_scout' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Assign Scout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Assigning: <strong id="modal-scout-code"></strong></p>
+                    <input type="hidden" name="scout_id" id="modal-scout-id">
+
+                    <div class="mb-3">
+                        <label>Select Field Officer</label>
+                        <select name="officer_id" class="form-select" required>
+                            <option value="">-- Choose Officer --</option>
+                            {% for officer in officers %}
+                            <option value="{{ officer.id }}">{{ officer.name }} ({{ officer.user_id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const assignButtons = document.querySelectorAll('.assign-btn');
+        assignButtons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const scoutId = this.getAttribute('data-scout-id');
+                const scoutCode = this.getAttribute('data-scout-code');
+                document.getElementById('modal-scout-id').value = scoutId;
+                document.getElementById('modal-scout-code').textContent = scoutCode;
+            });
+        });
+    });
+</script>
+{% endblock %}

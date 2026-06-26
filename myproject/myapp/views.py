@@ -455,8 +455,6 @@ def field_intelligence(request):
 def analytics(request):
     return render(request, 'analytics.html')
 
-def ndvi_monitoring(request):
-    return render(request, 'ndvi_monitoring.html')
 
 def scouting(request):
     # Fetch allowed plots for dropdown
@@ -1738,3 +1736,140 @@ def delete_soil_type(request, id):
     soil_type = get_object_or_404(SoilType, id=id)
     soil_type.delete()
     return redirect('soil_types')
+
+
+# ==========================================
+# NDVI Monitoring & Scout Management
+# ==========================================
+
+from .models import NDVIRecord, Scout, ScoutAssignment, ScoutSurveyReport
+
+def ndvi_dashboard(request):
+    from django.db.models import Q
+    plots = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).distinct()
+    
+    plot_data = []
+    for plot in plots:
+        latest_scout = plot.scouting_logs.order_by('-created_at').first()
+        latest_ndvi = plot.ndvi_records.order_by('-date_recorded').first()
+        
+        health_status = 'Healthy'
+        ndvi_display = 'N/A'
+        date_display = 'No records'
+        
+        # Check NDVI records first (if any real data exists)
+        if latest_ndvi:
+            ndvi_display = str(latest_ndvi.ndvi_value)
+            health_status = latest_ndvi.health_status
+            date_display = str(latest_ndvi.date_recorded)
+            
+        # Scouting Log overrides health status if disease/pest is found
+        if latest_scout:
+            if latest_scout.disease_presence:
+                health_status = 'Critical'
+            elif latest_scout.pest_presence or latest_scout.water_stress_symptoms or latest_scout.nutrient_deficiency:
+                health_status = 'Moderate'
+            
+            if date_display == 'No records':
+                date_display = str(latest_scout.created_at.date())
+                
+        # If there's no data at all, maybe default to Healthy or Unknown
+        
+        lat = None
+        lng = None
+        if isinstance(plot.center_lt_ln, dict):
+            lat = plot.center_lt_ln.get('lat', 0)
+            lng = plot.center_lt_ln.get('lng', 0)
+        elif plot.center_lt_ln:
+            try:
+                import json
+                parsed = json.loads(plot.center_lt_ln)
+                if isinstance(parsed, dict):
+                    lat = parsed.get('lat', 0)
+                    lng = parsed.get('lng', 0)
+                elif isinstance(parsed, list) and len(parsed) >= 2:
+                    lat = float(parsed[0])
+                    lng = float(parsed[1])
+            except:
+                pass
+                
+        if lat is None or lng is None:
+            lat = plot.latitude
+            lng = plot.longitude
+            
+        boundaries = plot.boundaries
+        if isinstance(boundaries, str):
+            try:
+                import json
+                boundaries = json.loads(boundaries)
+            except:
+                pass
+        
+        plot_data.append({
+            'plot_code': plot.plot_code,
+            'farmer': plot.farmer.name if plot.farmer else '',
+            'lat': lat,
+            'lng': lng,
+            'boundaries': boundaries,
+            'ndvi_value': ndvi_display,
+            'health_status': health_status,
+            'date': date_display
+        })
+
+    import json
+    context = {
+        'plots': plot_data,
+        'plot_data_json': json.dumps(plot_data)
+    }
+    return render(request, 'ndvi_dashboard.html', context)
+
+
+def scout_management(request):
+    scouts = Scout.objects.all().order_by('-created_at')
+    officers = Officer.objects.all()
+    
+    total_scouts = scouts.count()
+    pending_scouts = scouts.filter(status='Pending Assignment').count()
+    assigned_scouts = scouts.filter(status='Assigned').count()
+    completed_scouts = scouts.filter(status='Completed').count()
+    critical_alerts = scouts.filter(priority='High').count()
+
+    context = {
+        'scouts': scouts,
+        'officers': officers,
+        'total_scouts': total_scouts,
+        'pending_scouts': pending_scouts,
+        'assigned_scouts': assigned_scouts,
+        'completed_scouts': completed_scouts,
+        'critical_alerts': critical_alerts,
+    }
+    return render(request, 'scout_management.html', context)
+
+def assign_scout(request):
+    if request.method == 'POST':
+        scout_id = request.POST.get('scout_id')
+        officer_id = request.POST.get('officer_id')
+        notes = request.POST.get('notes', '')
+
+        try:
+            scout = Scout.objects.get(id=scout_id)
+            officer = Officer.objects.get(id=officer_id)
+            
+            # Create or update assignment
+            assignment, created = ScoutAssignment.objects.update_or_create(
+                scout=scout,
+                defaults={'officer': officer, 'notes': notes}
+            )
+            
+            # Update Scout status
+            scout.status = 'Assigned'
+            scout.save()
+            
+            messages.success(request, f'Scout {scout.scout_id} assigned to {officer.name}.')
+        except Exception as e:
+            messages.error(request, f'Error assigning scout: {str(e)}')
+            
+    return redirect('scout_management')
+
+
+

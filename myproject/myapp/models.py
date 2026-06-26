@@ -522,3 +522,66 @@ class SurveyResult(models.Model):
 
     def __str__(self):
         return f"Result for {self.survey.survey_id}"
+
+
+class NDVIRecord(models.Model):
+    plot = models.ForeignKey(Plot, on_delete=models.CASCADE, related_name="ndvi_records")
+    date_recorded = models.DateField()
+    ndvi_value = models.DecimalField(max_digits=5, decimal_places=4)
+    cloud_cover = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    health_status = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ndvi_record"
+        ordering = ['-date_recorded']
+
+    def __str__(self):
+        return f"{self.plot.plot_code} - {self.date_recorded} ({self.ndvi_value})"
+
+class Scout(models.Model):
+    scout_id = models.CharField(max_length=50, unique=True, blank=True)
+    plot = models.ForeignKey(Plot, on_delete=models.CASCADE, related_name="scouts")
+    ndvi_value = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    alert_reason = models.TextField()
+    priority = models.CharField(max_length=20, default='Medium')
+    status = models.CharField(max_length=50, default='Pending Assignment') 
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "scout"
+
+    def save(self, *args, **kwargs):
+        if not self.scout_id:
+            last_scout = Scout.objects.all().order_by('id').last()
+            if last_scout:
+                self.scout_id = f"SCT-{last_scout.id + 1:04d}"
+            else:
+                self.scout_id = "SCT-0001"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.scout_id} - {self.plot.plot_code}"
+
+class ScoutAssignment(models.Model):
+    scout = models.OneToOneField(Scout, on_delete=models.CASCADE, related_name="assignment")
+    officer = models.ForeignKey(Officer, on_delete=models.CASCADE, related_name="assigned_scouts")
+    assigned_date = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = "scout_assignment"
+
+class ScoutSurveyReport(models.Model):
+    scout = models.OneToOneField(Scout, on_delete=models.CASCADE, related_name="survey_report")
+    officer = models.ForeignKey(Officer, on_delete=models.CASCADE, related_name="scout_reports")
+    field_photo1 = models.ImageField(upload_to='scout_photos/', blank=True, null=True)
+    field_photo2 = models.ImageField(upload_to='scout_photos/', blank=True, null=True)
+    observations = models.TextField(blank=True, null=True)
+    pest_details = models.TextField(blank=True, null=True)
+    disease_details = models.TextField(blank=True, null=True)
+    recommendation = models.TextField(blank=True, null=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "scout_survey_report"
