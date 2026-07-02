@@ -195,6 +195,22 @@ def dashboard(request):
     else:
         selected_group_id = request.GET.get('group', 'all')
         all_selected = (selected_group_id == 'all')
+
+    if 'factory' in request.GET:
+        selected_factory_id = request.GET.get('factory', 'all')
+        request.session['active_factory_id'] = selected_factory_id
+    else:
+        selected_factory_id = request.session.get('active_factory_id', 'all')
+
+    if selected_factory_id != 'all':
+        try:
+            fac = Factory.objects.get(id=selected_factory_id)
+            if fac.group_id:
+                selected_group_id = str(fac.group_id)
+                all_selected = False
+        except:
+            selected_factory_id = 'all'
+
     for group in groups:
         group.is_selected = (str(group.id) == selected_group_id)
         
@@ -202,11 +218,7 @@ def dashboard(request):
     divisions = []
     sections = []
 
-    if 'factory' in request.GET:
-        selected_factory_id = request.GET.get('factory', 'all')
-        request.session['active_factory_id'] = selected_factory_id
-    else:
-        selected_factory_id = request.session.get('active_factory_id', 'all')
+
 
     selected_division_id = request.GET.get('division', 'all')
     selected_section_id = request.GET.get('section', 'all')
@@ -270,29 +282,6 @@ def dashboard(request):
             
         groups_count = 1
         
-        context = {
-            'groups': groups,
-            'all_selected': all_selected,
-            'total_plots': 45,
-            'mapped': 30,
-            'unmapped': 15,
-            'avg_ndvi': 0.65,
-            'need_attention': 4,
-            'damage_reports': 1,
-            'overdue_scouts': 2,
-            'groups_count': groups_count,
-            'factories_count': factories_count,
-            'divisions_count': divisions_count,
-            'sections_count': sections_count,
-            'farmers_count': farmers_count,
-            'officers_count': officers_count,
-            'factories': factories,
-            'divisions': divisions,
-            'sections': sections,
-            'all_factories_selected': all_factories_selected,
-            'all_divisions_selected': all_divisions_selected,
-            'all_sections_selected': all_sections_selected,
-        }
     else:
         # Dynamic counts for all groups
         if not is_superadmin:
@@ -302,7 +291,6 @@ def dashboard(request):
             factories = list(Factory.objects.all())
         divisions = list(Division.objects.filter(factory_name__in=factories)) if not is_superadmin else list(Division.objects.all())
         sections = list(Section.objects.filter(division__in=divisions)) if not is_superadmin else list(Section.objects.all())
-        
         
         groups_count = len(groups)
         factories_count = len(factories)
@@ -314,31 +302,125 @@ def dashboard(request):
         else:
             valid_div_ids = set(str(d.id) for d in divisions)
             officers_count = sum(1 for o in Officer.objects.all() if any(div_id in valid_div_ids for div_id in (o.division_ids or "").split(',')))
-        
 
-        context = {
-            'groups': groups,
-            'all_selected': all_selected,
-            'total_plots': 124,
-            'mapped': 98,
-            'unmapped': 18,
-            'avg_ndvi': 0.72,
-            'need_attention': 12,
-            'damage_reports': 5,
-            'overdue_scouts': 8,
-            'groups_count': groups_count,
-            'factories_count': factories_count,
-            'divisions_count': divisions_count,
-            'sections_count': sections_count,
-            'farmers_count': farmers_count,
-            'officers_count': officers_count,
-            'factories': factories,
-            'divisions': divisions,
-            'sections': sections,
-            'all_factories_selected': True,
-            'all_divisions_selected': True,
-            'all_sections_selected': True,
-        }
+    # Calculate real data metrics for the dashboard
+    from django.db.models import Avg, Q
+    if selected_section_id != 'all':
+        plots_qs = Plot.objects.filter(farmer__section_id=selected_section_id)
+    elif selected_division_id != 'all':
+        plots_qs = Plot.objects.filter(farmer__section__division_id=selected_division_id)
+    elif selected_factory_id != 'all':
+        plots_qs = Plot.objects.filter(farmer__section__division__factory_name_id=selected_factory_id)
+    elif not all_selected:
+        plots_qs = Plot.objects.filter(farmer__section__division__factory_name__group_id=selected_group_id)
+    elif not is_superadmin:
+        allowed_f_ids = [f.id for f in factories]
+        plots_qs = Plot.objects.filter(farmer__section__division__factory_name_id__in=allowed_f_ids)
+    else:
+        plots_qs = Plot.objects.all()
+
+    total_plots = plots_qs.count()
+    mapped = plots_qs.filter(Q(boundaries__isnull=False) & ~Q(boundaries='')).count()
+    unmapped = total_plots - mapped
+
+    avg_ndvi_val = NDVIRecord.objects.filter(plot__in=plots_qs).aggregate(Avg('ndvi_value'))['ndvi_value__avg']
+    avg_ndvi = round(avg_ndvi_val, 2) if avg_ndvi_val else 0.0
+
+    need_attention = NDVIRecord.objects.filter(plot__in=plots_qs, health_status='Critical').values('plot').distinct().count()
+    damage_reports = ScoutSurveyReport.objects.filter(scout__plot__in=plots_qs).exclude(pest_details='', disease_details='').count()
+    overdue_scouts = Scout.objects.filter(plot__in=plots_qs, status='Pending Assignment').count()
+
+    # Charts Data
+    from datetime import date, timedelta
+    import calendar
+    today = date.today()
+    six_months_ago = today.replace(day=1) - timedelta(days=5*30)
+    six_months_ago = six_months_ago.replace(day=1)
+    
+    plot_ids = [p.id for p in plots_qs]
+    
+    ndvi_records = NDVIRecord.objects.filter(plot_id__in=plot_ids, date_recorded__gte=six_months_ago)
+    monthly_ndvi = {}
+    
+    for i in range(5, -1, -1):
+        d = today - timedelta(days=i*30)
+        month_key = f"{d.year}-{d.month:02d}"
+        month_label = calendar.month_abbr[d.month]
+        monthly_ndvi[month_key] = {'label': month_label, 'total': 0, 'count': 0}
+        
+    for rec in ndvi_records:
+        month_key = f"{rec.date_recorded.year}-{rec.date_recorded.month:02d}"
+        if month_key in monthly_ndvi:
+            monthly_ndvi[month_key]['total'] += float(rec.ndvi_value)
+            monthly_ndvi[month_key]['count'] += 1
+            
+    ndvi_trend_labels = []
+    ndvi_trend_data = []
+    for key in sorted(monthly_ndvi.keys()):
+        ndvi_trend_labels.append(monthly_ndvi[key]['label'])
+        avg_val = monthly_ndvi[key]['total'] / monthly_ndvi[key]['count'] if monthly_ndvi[key]['count'] > 0 else 0
+        ndvi_trend_data.append(round(avg_val, 2))
+
+    health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
+    for plot in plots_qs:
+        latest_scout = plot.scouting_logs.order_by('-created_at').first()
+        latest_ndvi = plot.ndvi_records.order_by('-date_recorded').first()
+        
+        health_status = 'Healthy'
+        if latest_ndvi:
+            health_status = latest_ndvi.health_status
+        if latest_scout:
+            if latest_scout.disease_presence:
+                health_status = 'Critical'
+            elif latest_scout.pest_presence or latest_scout.water_stress_symptoms or latest_scout.nutrient_deficiency:
+                health_status = 'Moderate'
+        if health_status in health_counts:
+            health_counts[health_status] += 1
+            
+    scout_completed = Scout.objects.filter(plot_id__in=plot_ids, status='Completed').count()
+    scout_pending = Scout.objects.filter(plot_id__in=plot_ids, status='Pending Assignment').count()
+    scout_assigned = Scout.objects.filter(plot_id__in=plot_ids, status='Assigned').count()
+    scout_status_data = [scout_completed, scout_pending, scout_assigned]
+
+    surveys = Survey.objects.filter(plot_id__in=plot_ids)
+    total_surveys = surveys.count()
+    completed_surveys = sum(1 for s in surveys if s.status == 'Completed')
+    if total_surveys > 0:
+        survey_completed_perc = int((completed_surveys / total_surveys) * 100)
+    else:
+        survey_completed_perc = 100 if plot_ids else 0
+    survey_completion_data = [survey_completed_perc, 100 - survey_completed_perc]
+
+    import json
+    context = {
+        'groups': groups,
+        'all_selected': all_selected,
+        'total_plots': total_plots,
+        'mapped': mapped,
+        'unmapped': unmapped,
+        'avg_ndvi': avg_ndvi,
+        'need_attention': need_attention,
+        'damage_reports': damage_reports,
+        'overdue_scouts': overdue_scouts,
+        'groups_count': groups_count,
+        'factories_count': factories_count,
+        'divisions_count': divisions_count,
+        'sections_count': sections_count,
+        'farmers_count': farmers_count,
+        'officers_count': officers_count,
+        'factories': factories,
+        'divisions': divisions,
+        'sections': sections,
+        'all_factories_selected': selected_factory_id == 'all',
+        'all_divisions_selected': selected_division_id == 'all',
+        'all_sections_selected': selected_section_id == 'all',
+        'ndvi_trend_labels_json': json.dumps(ndvi_trend_labels),
+        'ndvi_trend_data_json': json.dumps(ndvi_trend_data),
+        'health_counts_json': json.dumps([health_counts['Healthy'], health_counts['Moderate'], health_counts['Critical']]),
+        'scout_status_data_json': json.dumps(scout_status_data),
+        'survey_completion_data_json': json.dumps(survey_completion_data),
+        'survey_perc': survey_completed_perc
+    }
     hierarchy_data = []
     active_groups = groups if all_selected else [g for g in groups if str(g.id) == selected_group_id]
     
@@ -373,10 +455,23 @@ def dashboard(request):
     context['active_factory_id'] = selected_factory_id
 
     user_id = request.session.get('user_id')
-    if is_superadmin:
-        work_assigns_count = WorkAssign.objects.count()
-    else:
-        work_assigns_count = WorkAssign.objects.filter(officer__user_id=user_id).count()
+    wa_qs = WorkAssign.objects.all()
+    if selected_section_id != 'all':
+        wa_qs = wa_qs.filter(section_id=selected_section_id)
+    elif selected_division_id != 'all':
+        wa_qs = wa_qs.filter(section__division_id=selected_division_id)
+    elif selected_factory_id != 'all':
+        wa_qs = wa_qs.filter(section__division__factory_name_id=selected_factory_id)
+    elif not all_selected:
+        wa_qs = wa_qs.filter(section__division__factory_name__group_id=selected_group_id)
+    elif not is_superadmin:
+        allowed_f_ids = [f.id for f in factories]
+        wa_qs = wa_qs.filter(section__division__factory_name_id__in=allowed_f_ids)
+
+    if not is_superadmin:
+        wa_qs = wa_qs.filter(officer__user_id=user_id)
+        
+    work_assigns_count = wa_qs.count()
     context['work_assigns_count'] = work_assigns_count
 
     return render(request, 'dashboard.html', context)
@@ -1488,10 +1583,34 @@ def work_assigns(request):
     if 'user_id' not in request.session:
         return redirect('index')
 
-    work_list = WorkAssign.objects.all()
-    # If we need factory/group filtering we can add it here. For now show all.
+    wa_qs = WorkAssign.objects.all()
+    
+    selected_group_id = request.GET.get('group', 'all')
+    selected_factory_id = request.GET.get('factory', 'all')
+    selected_division_id = request.GET.get('division', 'all')
+    selected_section_id = request.GET.get('section', 'all')
+    is_superadmin = (str(request.session.get('role_id')) == '1')
+    logged_group_id = request.session.get('group_id')
+    
+    if not is_superadmin and logged_group_id:
+        selected_group_id = str(logged_group_id)
 
-    return render(request, 'work_assigns.html', {'work_assigns': work_list})
+    if selected_section_id != 'all':
+        wa_qs = wa_qs.filter(section_id=selected_section_id)
+    elif selected_division_id != 'all':
+        wa_qs = wa_qs.filter(section__division_id=selected_division_id)
+    elif selected_factory_id != 'all':
+        wa_qs = wa_qs.filter(section__division__factory_name_id=selected_factory_id)
+    elif selected_group_id != 'all':
+        wa_qs = wa_qs.filter(section__division__factory_name__group_id=selected_group_id)
+    elif not is_superadmin:
+        allowed_f_ids = [int(x.strip()) for x in request.session.get('factory_ids', '').split(',') if x.strip().isdigit()]
+        wa_qs = wa_qs.filter(section__division__factory_name_id__in=allowed_f_ids)
+
+    if not is_superadmin:
+        wa_qs = wa_qs.filter(officer__user_id=request.session.get('user_id'))
+
+    return render(request, 'work_assigns.html', {'work_assigns': wa_qs})
 
 def add_work_assign(request):
     if 'user_id' not in request.session:
@@ -1745,10 +1864,181 @@ def delete_soil_type(request, id):
 from .models import NDVIRecord, Scout, ScoutAssignment, ScoutSurveyReport
 
 def ndvi_dashboard(request):
-    from django.db.models import Q
-    plots = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).distinct()
+    from django.db.models import Q, Avg, Count
+    from datetime import date, timedelta
+    import calendar
+
+    logged_group_id = request.session.get('group_id')
+    role_name = request.session.get('role_name', '').lower()
+    is_superadmin = (str(request.session.get('role_id')) == '1')
     
+    # 1. Handle Filters (Group, Factory, Division, Section)
+    try:
+        if is_superadmin or not logged_group_id:
+            groups = list(Group.objects.all())
+        else:
+            groups = list(Group.objects.filter(id=logged_group_id))
+    except Exception as e:
+        groups = []
+        
+    if not is_superadmin and logged_group_id:
+        selected_group_id = str(logged_group_id)
+        all_selected = False
+    else:
+        selected_group_id = request.GET.get('group', 'all')
+        all_selected = (selected_group_id == 'all')
+
+    if 'factory' in request.GET:
+        selected_factory_id = request.GET.get('factory', 'all')
+        request.session['active_factory_id'] = selected_factory_id
+    else:
+        selected_factory_id = request.session.get('active_factory_id', 'all')
+
+    if selected_factory_id != 'all':
+        try:
+            fac = Factory.objects.get(id=selected_factory_id)
+            if fac.group_id:
+                selected_group_id = str(fac.group_id)
+                all_selected = False
+        except:
+            selected_factory_id = 'all'
+            
+    for group in groups:
+        group.is_selected = (str(group.id) == selected_group_id)
+
+    factories = []
+    divisions = []
+    sections = []
+
+
+
+    selected_division_id = request.GET.get('division', 'all')
+    selected_section_id = request.GET.get('section', 'all')
+
+    if not all_selected:
+        if not is_superadmin:
+            allowed_factories_qs = get_allowed_factories(request)
+            factories = list(allowed_factories_qs.filter(group_id=selected_group_id))
+        else:
+            factories = list(Factory.objects.filter(group_id=selected_group_id))
+        
+        if selected_factory_id != 'all' and not any(str(f.id) == selected_factory_id for f in factories):
+            selected_factory_id = 'all'
+
+        if selected_factory_id != 'all':
+            divisions = list(Division.objects.filter(factory_name_id=selected_factory_id))
+        else:
+            divisions = list(Division.objects.filter(factory_name__group_id=selected_group_id))
+            
+        if selected_division_id != 'all' and not any(str(d.id) == selected_division_id for d in divisions):
+            selected_division_id = 'all'
+            
+        if selected_division_id != 'all':
+            sections = list(Section.objects.filter(division_id=selected_division_id))
+        else:
+            if selected_factory_id != 'all':
+                sections = list(Section.objects.filter(division__factory_name_id=selected_factory_id))
+            else:
+                sections = list(Section.objects.filter(division__factory_name__group_id=selected_group_id))
+                
+        if selected_section_id != 'all' and not any(str(s.id) == selected_section_id for s in sections):
+            selected_section_id = 'all'
+    else:
+        if not is_superadmin:
+            allowed_factories_qs = get_allowed_factories(request)
+            factories = list(allowed_factories_qs)
+        else:
+            factories = list(Factory.objects.all())
+        divisions = list(Division.objects.filter(factory_name__in=factories)) if not is_superadmin else list(Division.objects.all())
+        sections = list(Section.objects.filter(division__in=divisions)) if not is_superadmin else list(Section.objects.all())
+
+    for f in factories:
+        f.is_selected = (str(f.id) == selected_factory_id)
+    for d in divisions:
+        d.is_selected = (str(d.id) == selected_division_id)
+    for s in sections:
+        s.is_selected = (str(s.id) == selected_section_id)
+
+    # Base Plot Query with Filters
+    plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).distinct()
+    
+    if selected_section_id != 'all':
+        plots_query = plots_query.filter(farmer__section_id=selected_section_id)
+    elif selected_division_id != 'all':
+        plots_query = plots_query.filter(farmer__section__division_id=selected_division_id)
+    elif selected_factory_id != 'all':
+        plots_query = plots_query.filter(farmer__section__division__factory_name_id=selected_factory_id)
+    elif not all_selected:
+        plots_query = plots_query.filter(farmer__section__division__factory_name__group_id=selected_group_id)
+    elif not is_superadmin:
+        allowed_f_ids = get_allowed_factories(request).values_list('id', flat=True)
+        plots_query = plots_query.filter(farmer__section__division__factory_name_id__in=allowed_f_ids)
+
+    plots = list(plots_query)
+
+    # Hierarchy Data
+    hierarchy_data = []
+    active_groups = groups if all_selected else [g for g in groups if str(g.id) == selected_group_id]
+    
+    for g in active_groups:
+        group_factories = [f for f in factories if f.group_id == g.id]
+        group_data = {
+            'name': g.name,
+            'factories_count': len(group_factories),
+            'factories': []
+        }
+        for f in group_factories:
+            factory_divisions = [d for d in divisions if d.factory_name_id == f.id]
+            factory_data = {
+                'name': f.name,
+                'divisions_count': len(factory_divisions),
+                'divisions': []
+            }
+            for d in factory_divisions:
+                division_sections = [s for s in sections if s.division_id == d.id]
+                division_data = {
+                    'name': d.name,
+                    'sections_count': len(division_sections),
+                    'sections': [{'name': s.section_name} for s in division_sections]
+                }
+                factory_data['divisions'].append(division_data)
+            group_data['factories'].append(factory_data)
+        hierarchy_data.append(group_data)
+
+    # Real Data for Charts
+    # 1. NDVI Trend (Last 6 Months)
+    today = date.today()
+    six_months_ago = today.replace(day=1) - timedelta(days=5*30) # Approx 6 months
+    six_months_ago = six_months_ago.replace(day=1)
+    
+    plot_ids = [p.id for p in plots]
+    
+    ndvi_records = NDVIRecord.objects.filter(plot_id__in=plot_ids, date_recorded__gte=six_months_ago)
+    monthly_ndvi = {}
+    
+    for i in range(5, -1, -1):
+        d = today - timedelta(days=i*30)
+        month_key = f"{d.year}-{d.month:02d}"
+        month_label = calendar.month_abbr[d.month]
+        monthly_ndvi[month_key] = {'label': month_label, 'total': 0, 'count': 0}
+        
+    for rec in ndvi_records:
+        month_key = f"{rec.date_recorded.year}-{rec.date_recorded.month:02d}"
+        if month_key in monthly_ndvi:
+            monthly_ndvi[month_key]['total'] += float(rec.ndvi_value)
+            monthly_ndvi[month_key]['count'] += 1
+            
+    ndvi_trend_labels = []
+    ndvi_trend_data = []
+    for key in sorted(monthly_ndvi.keys()): # chronological
+        ndvi_trend_labels.append(monthly_ndvi[key]['label'])
+        avg = monthly_ndvi[key]['total'] / monthly_ndvi[key]['count'] if monthly_ndvi[key]['count'] > 0 else 0
+        ndvi_trend_data.append(round(avg, 2))
+
+    # 2. Crop Health Distribution
+    health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
     plot_data = []
+    
     for plot in plots:
         latest_scout = plot.scouting_logs.order_by('-created_at').first()
         latest_ndvi = plot.ndvi_records.order_by('-date_recorded').first()
@@ -1757,13 +2047,11 @@ def ndvi_dashboard(request):
         ndvi_display = 'N/A'
         date_display = 'No records'
         
-        # Check NDVI records first (if any real data exists)
         if latest_ndvi:
             ndvi_display = str(latest_ndvi.ndvi_value)
             health_status = latest_ndvi.health_status
             date_display = str(latest_ndvi.date_recorded)
             
-        # Scouting Log overrides health status if disease/pest is found
         if latest_scout:
             if latest_scout.disease_presence:
                 health_status = 'Critical'
@@ -1773,7 +2061,8 @@ def ndvi_dashboard(request):
             if date_display == 'No records':
                 date_display = str(latest_scout.created_at.date())
                 
-        # If there's no data at all, maybe default to Healthy or Unknown
+        if health_status in health_counts:
+            health_counts[health_status] += 1
         
         lat = None
         lng = None
@@ -1816,10 +2105,48 @@ def ndvi_dashboard(request):
             'date': date_display
         })
 
+    # 3. Scout Status
+    scout_completed = Scout.objects.filter(plot_id__in=plot_ids, status='Completed').count()
+    scout_pending = Scout.objects.filter(plot_id__in=plot_ids, status='Pending Assignment').count()
+    scout_assigned = Scout.objects.filter(plot_id__in=plot_ids, status='Assigned').count()
+    scout_status_data = [scout_completed, scout_pending, scout_assigned]
+
+    # 4. Survey Completion
+    surveys = Survey.objects.filter(plot_id__in=plot_ids)
+    total_surveys = surveys.count()
+    completed_surveys = sum(1 for s in surveys if s.status == 'Completed')
+    
+    if total_surveys > 0:
+        survey_completed_perc = int((completed_surveys / total_surveys) * 100)
+    else:
+        survey_completed_perc = 100 if plot_ids else 0
+    survey_completion_data = [survey_completed_perc, 100 - survey_completed_perc]
+
     import json
     context = {
         'plots': plot_data,
-        'plot_data_json': json.dumps(plot_data)
+        'plot_data_json': json.dumps(plot_data),
+        
+        # Filter context
+        'groups': groups,
+        'factories': factories,
+        'divisions': divisions,
+        'sections': sections,
+        'all_selected': all_selected,
+        'all_factories_selected': selected_factory_id == 'all',
+        'all_divisions_selected': selected_division_id == 'all',
+        'all_sections_selected': selected_section_id == 'all',
+        'active_factory_id': selected_factory_id,
+        'user_factories': get_allowed_factories(request) if not is_superadmin else Factory.objects.all(),
+        'hierarchy_data': hierarchy_data,
+        
+        # Chart Data
+        'ndvi_trend_labels_json': json.dumps(ndvi_trend_labels),
+        'ndvi_trend_data_json': json.dumps(ndvi_trend_data),
+        'health_counts_json': json.dumps([health_counts['Healthy'], health_counts['Moderate'], health_counts['Critical']]),
+        'scout_status_data_json': json.dumps(scout_status_data),
+        'survey_completion_data_json': json.dumps(survey_completion_data),
+        'survey_perc': survey_completed_perc
     }
     return render(request, 'ndvi_dashboard.html', context)
 

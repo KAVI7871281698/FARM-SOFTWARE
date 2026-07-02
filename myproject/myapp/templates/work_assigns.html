@@ -17,6 +17,7 @@
                 <tr>
                     <th style="padding: 1rem;">Work Code</th>
                     <th style="padding: 1rem;">Officer</th>
+                    <th style="padding: 1rem;">Factory</th>
                     <th style="padding: 1rem;">Division</th>
                     <th style="padding: 1rem;">Section (Zone)</th>
                     <th style="padding: 1rem;">Village</th>
@@ -29,6 +30,7 @@
                 <tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 1rem; font-weight: 500;">{{ assign.work_assign_code }}</td>
                     <td style="padding: 1rem;">{{ assign.officer.name|default:"Unassigned" }}</td>
+                    <td style="padding: 1rem;">{{ assign.section.division.factory_name.name|default:"-" }}</td>
                     <td style="padding: 1rem;">{{ assign.division|default:"-" }}</td>
                     <td style="padding: 1rem;">{{ assign.section.section_name|default:"-" }}</td>
                     <td style="padding: 1rem;">{{ assign.village.village_name|default:"-" }}</td>
@@ -50,7 +52,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" style="padding: 1rem; text-align: center; color: var(--text-muted);">No work assignments found.</td>
+                    <td colspan="8" style="padding: 1rem; text-align: center; color: var(--text-muted);">No work assignments found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

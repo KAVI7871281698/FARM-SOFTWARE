@@ -531,6 +531,22 @@ class NDVIRecord(models.Model):
     cloud_cover = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     health_status = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # New fields added based on the spreadsheet columns
+    crop_age_days = models.IntegerField(null=True, blank=True)
+    stage = models.CharField(max_length=100, null=True, blank=True)
+    ndvi_mean = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    ndvi_min = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    ndvi_max = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    thr_min = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    thr_max = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    good_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    mod_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    attn_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    px_good = models.IntegerField(null=True, blank=True)
+    px_mod = models.IntegerField(null=True, blank=True)
+    px_attn = models.IntegerField(null=True, blank=True)
+    px_total = models.IntegerField(null=True, blank=True)
 
     class Meta:
         db_table = "ndvi_record"

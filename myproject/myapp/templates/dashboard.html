@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 
 {% block title %}Dashboard{% endblock %}
+
 {% block header_title %}
-<span style="display: flex; align-items: center; gap: 30px;">
+<span
+    style="display: flex; align-items: center; gap: 30px; font-weight: 700; font-size: 1.5rem; color: #1e293b; font-family: 'Outfit', sans-serif;">
     Dashboard
-    <div style="display: flex; align-items: center; gap: 15px;">
+    <div class="premium-header-controls">
         <!-- Group Selector -->
         {% if groups|length == 1 %}
-        <span
-            style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: #f9f9f9;">
-            {{ groups.0.name }}
+        <span class="premium-badge">
+            <i class="fa-solid fa-layer-group" style="color: #0288D1; margin-right: 6px;"></i> {{ groups.0.name }}
         </span>
         {% elif groups|length > 1 %}
         <form method="GET" action="{% url 'dashboard' %}" style="margin: 0;">
-            <select name="group" onchange="this.form.submit()"
-                style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: white; outline: none; cursor: pointer;">
+            <select name="group" onchange="this.form.submit()" class="premium-select">
                 <option value="all" {% if all_selected %}selected{% endif %}>All Groups</option>
                 {% for group in groups %}
                 <option value="{{ group.id }}" {% if group.is_selected %}selected{% endif %}>{{ group.name }}</option>
@@ -25,18 +25,24 @@
 
         <!-- Factory Selector -->
         {% if user_factories|length == 1 %}
-        <span
-            style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: #f9f9f9;">
-            {{ user_factories.0.name }}
+        <span class="premium-badge">
+            <i class="fa-solid fa-industry" style="color: #16a34a; margin-right: 6px;"></i> {{ user_factories.0.name }}
         </span>
         {% elif user_factories|length > 1 %}
         <form method="GET" action="{% url 'dashboard' %}" style="margin: 0;">
-            <select name="factory" onchange="this.form.submit()"
-                style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: white; outline: none; cursor: pointer;">
-                <option value="all" {% if active_factory_id == 'all' %}selected{% endif %}>All My Factories</option>
+            <select name="factory" onchange="this.form.submit()" class="premium-select">
+                {% if active_factory_id == 'all' %}
+                <option value="all" selected>All My Factories</option>
+                {% else %}
+                <option value="all">All My Factories</option>
+                {% endif %}
+
                 {% for f in user_factories %}
-                <option value="{{ f.id }}" {% if active_factory_id == f.id|stringformat:"s" %}selected{% endif %}>{{
-                    f.name }}</option>
+                {% if active_factory_id == f.id|stringformat:"s" %}
+                <option value="{{ f.id }}" selected>{{ f.name }}</option>
+                {% else %}
+                <option value="{{ f.id }}">{{ f.name }}</option>
+                {% endif %}
                 {% endfor %}
             </select>
         </form>
@@ -46,226 +52,1034 @@
 {% endblock %}
 
 {% block content %}
+<style>
+    /* Premium Dashboard Styles */
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        --card-radius: 20px;
+        --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    body {
+        background-color: #f4f7fb;
+    }
+
+    .premium-header-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .premium-select {
+        appearance: none;
+        padding: 8px 36px 8px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>') no-repeat right 12px center;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #333;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .premium-select:hover {
+        border-color: #0288D1;
+        box-shadow: 0 4px 15px rgba(2, 136, 209, 0.1);
+    }
+
+    .premium-badge {
+        padding: 8px 16px;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .premium-filter-bar {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+        border-radius: var(--card-radius);
+        padding: 20px 25px;
+        margin-bottom: 30px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        margin-left: 4px;
+    }
+
+    .filter-input-group {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 12px;
+        padding: 4px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        transition: var(--transition);
+    }
+
+    .filter-input-group:focus-within,
+    .filter-input-group:hover {
+        border-color: #0288D1;
+        box-shadow: 0 4px 12px rgba(2, 136, 209, 0.08);
+    }
+
+    .filter-input-group select,
+    .filter-input-group .static-text {
+        border: none;
+        background: transparent;
+        padding: 8px 12px;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 500;
+        color: #334155;
+        outline: none;
+        min-width: 130px;
+        appearance: none;
+    }
+
+    .filter-btn {
+        background: #f8fafc;
+        border: none;
+        border-radius: 8px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0288D1;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .filter-btn:hover {
+        background: #0288D1;
+        color: white;
+    }
+
+    .btn-apply-all {
+        background: linear-gradient(135deg, #0288D1 0%, #0277bd 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(2, 136, 209, 0.3);
+        transition: var(--transition);
+        margin-left: auto;
+    }
+
+    .btn-apply-all:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(2, 136, 209, 0.4);
+    }
+
+    .premium-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card-premium {
+        background: white;
+        border-radius: var(--card-radius);
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 140px;
+        z-index: 1;
+    }
+
+    .metric-card-premium::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 150px;
+        height: 150px;
+        background: radial-gradient(circle, var(--icon-bg) 0%, rgba(255, 255, 255, 0) 70%);
+        opacity: 0.15;
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+        z-index: -1;
+        transition: var(--transition);
+    }
+
+    .metric-card-premium:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+    }
+
+    .metric-card-premium:hover::before {
+        transform: translate(20%, -20%) scale(1.2);
+        opacity: 0.25;
+    }
+
+    .metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .metric-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #64748b;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .metric-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        background: var(--icon-bg);
+        color: var(--icon-color);
+        box-shadow: 0 4px 15px var(--icon-shadow);
+    }
+
+    .metric-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        font-family: 'Outfit', sans-serif;
+        line-height: 1;
+    }
+
+    .card-total {
+        --icon-bg: #e0f2fe;
+        --icon-color: #0288d1;
+        --icon-shadow: rgba(2, 136, 209, 0.2);
+    }
+
+    .card-mapped {
+        --icon-bg: #dcfce7;
+        --icon-color: #16a34a;
+        --icon-shadow: rgba(22, 163, 74, 0.2);
+    }
+
+    .card-unmapped {
+        --icon-bg: #f3f4f6;
+        --icon-color: #6b7280;
+        --icon-shadow: rgba(107, 114, 128, 0.2);
+    }
+
+    .card-attention {
+        --icon-bg: #fef3c7;
+        --icon-color: #d97706;
+        --icon-shadow: rgba(217, 119, 6, 0.2);
+    }
+
+    .card-danger {
+        --icon-bg: #fee2e2;
+        --icon-color: #dc2626;
+        --icon-shadow: rgba(220, 38, 38, 0.2);
+    }
+
+    .card-overdue {
+        --icon-bg: #ffedd5;
+        --icon-color: #ea580c;
+        --icon-shadow: rgba(234, 88, 12, 0.2);
+    }
+
+    .card-work {
+        --icon-bg: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+        --icon-color: white;
+        --icon-shadow: rgba(147, 51, 234, 0.3);
+        background: linear-gradient(to bottom right, #ffffff, #faf5ff);
+        border: 1px solid #f3e8ff;
+    }
+
+    .card-work .metric-title {
+        color: #7e22ce;
+    }
+
+    .card-work .metric-value {
+        color: #581c87;
+    }
+
+    .premium-section-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .premium-section-title::before {
+        content: '';
+        display: block;
+        width: 6px;
+        height: 24px;
+        background: linear-gradient(to bottom, #0288D1, #4facfe);
+        border-radius: 4px;
+    }
+
+    .premium-hierarchy-box {
+        background: white;
+        border-radius: var(--card-radius);
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 40px;
+    }
+
+    .hierarchy-details {
+        margin-bottom: 12px;
+        background: #f8fafc;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+        transition: var(--transition);
+    }
+
+    .hierarchy-details[open] {
+        background: white;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .hierarchy-summary {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        padding: 16px 20px;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        transition: var(--transition);
+    }
+
+    .hierarchy-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .hierarchy-summary:hover {
+        background: #f1f5f9;
+    }
+
+    .hierarchy-details[open]>.hierarchy-summary {
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .hierarchy-summary i {
+        margin-right: 12px;
+        font-size: 1.1rem;
+        width: 24px;
+        text-align: center;
+    }
+
+    .h-group>summary i {
+        color: #0288D1;
+    }
+
+    .h-factory>summary i {
+        color: #16a34a;
+    }
+
+    .h-division>summary i {
+        color: #ea580c;
+    }
+
+    .hierarchy-count {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+        margin-left: auto;
+        background: #e2e8f0;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .hierarchy-content {
+        padding: 16px 20px 16px 45px;
+    }
+
+    .h-section-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+    }
+
+    .h-section-list li {
+        background: #f8fafc;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .h-section-list li i {
+        color: #8b5cf6;
+        font-size: 0.9rem;
+    }
+
+    .premium-charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 25px;
+    }
+
+    @media (max-width: 768px) {
+        .premium-charts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .premium-chart-card {
+        background: white;
+        border-radius: var(--card-radius);
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .premium-chart-card:hover {
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
+    }
+
+    .chart-card-header {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chart-card-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+        flex-grow: 1;
+    }
+
+    /* New Health Trend Section */
+    .health-trend-card {
+        background: white;
+        border-radius: var(--card-radius);
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 40px;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .ht-tabs {
+        display: flex;
+        gap: 30px;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 25px;
+        overflow-x: auto;
+    }
+
+    .ht-tab {
+        padding: 12px 0;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        transition: var(--transition);
+    }
+
+    .ht-tab:hover {
+        color: #10b981;
+    }
+
+    .ht-tab.active {
+        color: #10b981;
+        border-bottom: 3px solid #10b981;
+    }
+
+    .ht-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 40px;
+        margin-bottom: 30px;
+        padding-bottom: 25px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .ht-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ht-filter-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .ht-filter-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .ht-input {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.9rem;
+        color: #334155;
+        background: white;
+        outline: none;
+        transition: var(--transition);
+    }
+
+    .ht-input:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .ht-btn-green {
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .ht-btn-green:hover {
+        background: #059669;
+        transform: translateY(-1px);
+    }
+
+    .ht-pill-group {
+        display: flex;
+        background: #f8fafc;
+        border-radius: 20px;
+        padding: 4px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .ht-pill {
+        padding: 6px 16px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        color: #64748b;
+        border: none;
+        background: transparent;
+        transition: var(--transition);
+    }
+
+    .ht-pill.active {
+        background: #10b981;
+        color: white;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    }
+
+    .ht-pill:not(.active):not(.disabled):hover {
+        color: #1e293b;
+        background: #e2e8f0;
+    }
+
+    .ht-pill.disabled {
+        color: #cbd5e1;
+        cursor: not-allowed;
+    }
+
+    .ht-chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .ht-chart-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 6px 0;
+    }
+
+    .ht-chart-subtitle {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .ht-export-btn {
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #475569;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Outfit', sans-serif;
+        transition: var(--transition);
+    }
+
+    .ht-export-btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .ht-export-btn i {
+        margin-right: 4px;
+    }
+</style>
+
 {% if not all_selected %}
-<!-- Advanced Filters (Landscape) -->
-<div class="advanced-filters"
-    style="display: flex; margin-bottom: 20px; align-items: center; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+<div class="premium-filter-bar">
     <form method="GET" action="{% url 'dashboard' %}"
-        style="display: flex; width: 100%; gap: 15px; align-items: flex-end; margin: 0; flex-wrap: wrap;">
+        style="display: flex; width: 100%; gap: 20px; align-items: flex-end; margin: 0; flex-wrap: wrap;">
         <!-- Preserve selected group -->
         <input type="hidden" name="group" value="{{ request.GET.group|default:'all' }}">
 
-        <!-- Factory Dropdown & Search -->
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 0.85rem; font-weight: 600; color: #555; margin-left: 2px;">Factory</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
+        <!-- Factory -->
+        <div class="filter-group">
+            <label class="filter-label">Factory</label>
+            <div class="filter-input-group">
                 {% if factories|length == 1 %}
-                <div
-                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; background-color: #f9f9f9; color: #333; min-width: 140px;">
-                    {{ factories.0.name }}
-                </div>
+                <div class="static-text">{{ factories.0.name }}</div>
                 <input type="hidden" name="factory" value="{{ factories.0.id }}">
                 {% elif factories|length > 1 %}
-                <select name="factory"
-                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif;">
+                <select name="factory">
                     <option value="all" {% if all_factories_selected %}selected{% endif %}>All Factories</option>
                     {% for f in factories %}
                     <option value="{{ f.id }}" {% if f.is_selected %}selected{% endif %}>{{ f.name }}</option>
                     {% endfor %}
                 </select>
                 {% else %}
-                <div
-                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; background-color: #f9f9f9; color: #999; min-width: 140px;">
-                    No Factories
-                </div>
+                <div class="static-text" style="color: #94a3b8;">No Factories</div>
                 {% endif %}
-                <button type="submit"
-                    style="padding: 8px 12px; border-radius: 6px; border: none; background: #2E7D32; color: white; cursor: pointer; transition: 0.2s;"
-                    onmouseover="this.style.background='#1b5e20'" onmouseout="this.style.background='#2E7D32'"><i
-                        class="fa-solid fa-magnifying-glass"></i></button>
+                <button type="submit" class="filter-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
         </div>
 
-        <!-- Division Dropdown & Search -->
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 0.85rem; font-weight: 600; color: #555; margin-left: 2px;">Division</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <select name="division"
-                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif;">
+        <!-- Division -->
+        <div class="filter-group">
+            <label class="filter-label">Division</label>
+            <div class="filter-input-group">
+                <select name="division">
                     <option value="all" {% if all_divisions_selected %}selected{% endif %}>All Divisions</option>
                     {% for d in divisions %}
                     <option value="{{ d.id }}" {% if d.is_selected %}selected{% endif %}>{{ d.name }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit"
-                    style="padding: 8px 12px; border-radius: 6px; border: none; background: #2E7D32; color: white; cursor: pointer; transition: 0.2s;"
-                    onmouseover="this.style.background='#1b5e20'" onmouseout="this.style.background='#2E7D32'"><i
-                        class="fa-solid fa-magnifying-glass"></i></button>
+                <button type="submit" class="filter-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
         </div>
 
-        <!-- Section Dropdown & Search -->
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 0.85rem; font-weight: 600; color: #555; margin-left: 2px;">Section</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <select name="section"
-                    style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif;">
+        <!-- Section -->
+        <div class="filter-group">
+            <label class="filter-label">Section</label>
+            <div class="filter-input-group">
+                <select name="section">
                     <option value="all" {% if all_sections_selected %}selected{% endif %}>All Sections</option>
                     {% for s in sections %}
                     <option value="{{ s.id }}" {% if s.is_selected %}selected{% endif %}>{{ s.section_name }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit"
-                    style="padding: 8px 12px; border-radius: 6px; border: none; background: #2E7D32; color: white; cursor: pointer; transition: 0.2s;"
-                    onmouseover="this.style.background='#1b5e20'" onmouseout="this.style.background='#2E7D32'"><i
-                        class="fa-solid fa-magnifying-glass"></i></button>
+                <button type="submit" class="filter-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
         </div>
 
-        <!-- Overall Search Button -->
-        <button type="submit"
-            style="margin-left: auto; padding: 8px 16px; border-radius: 6px; border: none; background: #0288D1; color: white; cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif; transition: 0.2s;"
-            onmouseover="this.style.background='#01579b'" onmouseout="this.style.background='#0288D1'"><i
-                class="fa-solid fa-filter"></i> Apply All</button>
+        <!-- Apply All -->
+        <button type="submit" class="btn-apply-all">
+            <i class="fa-solid fa-bolt"></i> Apply Filters
+        </button>
     </form>
 </div>
 {% endif %}
 
-<!-- Metrics Grid -->
-<div class="metrics-grid">
-    <div class="metric-card">
-        <div class="metric-title">Total Plots</div>
-        <div class="metric-value">{{ total_plots|default:"124" }}</div>
-        <i class="fa-solid fa-map metric-icon"></i>
-    </div>
-    <div class="metric-card info">
-        <div class="metric-title">Mapped</div>
-        <div class="metric-value">{{ mapped|default:"98" }}</div>
-        <i class="fa-solid fa-location-dot metric-icon"></i>
-    </div>
-    <div class="metric-card info">
-        <div class="metric-title">UnMapped</div>
-        <div class="metric-value">{{ unmapped|default:"18" }}</div>
-        <i class="fa-solid fa-location-dot metric-icon"></i>
+<div class="premium-metrics-grid">
+    <div class="metric-card-premium card-total">
+        <div class="metric-header">
+            <span class="metric-title">Total Plots</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-map"></i></div>
+        </div>
+        <div class="metric-value">{{ total_plots|default_if_none:"0" }}</div>
     </div>
 
-    <div class="metric-card warning">
-        <div class="metric-title">Need Attention</div>
-        <div class="metric-value">{{ need_attention|default:"12" }}</div>
-        <i class="fa-solid fa-circle-exclamation metric-icon"></i>
+    <div class="metric-card-premium card-mapped">
+        <div class="metric-header">
+            <span class="metric-title">Mapped</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-location-dot"></i></div>
+        </div>
+        <div class="metric-value">{{ mapped|default_if_none:"0" }}</div>
     </div>
-    <div class="metric-card danger">
-        <div class="metric-title">Damage Reports</div>
-        <div class="metric-value">{{ damage_reports|default:"5" }}</div>
-        <i class="fa-solid fa-file-circle-xmark metric-icon"></i>
+
+    <div class="metric-card-premium card-unmapped">
+        <div class="metric-header">
+            <span class="metric-title">UnMapped</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-location-crosshairs"></i></div>
+        </div>
+        <div class="metric-value">{{ unmapped|default_if_none:"0" }}</div>
     </div>
-    <div class="metric-card warning">
-        <div class="metric-title">Overdue Scouts</div>
-        <div class="metric-value">{{ overdue_scouts|default:"8" }}</div>
-        <i class="fa-solid fa-calendar-xmark metric-icon"></i>
+
+    <div class="metric-card-premium card-attention">
+        <div class="metric-header">
+            <span class="metric-title">Need Attention</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-circle-exclamation"></i></div>
+        </div>
+        <div class="metric-value">{{ need_attention|default_if_none:"0" }}</div>
     </div>
-    <div class="metric-card" style="background-color: #f3e5f5; border-left: 4px solid #8e24aa;">
-        <div class="metric-title" style="color: #6a1b9a;">My Work Assigns</div>
-        <div class="metric-value" style="color: #4a148c;">{{ work_assigns_count|default:"0" }}</div>
-        <i class="fa-solid fa-briefcase metric-icon" style="background: rgba(142, 36, 170, 0.1); color: #8e24aa;"></i>
+
+    <div class="metric-card-premium card-danger">
+        <div class="metric-header">
+            <span class="metric-title">Damage Reports</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-file-circle-xmark"></i></div>
+        </div>
+        <div class="metric-value">{{ damage_reports|default_if_none:"0" }}</div>
     </div>
+
+    <div class="metric-card-premium card-overdue">
+        <div class="metric-header">
+            <span class="metric-title">Overdue Scouts</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-calendar-xmark"></i></div>
+        </div>
+        <div class="metric-value">{{ overdue_scouts|default_if_none:"0" }}</div>
+    </div>
+
+    <a href="{% url 'work_assigns' %}?group={{ request.GET.group|default:'all' }}&factory={{ active_factory_id|default:'all' }}&division={{ request.GET.division|default:'all' }}&section={{ request.GET.section|default:'all' }}"
+        style="text-decoration: none; display: block;">
+        <div class="metric-card-premium card-work">
+            <div class="metric-header">
+                <span class="metric-title">My Work Assigns</span>
+                <div class="metric-icon-wrapper"><i class="fa-solid fa-briefcase"></i></div>
+            </div>
+            <div class="metric-value">{{ work_assigns_count|default_if_none:"0" }}</div>
+        </div>
+    </a>
 </div>
 
-<!-- Hierarchy Breakdown -->
-<div class="hierarchy-breakdown" style="margin-top: 30px;">
-    <h2
-        style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; color: #2c3e50; margin-bottom: 15px;">
-        Hierarchy Breakdown</h2>
-    <div
-        style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e0e0e0;">
-        {% for group in hierarchy_data %}
-        <details style="margin-bottom: 10px;">
-            <summary
-                style="font-family: 'Outfit', sans-serif; font-size: 1.1rem; color: #2E7D32; font-weight: 600; cursor: pointer; padding: 10px; background: #f9fbe7; border-radius: 8px; list-style: none;">
-                <i class="fa-solid fa-folder-open" style="margin-right: 8px;"></i> {{ group.name }}
-                <span style="font-size: 0.85rem; color: #666; font-weight: normal; margin-left: 10px;">({{
-                    group.factories_count }} Factories)</span>
-            </summary>
-            <div style="margin-left: 20px; padding-top: 10px; border-left: 2px solid #e0e0e0; padding-left: 15px;">
-                {% for factory in group.factories %}
-                <details style="margin-bottom: 8px;">
-                    <summary
-                        style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; color: #1565c0; font-weight: 600; cursor: pointer; padding: 8px; background: #e3f2fd; border-radius: 6px; list-style: none;">
-                        <i class="fa-solid fa-industry" style="margin-right: 8px;"></i> {{ factory.name }}
-                        <span style="font-size: 0.85rem; color: #666; font-weight: normal; margin-left: 10px;">({{
-                            factory.divisions_count }} Divisions)</span>
-                    </summary>
-                    <div
-                        style="margin-left: 20px; padding-top: 8px; border-left: 2px solid #e0e0e0; padding-left: 15px;">
-                        {% for division in factory.divisions %}
-                        <details style="margin-bottom: 6px;">
-                            <summary
-                                style="font-family: 'Outfit', sans-serif; font-size: 1rem; color: #ef6c00; font-weight: 600; cursor: pointer; padding: 6px; background: #fff3e0; border-radius: 6px; list-style: none;">
-                                <i class="fa-solid fa-network-wired" style="margin-right: 8px;"></i> {{ division.name }}
-                                <span
-                                    style="font-size: 0.85rem; color: #666; font-weight: normal; margin-left: 10px;">({{
-                                    division.sections_count }} Sections)</span>
-                            </summary>
-                            <ul
-                                style="margin-left: 20px; margin-top: 8px; padding-left: 15px; border-left: 2px solid #e0e0e0; list-style: none;">
+<h2 class="premium-section-title">Hierarchy Overview</h2>
+<div class="premium-hierarchy-box">
+    {% for group in hierarchy_data %}
+    <details class="hierarchy-details h-group">
+        <summary class="hierarchy-summary">
+            <i class="fa-solid fa-layer-group"></i> {{ group.name }}
+            <span class="hierarchy-count">{{ group.factories_count }} Factories</span>
+        </summary>
+        <div class="hierarchy-content">
+            {% for factory in group.factories %}
+            <details class="hierarchy-details h-factory">
+                <summary class="hierarchy-summary">
+                    <i class="fa-solid fa-industry"></i> {{ factory.name }}
+                    <span class="hierarchy-count">{{ factory.divisions_count }} Divisions</span>
+                </summary>
+                <div class="hierarchy-content">
+                    {% for division in factory.divisions %}
+                    <details class="hierarchy-details h-division">
+                        <summary class="hierarchy-summary">
+                            <i class="fa-solid fa-network-wired"></i> {{ division.name }}
+                            <span class="hierarchy-count">{{ division.sections_count }} Sections</span>
+                        </summary>
+                        <div class="hierarchy-content">
+                            <ul class="h-section-list">
                                 {% for section in division.sections %}
-                                <li style="padding: 4px 0; font-size: 0.95rem; color: #c62828;">
-                                    <i class="fa-solid fa-puzzle-piece"
-                                        style="margin-right: 8px; font-size: 0.85rem;"></i> {{ section.name }}
-                                </li>
+                                <li><i class="fa-solid fa-puzzle-piece"></i> {{ section.name }}</li>
                                 {% empty %}
-                                <li style="padding: 4px 0; font-size: 0.95rem; color: #999; font-style: italic;">No
-                                    sections</li>
+                                <li style="color: #94a3b8; font-style: italic; background: transparent; border: none;">
+                                    No sections available</li>
                                 {% endfor %}
                             </ul>
-                        </details>
-                        {% empty %}
-                        <div style="padding: 4px 0; font-size: 0.95rem; color: #999; font-style: italic;">No divisions
                         </div>
-                        {% endfor %}
+                    </details>
+                    {% empty %}
+                    <div style="color: #94a3b8; font-style: italic; padding: 10px;">No divisions found in this factory
                     </div>
-                </details>
-                {% empty %}
-                <div style="padding: 8px 0; font-size: 0.95rem; color: #999; font-style: italic;">No factories</div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
+            </details>
+            {% empty %}
+            <div style="color: #94a3b8; font-style: italic; padding: 10px;">No factories in this group</div>
+            {% endfor %}
+        </div>
+    </details>
+    {% empty %}
+    <div style="padding: 40px; text-align: center; color: #94a3b8; font-family: 'Outfit', sans-serif;">
+        <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+        <p>No hierarchy data available for the current selection.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="health-trend-card">
+    <div class="ht-tabs">
+        <div class="ht-tab active" id="tab-health-trend" onclick="switchHtTab('health-trend')"><i class="fa-solid fa-chart-line"></i> Health Trend</div>
+        <div class="ht-tab" id="tab-compare" onclick="switchHtTab('compare')"><i class="fa-solid fa-code-compare"></i> Compare</div>
+        <div class="ht-tab"><i class="fa-regular fa-calendar-check"></i> Stage summary</div>
+        <div class="ht-tab"><i class="fa-solid fa-map-location-dot"></i> Field cards</div>
+        <div class="ht-tab"><i class="fa-solid fa-chart-area"></i> NDVI Trend</div>
+        <div class="ht-tab"><i class="fa-solid fa-map"></i> Field Map</div>
+        <div class="ht-tab"><i class="fa-solid fa-brain"></i> AI Insights</div>
+        <div class="ht-tab"><i class="fa-solid fa-download"></i> Export table</div>
+    </div>
+
+    <div class="ht-filters">
+        <div class="ht-filter-group">
+            <div class="ht-filter-label">PERIOD</div>
+            <div class="ht-filter-row">
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <span style="font-size: 0.85rem; color: #64748b;">Start</span>
+                    <input type="date" class="ht-input" value="2025-01-01">
+                    <button class="ht-btn-green" style="margin-top: 4px;">Generate trend</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px; justify-content: flex-start; height: 100%;">
+                    <span style="font-size: 0.85rem; color: #64748b;">&nbsp;</span>
+                    <span style="font-size: 0.85rem; color: #64748b; margin: 0 10px;">to</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px; justify-content: flex-start; height: 100%;">
+                    <span style="font-size: 0.85rem; color: #64748b;">End</span>
+                    <input type="date" class="ht-input" value="2026-06-29">
+                </div>
             </div>
-        </details>
-        {% empty %}
-        <div style="padding: 20px; text-align: center; color: #999;">No hierarchy data available for the current
-            selection.</div>
-        {% endfor %}
+        </div>
+
+        <div class="ht-filter-group">
+            <div class="ht-filter-label">OPTIONS</div>
+            <div class="ht-filter-row">
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <span style="font-size: 0.8rem; color: #64748b;">Snapshot</span>
+                    <select class="ht-input"><option>15th & month-end</option></select>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <span style="font-size: 0.8rem; color: #64748b;">Window</span>
+                    <select class="ht-input"><option>+/- 7 days</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="ht-filter-group">
+            <div class="ht-filter-label">TRACK</div>
+            <div class="ht-filter-row" style="margin-top: 24px;">
+                <div class="ht-pill-group">
+                    <button class="ht-pill active" id="track-health" onclick="switchTrack('health')">Health status</button>
+                    <button class="ht-pill" id="track-stage" onclick="switchTrack('stage')">Crop stage</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="ht-filter-group">
+            <div class="ht-filter-label">FILTER TO STAGE</div>
+            <div class="ht-filter-row" style="margin-top: 24px;">
+                <select class="ht-input" style="min-width: 120px;"><option>All stages</option></select>
+            </div>
+        </div>
+
+        <div class="ht-filter-group">
+            <div class="ht-filter-label">VIEW AS</div>
+            <div class="ht-filter-row" style="margin-top: 24px;">
+                <div class="ht-pill-group">
+                    <button class="ht-pill active">Count</button>
+                    <button class="ht-pill">%</button>
+                    <button class="ht-pill disabled" disabled>Plant Season (YoY)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Health Trend -->
+    <div id="view-health-trend">
+        <div class="ht-chart-header">
+            <div>
+                <h3 class="ht-chart-title" id="track-chart-title">Crop Health Trend</h3>
+                <p class="ht-chart-subtitle" id="track-chart-subtitle">
+                    No. of plots in Good / Moderate / Need attention over fortnightly snapshots<br>
+                    36 date points - 395 plots tracked (20 skipped, no data nearby)
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="ht-export-btn"><span style="color: #10b981; font-weight: 800; margin-right: 4px;">I</span> Excel</button>
+                <button class="ht-export-btn"><span style="color: #ef4444; font-weight: 800; margin-right: 4px;">I</span> PDF</button>
+                <button class="ht-export-btn"><span style="color: #3b82f6; font-weight: 800; margin-right: 4px;">I</span> PNG</button>
+            </div>
+        </div>
+
+        <div id="health-chart-container" style="height: 450px; width: 100%;">
+            <canvas id="mainHealthTrendChart"></canvas>
+        </div>
+        
+        <div id="stage-chart-container" style="height: 450px; width: 100%; display: none;">
+            <canvas id="mainStageTrendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- View: Compare -->
+    <div id="view-compare" style="display: none;">
+        <div class="ht-chart-header">
+            <div>
+                <h3 class="ht-chart-title">Crop health comparison by Mill/Client</h3>
+                <p class="ht-chart-subtitle">
+                    2 Mill/Clients - 2025-01-01 to 2026-06-29 (57 plots, latest obs in period)
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="ht-export-btn"><span style="color: #10b981; font-weight: 800; margin-right: 4px;">I</span> Excel</button>
+                <button class="ht-export-btn"><span style="color: #ef4444; font-weight: 800; margin-right: 4px;">I</span> PDF</button>
+                <button class="ht-export-btn"><span style="color: #3b82f6; font-weight: 800; margin-right: 4px;">I</span> PNG</button>
+            </div>
+        </div>
+
+        <div style="height: 450px; width: 100%;">
+            <canvas id="compareHealthChart"></canvas>
+        </div>
     </div>
 </div>
 
-<!-- Charts Grid -->
-<div class="charts-grid">
-    <!-- NDVI Trend -->
-    <div class="chart-card">
-        <h3>NDVI Trend (Last 6 Months)</h3>
+<script>
+function switchHtTab(tabName) {
+    // Reset tabs
+    document.querySelectorAll('.ht-tab').forEach(el => el.classList.remove('active'));
+    
+    // Hide all views
+    document.getElementById('view-health-trend').style.display = 'none';
+    document.getElementById('view-compare').style.display = 'none';
+    
+    // Activate clicked tab & view
+    if (tabName === 'health-trend') {
+        document.getElementById('tab-health-trend').classList.add('active');
+        document.getElementById('view-health-trend').style.display = 'block';
+    } else if (tabName === 'compare') {
+        document.getElementById('tab-compare').classList.add('active');
+        document.getElementById('view-compare').style.display = 'block';
+    }
+}
+
+function switchTrack(trackName) {
+    // Reset track pills
+    document.getElementById('track-health').classList.remove('active');
+    document.getElementById('track-stage').classList.remove('active');
+    
+    if (trackName === 'health') {
+        document.getElementById('track-health').classList.add('active');
+        document.getElementById('health-chart-container').style.display = 'block';
+        document.getElementById('stage-chart-container').style.display = 'none';
+        document.getElementById('track-chart-title').innerText = 'Crop Health Trend';
+        document.getElementById('track-chart-subtitle').innerHTML = 'No. of plots in Good / Moderate / Need attention over fortnightly snapshots<br>36 date points - 395 plots tracked (20 skipped, no data nearby)';
+    } else if (trackName === 'stage') {
+        document.getElementById('track-stage').classList.add('active');
+        document.getElementById('health-chart-container').style.display = 'none';
+        document.getElementById('stage-chart-container').style.display = 'block';
+        document.getElementById('track-chart-title').innerText = 'Crop Stage Trend';
+        document.getElementById('track-chart-subtitle').innerHTML = 'No. of plots in each growth stage over fortnightly snapshots<br>37 date points - 395 plots tracked (20 skipped, no data nearby)';
+    }
+}
+</script>
+
+<h2 class="premium-section-title">Analytics & Insights</h2>
+<div class="premium-charts-grid">
+    <div class="premium-chart-card">
+        <div class="chart-card-header">
+            <h3 class="chart-card-title">NDVI Trend <span
+                    style="font-size: 0.85rem; color: #94a3b8; font-weight: normal; margin-left: 8px;">(Last 6
+                    Months)</span></h3>
+        </div>
         <div class="chart-container">
             <canvas id="ndviTrendChart"></canvas>
         </div>
     </div>
 
-    <!-- Crop Health -->
-    <div class="chart-card">
-        <h3>Crop Health Distribution</h3>
+    <div class="premium-chart-card">
+        <div class="chart-card-header">
+            <h3 class="chart-card-title">Crop Health Distribution</h3>
+        </div>
         <div class="chart-container">
             <canvas id="cropHealthChart"></canvas>
         </div>
     </div>
 
-    <!-- Scout Status -->
-    <div class="chart-card">
-        <h3>Scout Status</h3>
+    <div class="premium-chart-card">
+        <div class="chart-card-header">
+            <h3 class="chart-card-title">Scout Status</h3>
+        </div>
         <div class="chart-container">
             <canvas id="scoutStatusChart"></canvas>
         </div>
     </div>
 
-    <!-- Survey Completion -->
-    <div class="chart-card">
-        <h3>Survey Completion</h3>
+    <div class="premium-chart-card">
+        <div class="chart-card-header">
+            <h3 class="chart-card-title">Survey Completion</h3>
+        </div>
         <div class="chart-container">
             <canvas id="surveyCompletionChart"></canvas>
         </div>
@@ -275,22 +1089,43 @@
 
 {% block scripts %}
 <script>
-    // Chart default settings
     Chart.defaults.font.family = "'Outfit', sans-serif";
-    Chart.defaults.color = "#666";
+    Chart.defaults.color = "#64748b";
+    Chart.defaults.scale.grid.color = "rgba(0,0,0,0.04)";
 
-    // NDVI Trend Chart (Line)
-    const ctxNdvi = document.getElementById('ndviTrendChart').getContext('2d');
-    new Chart(ctxNdvi, {
+    const parseJSON = (str, fallback) => {
+        try { return JSON.parse(str.replace(/&quot;/g, '"')); }
+        catch (e) { return fallback; }
+    };
+
+    const ndviLabels = parseJSON('{{ ndvi_trend_labels_json|escapejs }}', ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']);
+    const ndviData = parseJSON('{{ ndvi_trend_data_json|escapejs }}', [0.45, 0.52, 0.61, 0.68, 0.72, 0.65]);
+    const healthData = parseJSON('{{ health_counts_json|escapejs }}', [65, 25, 10]);
+    const scoutData = parseJSON('{{ scout_status_data_json|escapejs }}', [42, 15, 8]);
+    const surveyData = parseJSON('{{ survey_completion_data_json|escapejs }}', [78, 22]);
+    const surveyPerc = '{{ survey_perc|default:"0" }}' + '%';
+
+    // NDVI Trend Chart
+    const ctxTrend = document.getElementById('ndviTrendChart').getContext('2d');
+    let gradientLine = ctxTrend.createLinearGradient(0, 0, 0, 400);
+    gradientLine.addColorStop(0, 'rgba(2, 136, 209, 0.4)');
+    gradientLine.addColorStop(1, 'rgba(2, 136, 209, 0.0)');
+
+    new Chart(ctxTrend, {
         type: 'line',
         data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            labels: ndviLabels,
             datasets: [{
                 label: 'Average NDVI',
-                data: [0.45, 0.52, 0.61, 0.68, 0.75, 0.72],
-                borderColor: '#2e7d32',
-                backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                data: ndviData,
+                borderColor: '#0288D1',
+                backgroundColor: gradientLine,
                 borderWidth: 3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#0288D1',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
                 tension: 0.4,
                 fill: true
             }]
@@ -298,71 +1133,106 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    padding: 12,
+                    titleFont: { size: 13, family: 'Outfit' },
+                    bodyFont: { size: 14, family: 'Outfit', weight: 'bold' },
+                    displayColors: false,
+                    cornerRadius: 8
+                }
+            },
             scales: {
-                y: { beginAtZero: true, max: 1 }
-            }
+                y: { beginAtZero: true, max: 1, border: { display: false } },
+                x: { border: { display: false } }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
         }
     });
 
-    // Crop Health Chart (Doughnut)
+    // Crop Health Chart
     const ctxHealth = document.getElementById('cropHealthChart').getContext('2d');
     new Chart(ctxHealth, {
         type: 'doughnut',
         data: {
             labels: ['Healthy', 'Moderate', 'Poor'],
             datasets: [{
-                data: [65, 25, 10],
-                backgroundColor: ['#2e7d32', '#f57c00', '#d32f2f'],
+                data: healthData,
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
                 borderWidth: 0,
-                hoverOffset: 4
+                hoverOffset: 8,
+                borderRadius: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '70%',
+            cutout: '75%',
             plugins: {
-                legend: { position: 'bottom' }
+                legend: {
+                    position: 'bottom',
+                    labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8
+                }
             }
         }
     });
 
-    // Scout Status Chart (Bar)
+    // Scout Status Chart
     const ctxScout = document.getElementById('scoutStatusChart').getContext('2d');
     new Chart(ctxScout, {
         type: 'bar',
         data: {
-            labels: ['Completed', 'Pending', 'Overdue'],
+            labels: ['Completed', 'Pending', 'Assigned'],
             datasets: [{
                 label: 'Scouts',
-                data: [42, 15, 8],
-                backgroundColor: ['#2e7d32', '#0288d1', '#f57c00'],
-                borderRadius: 6
+                data: scoutData,
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'],
+                borderRadius: 8,
+                borderSkipped: false,
+                barThickness: 40
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
             scales: {
-                y: { beginAtZero: true }
+                y: { beginAtZero: true, border: { display: false } },
+                x: { border: { display: false }, grid: { display: false } }
             }
         }
     });
 
-    // Survey Completion (Radial/PolarArea or specific plugin, using Doughnut for progress)
+    // Survey Completion
     const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
     new Chart(ctxSurvey, {
         type: 'doughnut',
         data: {
             labels: ['Completed', 'Remaining'],
             datasets: [{
-                data: [78, 22],
-                backgroundColor: ['#0288d1', '#e0e0e0'],
+                data: surveyData,
+                backgroundColor: ['#8b5cf6', '#f1f5f9'],
                 borderWidth: 0,
                 circumference: 180,
-                rotation: 270
+                rotation: 270,
+                borderRadius: [8, 0]
             }]
         },
         options: {
@@ -370,7 +1240,10 @@
             maintainAspectRatio: false,
             cutout: '80%',
             plugins: {
-                legend: { position: 'bottom' },
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true, pointStyle: 'circle' }
+                },
                 tooltip: { enabled: false }
             }
         },
@@ -381,17 +1254,312 @@
                     height = chart.height,
                     ctx = chart.ctx;
                 ctx.restore();
-                var fontSize = (height / 114).toFixed(2);
+
+                var fontSize = (height / 120).toFixed(2);
                 ctx.font = "bold " + fontSize + "em Outfit";
                 ctx.textBaseline = "middle";
-                ctx.fillStyle = "#333";
-                var text = "78%",
+                ctx.fillStyle = "#1e293b";
+
+                var text = surveyPerc,
                     textX = Math.round((width - ctx.measureText(text).width) / 2),
-                    textY = height / 1.5;
+                    textY = height / 1.6;
+
                 ctx.fillText(text, textX, textY);
+
+                ctx.font = "500 " + (fontSize * 0.35).toFixed(2) + "em Outfit";
+                ctx.fillStyle = "#64748b";
+                var subText = "Completed",
+                    subTextX = Math.round((width - ctx.measureText(subText).width) / 2),
+                    subTextY = height / 1.6 + (height * 0.15);
+
+                ctx.fillText(subText, subTextX, subTextY);
+
                 ctx.save();
             }
         }]
+    });
+
+    // Main Health Trend Chart (from image request)
+    const ctxMainHealth = document.getElementById('mainHealthTrendChart').getContext('2d');
+    
+    const htLabels = ['2025-11-15', '2025-11-30', '2025-12-15', '2025-12-31', '2026-01-15', '2026-01-31', '2026-02-15', '2026-02-28', '2026-03-15', '2026-03-31', '2026-04-15', '2026-04-30', '2026-05-15', '2026-05-31', '2026-06-15', '2026-06-25 (latest data)'];
+    
+    new Chart(ctxMainHealth, {
+        type: 'line',
+        data: {
+            labels: htLabels,
+            datasets: [
+                {
+                    label: 'Good',
+                    data: [10, 15, 20, 30, 26, 22, 28, 48, 26, 20, 58, 34, 88, 48, 46, 50],
+                    borderColor: '#10b981',
+                    backgroundColor: '#10b981',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#10b981',
+                    tension: 0.4
+                },
+                {
+                    label: 'Moderate',
+                    data: [0, 2, 18, 42, 55, 125, 154, 208, 215, 184, 225, 195, 175, 220, 190, 205],
+                    borderColor: '#f59e0b',
+                    backgroundColor: '#f59e0b',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#f59e0b',
+                    tension: 0.4
+                },
+                {
+                    label: 'Need attention',
+                    data: [null, null, null, null, 0, 25, 36, 44, 112, 140, 94, 138, 105, 125, 145, 126],
+                    borderColor: '#ef4444',
+                    backgroundColor: '#ef4444',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#ef4444',
+                    spanGaps: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: { family: 'Outfit', size: 13 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: { family: 'Outfit' },
+                    bodyFont: { family: 'Outfit' }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 231,
+                    ticks: { stepSize: 11 },
+                    border: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Number of plots',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                x: {
+                    border: { display: false },
+                    grid: { display: false },
+                    ticks: {
+                        maxRotation: 20,
+                        minRotation: 20,
+                        font: { size: 10 }
+                    }
+                }
+            }
+        }
+    });
+
+    // Main Stage Trend Chart
+    const ctxMainStage = document.getElementById('mainStageTrendChart').getContext('2d');
+    
+    new Chart(ctxMainStage, {
+        type: 'line',
+        data: {
+            labels: htLabels,
+            datasets: [
+                {
+                    label: 'Germination',
+                    data: [0, 2, 28, 62, 60, 110, 121, 181, 165, 110, 50, 12, null, null, null, null],
+                    borderColor: '#3b82f6',
+                    backgroundColor: '#3b82f6',
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#3b82f6',
+                    spanGaps: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Early Tiller',
+                    data: [null, null, null, 0, 10, 55, 90, 115, 140, 165, 209, 185, 100, 50, 0, 0],
+                    borderColor: '#db2777',
+                    backgroundColor: '#db2777',
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointStyle: 'triangle',
+                    pointBackgroundColor: '#db2777',
+                    spanGaps: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Tillering',
+                    data: [null, null, null, null, null, 0, 0, 15, 50, 75, 115, 140, 195, 209, 165, 165],
+                    borderColor: '#14b8a6',
+                    backgroundColor: '#14b8a6',
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointStyle: 'rect',
+                    pointBackgroundColor: '#14b8a6',
+                    spanGaps: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Grand growth',
+                    data: [null, null, null, null, null, null, null, null, null, 0, 15, 40, 90, 130, 209, 209],
+                    borderColor: '#ea580c',
+                    backgroundColor: '#ea580c',
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#ea580c',
+                    spanGaps: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Maturity',
+                    data: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0],
+                    borderColor: '#334155',
+                    backgroundColor: '#334155',
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointStyle: 'rectRot',
+                    pointBackgroundColor: '#334155',
+                    spanGaps: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { family: 'Outfit', size: 13 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: { family: 'Outfit' },
+                    bodyFont: { family: 'Outfit' },
+                    usePointStyle: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 209,
+                    ticks: { stepSize: 11 },
+                    border: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Number of plots',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                x: {
+                    border: { display: false },
+                    grid: { display: false },
+                    ticks: {
+                        maxRotation: 20,
+                        minRotation: 20,
+                        font: { size: 10 }
+                    }
+                }
+            }
+        }
+    });
+
+    // Compare Bar Chart
+    const ctxCompare = document.getElementById('compareHealthChart').getContext('2d');
+    new Chart(ctxCompare, {
+        type: 'bar',
+        data: {
+            labels: ['MUNDIYAMPAKKAM', 'SEMMEDU'],
+            datasets: [
+                {
+                    label: 'Good',
+                    data: [0, 0],
+                    backgroundColor: '#10b981',
+                    borderWidth: 0,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Moderate',
+                    data: [0, 0],
+                    backgroundColor: '#f59e0b',
+                    borderWidth: 0,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Need attention',
+                    data: [17, 40],
+                    backgroundColor: '#ef4444',
+                    borderWidth: 0,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Watch',
+                    data: [0, 0],
+                    backgroundColor: '#8b5cf6',
+                    borderWidth: 0,
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: { family: 'Outfit', size: 13 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: { family: 'Outfit' },
+                    bodyFont: { family: 'Outfit' }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 40,
+                    ticks: { stepSize: 5 },
+                    border: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Number of plots',
+                        font: { family: 'Outfit' }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    border: { display: false }
+                }
+            }
+        }
     });
 </script>
 
