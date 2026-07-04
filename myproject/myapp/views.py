@@ -2315,27 +2315,6 @@ def ndvi_dashboard(request):
     }
     return render(request, 'ndvi_dashboard.html', context)
 
-
-        try:
-            scout = Scout.objects.get(id=scout_id)
-            officer = Officer.objects.get(id=officer_id)
-            
-            # Create or update assignment
-            assignment, created = ScoutAssignment.objects.update_or_create(
-                scout=scout,
-                defaults={'officer': officer, 'notes': notes}
-            )
-            
-            # Update Scout status
-            scout.status = 'Assigned'
-            scout.save()
-            
-            messages.success(request, f'Scout {scout.scout_id} assigned to {officer.name}.')
-        except Exception as e:
-            messages.error(request, f'Error assigning scout: {str(e)}')
-            
-    return redirect('scout_management')
-
 def compare_ndvi_data(request):
     from django.http import JsonResponse
     from django.db.models import Avg, F
