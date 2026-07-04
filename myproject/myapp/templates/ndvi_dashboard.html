@@ -605,38 +605,53 @@
                 const polyBounds = polygon.getBounds();
                 const sw = polyBounds.getSouthWest();
                 const ne = polyBounds.getNorthEast();
-                const latStep = (ne.lat - sw.lat) / 15;
-                const lngStep = (ne.lng - sw.lng) / 15;
+                const latStep = (ne.lat - sw.lat) / 25;
+                const lngStep = (ne.lng - sw.lng) / 25;
 
-                let seed = plot.plot_code.charCodeAt(plot.plot_code.length - 1) || 1;
-                let plotHeatPoints = [];
-
-                for (let i = 0; i <= 15; i++) {
-                    for (let j = 0; j <= 15; j++) {
+                let validPoints = [];
+                for (let i = 0; i <= 25; i++) {
+                    for (let j = 0; j <= 25; j++) {
                         let ptLat = sw.lat + i * latStep;
                         let ptLng = sw.lng + j * lngStep;
 
                         if (isPointInPolygon([ptLat, ptLng], latlngs)) {
-                            let intensity = 0.5 + seededRandom(seed++) * 0.5;
-                            plotHeatPoints.push([ptLat, ptLng, intensity]);
+                            validPoints.push([ptLat, ptLng]);
                         }
                     }
                 }
 
-                let plotGradient = {};
-                if (plot.health_status === 'Healthy') {
-                    plotGradient = { 0.0: '#28a745', 1.0: '#1e7e34' };
-                } else if (plot.health_status === 'Moderate') {
-                    plotGradient = { 0.3: '#28a745', 1.0: '#ffc107' };
-                } else {
-                    plotGradient = { 0.2: '#28a745', 0.6: '#ffc107', 1.0: '#dc3545' };
+                // Randomize slightly so centers are not always corner 0
+                validPoints.sort(() => Math.random() - 0.5);
+
+                let redCount = Math.floor(validPoints.length * (plot.attn_pct || 0) / 100);
+                let yellowCount = Math.floor(validPoints.length * (plot.mod_pct || 0) / 100);
+                
+                let redPoints = [];
+                let yellowPoints = [];
+                let greenPoints = [];
+
+                if (validPoints.length > 0) {
+                    let redCenter = validPoints[Math.floor(Math.random() * validPoints.length)];
+                    let yellowCenter = validPoints[Math.floor(Math.random() * validPoints.length)];
+                    
+                    const dist = (p1, p2) => Math.pow(p1[0]-p2[0], 2) + Math.pow(p1[1]-p2[1], 2);
+                    
+                    validPoints.sort((a, b) => dist(a, redCenter) - dist(b, redCenter));
+                    redPoints = validPoints.splice(0, redCount);
+                    
+                    validPoints.sort((a, b) => dist(a, yellowCenter) - dist(b, yellowCenter));
+                    yellowPoints = validPoints.splice(0, yellowCount);
+                    
+                    greenPoints = validPoints;
                 }
 
-                if (plotHeatPoints.length > 0) {
-                    L.heatLayer(plotHeatPoints, {
-                        radius: 25, blur: 20, maxZoom: 19, max: 5.0, gradient: plotGradient
-                    }).addTo(map);
-                }
+                redPoints = redPoints.map(p => [p[0], p[1], 1.0]);
+                yellowPoints = yellowPoints.map(p => [p[0], p[1], 1.0]);
+                greenPoints = greenPoints.map(p => [p[0], p[1], 1.0]);
+
+                if (redPoints.length > 0) L.heatLayer(redPoints, { radius: 25, blur: 25, maxZoom: 19, gradient: {0.4: '#dc3545', 1.0: '#dc3545'} }).addTo(map);
+                if (yellowPoints.length > 0) L.heatLayer(yellowPoints, { radius: 25, blur: 25, maxZoom: 19, gradient: {0.4: '#ffc107', 1.0: '#ffc107'} }).addTo(map);
+                if (greenPoints.length > 0) L.heatLayer(greenPoints, { radius: 25, blur: 25, maxZoom: 19, gradient: {0.4: '#28a745', 1.0: '#28a745'} }).addTo(map);
 
                 const center = polygon.getBounds().getCenter();
                 const icon = L.divIcon({

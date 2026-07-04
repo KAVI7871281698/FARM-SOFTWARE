@@ -361,6 +361,27 @@ def dashboard(request):
         avg_val = monthly_ndvi[key]['total'] / monthly_ndvi[key]['count'] if monthly_ndvi[key]['count'] > 0 else 0
         ndvi_trend_data.append(round(avg_val, 2))
 
+    # Fortnightly trend for Health and Stage
+    unique_dates = list(ndvi_records.order_by('date_recorded').values_list('date_recorded', flat=True).distinct())
+    unique_dates = unique_dates[-15:] if len(unique_dates) > 15 else unique_dates
+    
+    ht_labels = [d.strftime('%Y-%m-%d') for d in unique_dates]
+    
+    ht_health_data = { 'Good': [], 'Moderate': [], 'Need Attention': [] }
+    ht_stage_data = { 'Germination': [], 'Early Tiller': [], 'Tillering': [], 'Grand growth': [], 'Maturity': [] }
+    
+    for d in unique_dates:
+        records_for_date = ndvi_records.filter(date_recorded=d)
+        ht_health_data['Good'].append(records_for_date.filter(health_status='Good').count())
+        ht_health_data['Moderate'].append(records_for_date.filter(health_status='Moderate').count())
+        ht_health_data['Need Attention'].append(records_for_date.filter(health_status='Need Attention').count())
+        
+        ht_stage_data['Germination'].append(records_for_date.filter(stage='Germination').count())
+        ht_stage_data['Early Tiller'].append(records_for_date.filter(stage='Early Tiller').count())
+        ht_stage_data['Tillering'].append(records_for_date.filter(stage='Tillering').count())
+        ht_stage_data['Grand growth'].append(records_for_date.filter(stage='Grand growth').count())
+        ht_stage_data['Maturity'].append(records_for_date.filter(stage='Maturity').count())
+
     health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
     for plot in plots_qs:
         latest_scout = plot.scouting_logs.order_by('-created_at').first()
@@ -419,7 +440,10 @@ def dashboard(request):
         'health_counts_json': json.dumps([health_counts['Healthy'], health_counts['Moderate'], health_counts['Critical']]),
         'scout_status_data_json': json.dumps(scout_status_data),
         'survey_completion_data_json': json.dumps(survey_completion_data),
-        'survey_perc': survey_completed_perc
+        'survey_perc': survey_completed_perc,
+        'ht_labels_json': json.dumps(ht_labels),
+        'ht_health_data_json': json.dumps(ht_health_data),
+        'ht_stage_data_json': json.dumps(ht_stage_data)
     }
     hierarchy_data = []
     active_groups = groups if all_selected else [g for g in groups if str(g.id) == selected_group_id]
@@ -2047,10 +2071,17 @@ def ndvi_dashboard(request):
         ndvi_display = 'N/A'
         date_display = 'No records'
         
+        good_pct = 100
+        mod_pct = 0
+        attn_pct = 0
+        
         if latest_ndvi:
             ndvi_display = str(latest_ndvi.ndvi_value)
             health_status = latest_ndvi.health_status
             date_display = str(latest_ndvi.date_recorded)
+            good_pct = float(latest_ndvi.good_percent or 0)
+            mod_pct = float(latest_ndvi.mod_percent or 0)
+            attn_pct = float(latest_ndvi.attn_percent or 0)
             
         if latest_scout:
             if latest_scout.disease_presence:
@@ -2072,15 +2103,24 @@ def ndvi_dashboard(request):
         elif plot.center_lt_ln:
             try:
                 import json
-                parsed = json.loads(plot.center_lt_ln)
-                if isinstance(parsed, dict):
-                    lat = parsed.get('lat', 0)
-                    lng = parsed.get('lng', 0)
-                elif isinstance(parsed, list) and len(parsed) >= 2:
-                    lat = float(parsed[0])
-                    lng = float(parsed[1])
+                parsed = json.loads(plot.center_lt_ln.replace("'", '"'))
             except:
-                pass
+                try:
+                    import ast
+                    parsed = ast.literal_eval(plot.center_lt_ln)
+                except:
+                    parsed = None
+                    
+            if isinstance(parsed, dict):
+                lat = parsed.get('lat', 0)
+                lng = parsed.get('lng', 0)
+            elif isinstance(parsed, list) and len(parsed) >= 2:
+                lat = float(parsed[0])
+                lng = float(parsed[1])
+            elif isinstance(parsed, list) and len(parsed) == 1 and isinstance(parsed[0], str) and ',' in parsed[0]:
+                parts = parsed[0].split(',')
+                lat = float(parts[0].strip())
+                lng = float(parts[1].strip())
                 
         if lat is None or lng is None:
             lat = plot.latitude
@@ -2092,7 +2132,11 @@ def ndvi_dashboard(request):
                 import json
                 boundaries = json.loads(boundaries)
             except:
-                pass
+                try:
+                    import ast
+                    boundaries = ast.literal_eval(boundaries)
+                except:
+                    pass
         
         plot_data.append({
             'plot_code': plot.plot_code,
@@ -2102,7 +2146,10 @@ def ndvi_dashboard(request):
             'boundaries': boundaries,
             'ndvi_value': ndvi_display,
             'health_status': health_status,
-            'date': date_display
+            'date': date_display,
+            'good_pct': good_pct,
+            'mod_pct': mod_pct,
+            'attn_pct': attn_pct
         })
 
     # 3. Scout Status

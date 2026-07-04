@@ -460,7 +460,7 @@ class Survey(models.Model):
         if allocated_count and allocated_count > 0:
             completed_count = self.results.filter(survey_status='Completed').values('survey_date').distinct().count()
             return min(int((completed_count / allocated_count) * 100), 100)
-        return 100
+        return 0
         
     @property
     def status(self):
@@ -601,3 +601,73 @@ class ScoutSurveyReport(models.Model):
 
     class Meta:
         db_table = "scout_survey_report"
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+import datetime
+
+STAGE_SURVEY_DAYS = {
+    'Germination': [15, 30],
+    'Early Tiller': [45, 60, 75],
+    'Tillering': [90, 105, 120],
+    'Grand growth': [150, 180, 210, 240],
+    'Maturity': [255, 270] 
+}
+
+@receiver(post_save, sender=NDVIRecord)
+def create_survey_on_stage_change(sender, instance, created, **kwargs):
+    """
+    Automatically create a Survey assigned to the respective division officer
+    when a plot enters a new stage threshold.
+    """
+    if instance.stage:
+        # Check if a survey already exists for this plot at this stage
+        survey_exists = Survey.objects.filter(plot=instance.plot, survey_stage=instance.stage).exists()
+        
+        if not survey_exists:
+            officer = None
+            if instance.plot.division_id:
+                div_id_str = str(instance.plot.division_id)
+                # Find the officer assigned to this division
+                for off in Officer.objects.all():
+                    if off.division_ids:
+                        cleaned = off.division_ids.replace('[', '').replace(']', '').replace("'", "").replace('"', "")
+                        ids = [x.strip() for x in cleaned.split(',') if x.strip()]
+                        if div_id_str in ids:
+                            officer = off
+                            break
+                            
+            allocated_dates = []
+            
+            survey_days = STAGE_SURVEY_DAYS.get(instance.stage, [])
+            
+            # Use planting date to calculate dates, default to current date if not set
+            base_date = instance.plot.planting_date if instance.plot.planting_date else datetime.date.today()
+            
+            for day_offset in survey_days:
+                calc_date = base_date + datetime.timedelta(days=day_offset)
+                allocated_dates.append(calc_date.strftime('%Y-%m-%d'))
+                
+            number_of_days = len(allocated_dates)
+            
+            # Automatically create the survey assignment
+            survey = Survey.objects.create(
+                plot=instance.plot,
+                officer=officer,
+                survey_stage=instance.stage,
+                title=f"{instance.stage} Survey for Plot {instance.plot.plot_code}",
+                description=f"Auto-assigned survey triggered because plot entered the {instance.stage} stage.",
+                number_of_days=number_of_days,
+                allocated_dates=allocated_dates,
+                survey_month=base_date.strftime('%B %Y')
+            )
+            
+            # Create corresponding SurveyResult instances for each date so it shows as Pending
+            for date_str in allocated_dates:
+                survey_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+                SurveyResult.objects.create(
+                    survey=survey,
+                    survey_date=survey_date,
+                    survey_status='Pending'
+                )

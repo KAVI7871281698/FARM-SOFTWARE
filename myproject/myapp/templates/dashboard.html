@@ -703,6 +703,84 @@
     .ht-export-btn i {
         margin-right: 4px;
     }
+
+    /* Stage Thresholds Styles */
+    .thresholds-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto;
+        max-height: 450px;
+        padding-right: 5px;
+    }
+
+    .stage-threshold-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 15px;
+    }
+
+    .stage-threshold-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+
+    .stage-bullet {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .stage-row {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 8px;
+    }
+    
+    .stage-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .stage-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        width: 40px;
+    }
+
+    .stage-input-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .stage-input {
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 4px 8px;
+        width: 60px;
+        text-align: center;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.85rem;
+        color: #334155;
+        background: white;
+        outline: none;
+    }
+    
+    .stage-input:focus {
+        border-color: #10b981;
+    }
+
+    .stage-separator {
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
 </style>
 
 {% if not all_selected %}
@@ -1084,6 +1162,108 @@ function switchTrack(trackName) {
             <canvas id="surveyCompletionChart"></canvas>
         </div>
     </div>
+
+    <div class="premium-chart-card">
+        <div class="chart-card-header" style="margin-bottom: 15px;">
+            <h3 class="chart-card-title" style="font-size: 1rem; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase;"><i class="fa-solid fa-seedling" style="margin-right: 6px; color: #84cc16;"></i> STAGE THRESHOLDS</h3>
+        </div>
+        <div class="thresholds-container">
+            <!-- Germination -->
+            <div class="stage-threshold-item">
+                <div class="stage-threshold-header">
+                    <div class="stage-bullet" style="background-color: #3b82f6;"></div> Germination
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">Days</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="0" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="30" readonly>
+                    </div>
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">NDVI</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="0.2" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="0.4" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Early Tiller -->
+            <div class="stage-threshold-item">
+                <div class="stage-threshold-header">
+                    <div class="stage-bullet" style="background-color: #8b5cf6;"></div> Early Tiller
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">Days</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="31" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="75" readonly>
+                    </div>
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">NDVI</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="0.35" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="0.6" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tillering -->
+            <div class="stage-threshold-item">
+                <div class="stage-threshold-header">
+                    <div class="stage-bullet" style="background-color: #0d9488;"></div> Tillering
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">Days</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="76" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="120" readonly>
+                    </div>
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">NDVI</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="0.55" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="0.7" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grand growth -->
+            <div class="stage-threshold-item">
+                <div class="stage-threshold-header">
+                    <div class="stage-bullet" style="background-color: #f59e0b;"></div> Grand growth
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">Days</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="121" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="240" readonly>
+                    </div>
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">NDVI</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="0.65" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="0.8" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maturity -->
+            <div class="stage-threshold-item">
+                <div class="stage-threshold-header">
+                    <div class="stage-bullet" style="background-color: #475569;"></div> Maturity
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">Days</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="241" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="360" readonly>
+                    </div>
+                </div>
+                <div class="stage-row">
+                    <div class="stage-label">NDVI</div>
+                    <div class="stage-input-group">
+                        <input type="text" class="stage-input" value="0.6" readonly> <span class="stage-separator">-</span> <input type="text" class="stage-input" value="0.7" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -1279,10 +1459,12 @@ function switchTrack(trackName) {
         }]
     });
 
-    // Main Health Trend Chart (from image request)
+    // Main Health Trend Chart
     const ctxMainHealth = document.getElementById('mainHealthTrendChart').getContext('2d');
     
-    const htLabels = ['2025-11-15', '2025-11-30', '2025-12-15', '2025-12-31', '2026-01-15', '2026-01-31', '2026-02-15', '2026-02-28', '2026-03-15', '2026-03-31', '2026-04-15', '2026-04-30', '2026-05-15', '2026-05-31', '2026-06-15', '2026-06-25 (latest data)'];
+    const htLabels = parseJSON('{{ ht_labels_json|escapejs }}', ['2025-11-15', '2025-11-30', '2025-12-15', '2025-12-31', '2026-01-15', '2026-01-31', '2026-02-15', '2026-02-28', '2026-03-15', '2026-03-31', '2026-04-15', '2026-04-30', '2026-05-15', '2026-05-31', '2026-06-15', '2026-06-25 (latest data)']);
+    const htHealthData = parseJSON('{{ ht_health_data_json|escapejs }}', { 'Good': [], 'Moderate': [], 'Need Attention': [] });
+    const htStageData = parseJSON('{{ ht_stage_data_json|escapejs }}', { 'Germination': [], 'Early Tiller': [], 'Tillering': [], 'Grand growth': [], 'Maturity': [] });
     
     new Chart(ctxMainHealth, {
         type: 'line',
@@ -1291,7 +1473,7 @@ function switchTrack(trackName) {
             datasets: [
                 {
                     label: 'Good',
-                    data: [10, 15, 20, 30, 26, 22, 28, 48, 26, 20, 58, 34, 88, 48, 46, 50],
+                    data: htHealthData['Good'] || [10, 15, 20, 30, 26, 22, 28, 48, 26, 20, 58, 34, 88, 48, 46, 50],
                     borderColor: '#10b981',
                     backgroundColor: '#10b981',
                     borderWidth: 2,
@@ -1301,7 +1483,7 @@ function switchTrack(trackName) {
                 },
                 {
                     label: 'Moderate',
-                    data: [0, 2, 18, 42, 55, 125, 154, 208, 215, 184, 225, 195, 175, 220, 190, 205],
+                    data: htHealthData['Moderate'] || [0, 2, 18, 42, 55, 125, 154, 208, 215, 184, 225, 195, 175, 220, 190, 205],
                     borderColor: '#f59e0b',
                     backgroundColor: '#f59e0b',
                     borderWidth: 2,
@@ -1311,7 +1493,7 @@ function switchTrack(trackName) {
                 },
                 {
                     label: 'Need attention',
-                    data: [null, null, null, null, 0, 25, 36, 44, 112, 140, 94, 138, 105, 125, 145, 126],
+                    data: htHealthData['Need Attention'] || [null, null, null, null, 0, 25, 36, 44, 112, 140, 94, 138, 105, 125, 145, 126],
                     borderColor: '#ef4444',
                     backgroundColor: '#ef4444',
                     borderWidth: 2,
@@ -1378,7 +1560,7 @@ function switchTrack(trackName) {
             datasets: [
                 {
                     label: 'Germination',
-                    data: [0, 2, 28, 62, 60, 110, 121, 181, 165, 110, 50, 12, null, null, null, null],
+                    data: htStageData['Germination'] || [0, 2, 28, 62, 60, 110, 121, 181, 165, 110, 50, 12, null, null, null, null],
                     borderColor: '#3b82f6',
                     backgroundColor: '#3b82f6',
                     borderWidth: 2,
@@ -1390,7 +1572,7 @@ function switchTrack(trackName) {
                 },
                 {
                     label: 'Early Tiller',
-                    data: [null, null, null, 0, 10, 55, 90, 115, 140, 165, 209, 185, 100, 50, 0, 0],
+                    data: htStageData['Early Tiller'] || [null, null, null, 0, 10, 55, 90, 115, 140, 165, 209, 185, 100, 50, 0, 0],
                     borderColor: '#db2777',
                     backgroundColor: '#db2777',
                     borderWidth: 2,
@@ -1402,7 +1584,7 @@ function switchTrack(trackName) {
                 },
                 {
                     label: 'Tillering',
-                    data: [null, null, null, null, null, 0, 0, 15, 50, 75, 115, 140, 195, 209, 165, 165],
+                    data: htStageData['Tillering'] || [null, null, null, null, null, 0, 0, 15, 50, 75, 115, 140, 195, 209, 165, 165],
                     borderColor: '#14b8a6',
                     backgroundColor: '#14b8a6',
                     borderWidth: 2,
@@ -1414,7 +1596,7 @@ function switchTrack(trackName) {
                 },
                 {
                     label: 'Grand growth',
-                    data: [null, null, null, null, null, null, null, null, null, 0, 15, 40, 90, 130, 209, 209],
+                    data: htStageData['Grand growth'] || [null, null, null, null, null, null, null, null, null, 0, 15, 40, 90, 130, 209, 209],
                     borderColor: '#ea580c',
                     backgroundColor: '#ea580c',
                     borderWidth: 2,
@@ -1426,8 +1608,8 @@ function switchTrack(trackName) {
                 },
                 {
                     label: 'Maturity',
-                    data: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0],
-                    borderColor: '#334155',
+                    data: htStageData['Maturity'] || [null, null, null, null, null, null, null, null, null, null, null, null, 0, 20, 55, 80],
+                    borderColor: '#475569',
                     backgroundColor: '#334155',
                     borderWidth: 2,
                     pointRadius: 8,
