@@ -88,4 +88,6 @@ urlpatterns = [
     path('ndvi_dashboard/', views.ndvi_dashboard, name='ndvi_dashboard'),
     path('scout_management/', views.scout_management, name='scout_management'),
     path('assign_scout/', views.assign_scout, name='assign_scout'),
+    path('api/compare-ndvi/', views.compare_ndvi_data, name='compare_ndvi_data'),
+    path('api/scouts/', mobile_api_views.api_scouts, name='api_scouts'),
 ]

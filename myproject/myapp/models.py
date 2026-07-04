@@ -671,3 +671,51 @@ def create_survey_on_stage_change(sender, instance, created, **kwargs):
                     survey_date=survey_date,
                     survey_status='Pending'
                 )
+
+@receiver(post_save, sender=NDVIRecord)
+def create_scout_on_critical_health(sender, instance, created, **kwargs):
+    """
+    Automatically create and assign a Scout when NDVIRecord shows 'Critical' or 'Moderate' health status.
+    """
+    if instance.health_status in ['Critical', 'Moderate']:
+        # Check if there's already an active scout (Pending or Assigned) for this plot
+        active_scouts_exist = Scout.objects.filter(
+            plot=instance.plot, 
+            status__in=['Pending Assignment', 'Assigned']
+        ).exists()
+        
+        if not active_scouts_exist:
+            # Determine Priority based on health status
+            priority = 'High' if instance.health_status == 'Critical' else 'Medium'
+            alert_reason = f"Automated Scout Alert: Plot Health Status dropped to {instance.health_status}."
+            
+            # Create Scout
+            scout = Scout.objects.create(
+                plot=instance.plot,
+                ndvi_value=instance.ndvi_value,
+                alert_reason=alert_reason,
+                priority=priority,
+                status='Pending Assignment'
+            )
+            
+            # Find the officer assigned to this division
+            officer = None
+            if instance.plot.division_id:
+                div_id_str = str(instance.plot.division_id)
+                for off in Officer.objects.all():
+                    if off.division_ids:
+                        cleaned = off.division_ids.replace('[', '').replace(']', '').replace("'", "").replace('"', "")
+                        ids = [x.strip() for x in cleaned.split(',') if x.strip()]
+                        if div_id_str in ids:
+                            officer = off
+                            break
+            
+            # Create ScoutAssignment if officer found
+            if officer:
+                ScoutAssignment.objects.create(
+                    scout=scout,
+                    officer=officer,
+                    notes=f"Auto-assigned due to {instance.health_status} health status."
+                )
+                scout.status = 'Assigned'
+                scout.save()

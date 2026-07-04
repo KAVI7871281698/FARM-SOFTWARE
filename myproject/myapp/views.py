@@ -2245,5 +2245,37 @@ def assign_scout(request):
             
     return redirect('scout_management')
 
-
-
+def compare_ndvi_data(request):
+    from django.http import JsonResponse
+    from django.db.models import Avg, F
+    
+    level = request.GET.get('level', 'division')
+    
+    qs = NDVIRecord.objects.all()
+    
+    if level == 'factory':
+        qs = qs.annotate(name=F('plot__factory_name'))
+    elif level == 'division':
+        qs = qs.annotate(name=F('plot__division_name'))
+    elif level == 'section':
+        qs = qs.annotate(name=F('plot__section_name'))
+    elif level == 'village':
+        qs = qs.annotate(name=F('plot__village_name'))
+    else:
+        return JsonResponse({'error': 'Invalid level'}, status=400)
+        
+    data = qs.values('name').annotate(
+        avg_ndvi=Avg('ndvi_mean')
+    ).exclude(name__isnull=True).exclude(name='').order_by('name')
+    
+    labels = []
+    avg_ndvis = []
+    
+    for item in data:
+        labels.append(item['name'])
+        avg_ndvis.append(round(float(item['avg_ndvi'] or 0), 4))
+        
+    return JsonResponse({
+        'labels': labels,
+        'avg_ndvis': avg_ndvis
+    })

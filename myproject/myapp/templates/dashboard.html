@@ -1065,10 +1065,16 @@
     <div id="view-compare" style="display: none;">
         <div class="ht-chart-header">
             <div>
-                <h3 class="ht-chart-title">Crop health comparison by Mill/Client</h3>
-                <p class="ht-chart-subtitle">
-                    2 Mill/Clients - 2025-01-01 to 2026-06-29 (57 plots, latest obs in period)
-                </p>
+                <h3 class="ht-chart-title">NDVI Comparison</h3>
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                    <label style="font-size: 0.9rem; color: #64748b; font-weight: 600;">Compare By:</label>
+                    <select id="compareLevelSelect" class="ht-input" onchange="fetchComparisonData()">
+                        <option value="factory">Factory</option>
+                        <option value="division" selected>Division</option>
+                        <option value="section">Section</option>
+                        <option value="village">Village</option>
+                    </select>
+                </div>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="ht-export-btn"><span style="color: #10b981; font-weight: 800; margin-right: 4px;">I</span> Excel</button>
@@ -1666,42 +1672,19 @@ function switchTrack(trackName) {
         }
     });
 
-    // Compare Bar Chart
+    // Compare Bar Chart (Dynamic)
     const ctxCompare = document.getElementById('compareHealthChart').getContext('2d');
-    new Chart(ctxCompare, {
+    let compareChart = new Chart(ctxCompare, {
         type: 'bar',
         data: {
-            labels: ['MUNDIYAMPAKKAM', 'SEMMEDU'],
-            datasets: [
-                {
-                    label: 'Good',
-                    data: [0, 0],
-                    backgroundColor: '#10b981',
-                    borderWidth: 0,
-                    borderRadius: 4
-                },
-                {
-                    label: 'Moderate',
-                    data: [0, 0],
-                    backgroundColor: '#f59e0b',
-                    borderWidth: 0,
-                    borderRadius: 4
-                },
-                {
-                    label: 'Need attention',
-                    data: [17, 40],
-                    backgroundColor: '#ef4444',
-                    borderWidth: 0,
-                    borderRadius: 4
-                },
-                {
-                    label: 'Watch',
-                    data: [0, 0],
-                    backgroundColor: '#8b5cf6',
-                    borderWidth: 0,
-                    borderRadius: 4
-                }
-            ]
+            labels: [],
+            datasets: [{
+                label: 'Average NDVI',
+                data: [],
+                backgroundColor: '#10b981',
+                borderWidth: 0,
+                borderRadius: 4
+            }]
         },
         options: {
             responsive: true,
@@ -1727,12 +1710,11 @@ function switchTrack(trackName) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 40,
-                    ticks: { stepSize: 5 },
+                    ticks: { stepSize: 0.1 },
                     border: { display: false },
                     title: {
                         display: true,
-                        text: 'Number of plots',
+                        text: 'Average NDVI',
                         font: { family: 'Outfit' }
                     }
                 },
@@ -1743,6 +1725,23 @@ function switchTrack(trackName) {
             }
         }
     });
+
+    function fetchComparisonData() {
+        const level = document.getElementById('compareLevelSelect').value;
+        fetch(`/api/compare-ndvi/?level=${level}`)
+            .then(response => response.json())
+            .then(data => {
+                if(data.labels) {
+                    compareChart.data.labels = data.labels;
+                    compareChart.data.datasets[0].data = data.avg_ndvis;
+                    compareChart.update();
+                }
+            })
+            .catch(err => console.error("Error fetching comparison data:", err));
+    }
+    
+    // Initial fetch
+    fetchComparisonData();
 </script>
 
 <script>

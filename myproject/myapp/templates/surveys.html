@@ -42,8 +42,7 @@
         <div class="survey-card-header">
             <div class="survey-info-main">
                 <h4>{{ survey.plot.plot_code }} ({{ survey.plot.farmer.name }})</h4>
-                <p class="survey-subtitle">Survey ID: <strong>{{ survey.survey_id }}</strong> | Month: {{
-                    survey.survey_month|default:"Not Set" }}</p>
+                <p class="survey-subtitle">Survey ID: <strong>{{ survey.survey_id }}</strong> | Month: {% if survey.survey_month %}{{ survey.survey_month }}{% else %}{{ survey.created_at|date:"F Y" }}{% endif %}</p>
             </div>
             <div class="survey-status">
                 {% if survey.status == 'Active' %}

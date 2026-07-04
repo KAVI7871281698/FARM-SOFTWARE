@@ -1015,3 +1015,46 @@ def api_update_survey(request):
         })
         
     return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def api_scouts(request):
+    from .models import ScoutAssignment, Officer
+    
+    officer_id = request.GET.get('officer_id') or request.POST.get('officer_id')
+    lt = request.GET.get('lt') or request.POST.get('lt')
+    ln = request.GET.get('ln') or request.POST.get('ln')
+    device_id = request.GET.get('device_id') or request.POST.get('device_id')
+    
+    if not officer_id:
+        return JsonResponse({"status": "error", "message": "officer_id is required"}, status=400)
+        
+    # Update officer location and device_id if provided (standard for mobile tracking)
+    if lt or ln or device_id:
+        officer = Officer.objects.filter(id=officer_id).first()
+        if officer:
+            if lt: officer.latitude = lt
+            if ln: officer.longitude = ln
+            if device_id: officer.device_id = device_id
+            officer.save()
+        
+    assignments = ScoutAssignment.objects.filter(officer_id=officer_id).select_related('scout', 'scout__plot', 'scout__plot__farmer')
+    
+    scouts_data = []
+    for assignment in assignments:
+        scout = assignment.scout
+        scouts_data.append({
+            'scout_id': scout.scout_id,
+            'plot_code': scout.plot.plot_code if scout.plot else '-',
+            'farmer_name': scout.plot.farmer.name if scout.plot and scout.plot.farmer else '-',
+            'ndvi_value': str(scout.ndvi_value) if scout.ndvi_value else '-',
+            'alert_reason': scout.alert_reason or '-',
+            'priority': scout.priority,
+            'status': scout.status,
+            'assigned_date': assignment.assigned_date.strftime('%Y-%m-%d %H:%M:%S') if assignment.assigned_date else None,
+            'notes': assignment.notes or '-'
+        })
+        
+    return JsonResponse({
+        "status": "success",
+        "data": scouts_data
+    }, status=200)
