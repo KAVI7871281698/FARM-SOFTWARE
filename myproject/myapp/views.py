@@ -147,6 +147,124 @@ def index(request):
     # GET request: Web Login Page
     return render(request, 'index.html')
 
+def scout_management(request):
+    scouts = Scout.objects.all().order_by('-created_at')
+    officers = Officer.objects.all()
+    
+    total_scouts = scouts.count()
+    pending_scouts = scouts.filter(status='Pending Assignment').count()
+    assigned_scouts = scouts.filter(status='Assigned').count()
+    completed_scouts = scouts.filter(status='Completed').count()
+    critical_alerts = scouts.filter(priority='High').count()
+
+    divisions = Division.objects.all()
+
+    context = {
+        'scouts': scouts,
+        'officers': officers,
+        'divisions': divisions,
+        'total_scouts': total_scouts,
+        'pending_scouts': pending_scouts,
+        'assigned_scouts': assigned_scouts,
+        'completed_scouts': completed_scouts,
+        'critical_alerts': critical_alerts,
+    }
+    return render(request, 'scout_management.html', context)
+
+def assign_scout(request):
+    if request.method == 'POST':
+        scout_id = request.POST.get('scout_id')
+        officer_id = request.POST.get('officer_id')
+        notes = request.POST.get('notes', '')
+
+        try:
+            scout = Scout.objects.get(id=scout_id)
+            officer = Officer.objects.get(id=officer_id)
+
+            ScoutAssignment.objects.create(
+                scout=scout,
+                officer=officer,
+                notes=notes
+            )
+            scout.status = 'Assigned'
+            scout.save()
+
+            messages.success(request, f'Scout successfully assigned to {officer.name}.')
+        except (Scout.DoesNotExist, Officer.DoesNotExist):
+            messages.error(request, 'Invalid scout or officer selection.')
+
+    return redirect('scout_management')
+
+def get_sections_by_division(request):
+    division_id = request.GET.get('division_id')
+    sections = Section.objects.filter(division_id=division_id).values('id', 'section_name')
+    return JsonResponse(list(sections), safe=False)
+
+def get_villages_by_section(request):
+    section_id = request.GET.get('section_id')
+    villages = Village.objects.filter(section_id=section_id).values('id', 'village_name')
+    return JsonResponse(list(villages), safe=False)
+
+def get_plots_by_village(request):
+    village_id = request.GET.get('village_id')
+    plots = Plot.objects.filter(village_id=village_id).select_related('farmer').values('id', 'plot_code', 'farmer__name')
+    return JsonResponse(list(plots), safe=False)
+
+def create_manual_scout(request):
+    if request.method == 'POST':
+        plot_id = request.POST.get('plot_id')
+        priority = request.POST.get('priority', 'Medium')
+        alert_reason = request.POST.get('alert_reason', 'Manual Scout Created')
+
+        if plot_id:
+            plot = Plot.objects.filter(id=plot_id).first()
+            if plot:
+                scout = Scout.objects.create(
+                    plot=plot,
+                    alert_reason=alert_reason,
+                    priority=priority,
+                    status='Pending Assignment',
+                    ndvi_value=None
+                )
+
+                division_id = None
+                if plot.division:
+                    division_id = plot.division.id
+                elif plot.farmer and plot.farmer.division:
+                    division_id = plot.farmer.division.id
+                
+                if division_id:
+                    officers = Officer.objects.all()
+                    assigned_officer = None
+                    for officer in officers:
+                        if officer.division_ids:
+                            try:
+                                div_ids_str = str(officer.division_ids).replace("'", '"')
+                                div_ids = json.loads(div_ids_str)
+                                if str(division_id) in [str(d).strip() for d in div_ids]:
+                                    assigned_officer = officer
+                                    break
+                            except:
+                                if str(division_id) in str(officer.division_ids):
+                                    assigned_officer = officer
+                                    break
+                    
+                    if assigned_officer:
+                        ScoutAssignment.objects.create(
+                            scout=scout,
+                            officer=assigned_officer,
+                            notes="Auto-assigned manual scout."
+                        )
+                        scout.status = 'Assigned'
+                        scout.save()
+                        messages.success(request, f"Manual Scout created and automatically assigned to {assigned_officer.name}.")
+                    else:
+                        messages.warning(request, "Manual Scout created but no officer found for this division.")
+                else:
+                    messages.warning(request, "Manual Scout created but plot has no division to auto-assign.")
+
+    return redirect('scout_management')
+
 def logout_view(request):
     request.session.flush()
     return redirect('index')
@@ -2197,33 +2315,6 @@ def ndvi_dashboard(request):
     }
     return render(request, 'ndvi_dashboard.html', context)
 
-
-def scout_management(request):
-    scouts = Scout.objects.all().order_by('-created_at')
-    officers = Officer.objects.all()
-    
-    total_scouts = scouts.count()
-    pending_scouts = scouts.filter(status='Pending Assignment').count()
-    assigned_scouts = scouts.filter(status='Assigned').count()
-    completed_scouts = scouts.filter(status='Completed').count()
-    critical_alerts = scouts.filter(priority='High').count()
-
-    context = {
-        'scouts': scouts,
-        'officers': officers,
-        'total_scouts': total_scouts,
-        'pending_scouts': pending_scouts,
-        'assigned_scouts': assigned_scouts,
-        'completed_scouts': completed_scouts,
-        'critical_alerts': critical_alerts,
-    }
-    return render(request, 'scout_management.html', context)
-
-def assign_scout(request):
-    if request.method == 'POST':
-        scout_id = request.POST.get('scout_id')
-        officer_id = request.POST.get('officer_id')
-        notes = request.POST.get('notes', '')
 
         try:
             scout = Scout.objects.get(id=scout_id)

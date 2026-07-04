@@ -62,8 +62,14 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>📋 Scout Management</h2>
-        <a href="{% url 'ndvi_dashboard' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to
-            NDVI</a>
+        <div>
+            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#createScoutModal">
+                <i class="fas fa-plus"></i> Create Manual Scout
+            </button>
+            <a href="{% url 'ndvi_dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to NDVI
+            </a>
+        </div>
     </div>
 
     {% if messages %}
@@ -196,6 +202,77 @@
         </div>
     </div>
 </div>
+
+<!-- Create Manual Scout Modal -->
+<div class="modal fade" id="createScoutModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{% url 'create_manual_scout' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Create Manual Scout</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Division -->
+                        <div class="col-md-6 mb-3">
+                            <label>Division <span class="text-danger">*</span></label>
+                            <select id="manualDivision" class="form-select" required>
+                                <option value="">-- Select Division --</option>
+                                {% for div in divisions %}
+                                <option value="{{ div.id }}">{{ div.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- Section -->
+                        <div class="col-md-6 mb-3">
+                            <label>Section <span class="text-danger">*</span></label>
+                            <select id="manualSection" class="form-select" required disabled>
+                                <option value="">-- Select Section --</option>
+                            </select>
+                        </div>
+                        <!-- Village -->
+                        <div class="col-md-6 mb-3">
+                            <label>Village <span class="text-danger">*</span></label>
+                            <select id="manualVillage" class="form-select" required disabled>
+                                <option value="">-- Select Village --</option>
+                            </select>
+                        </div>
+                        <!-- Plot -->
+                        <div class="col-md-6 mb-3">
+                            <label>Plot <span class="text-danger">*</span></label>
+                            <select name="plot_id" id="manualPlot" class="form-select" required disabled>
+                                <option value="">-- Select Plot --</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label>Priority <span class="text-danger">*</span></label>
+                            <select name="priority" class="form-select" required>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label>Alert Reason / Notes <span class="text-danger">*</span></label>
+                            <textarea name="alert_reason" class="form-control" rows="2" placeholder="e.g., Manual inspection required due to reported pests" required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Create Scout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -210,6 +287,69 @@
                 document.getElementById('modal-scout-id').value = scoutId;
                 document.getElementById('modal-scout-code').textContent = scoutCode;
             });
+        });
+
+        // Cascading Dropdowns Logic for Manual Scout
+        const divSelect = document.getElementById('manualDivision');
+        const secSelect = document.getElementById('manualSection');
+        const vilSelect = document.getElementById('manualVillage');
+        const pltSelect = document.getElementById('manualPlot');
+
+        divSelect.addEventListener('change', function() {
+            const divId = this.value;
+            secSelect.innerHTML = '<option value="">-- Select Section --</option>';
+            vilSelect.innerHTML = '<option value="">-- Select Village --</option>';
+            pltSelect.innerHTML = '<option value="">-- Select Plot --</option>';
+            secSelect.disabled = true;
+            vilSelect.disabled = true;
+            pltSelect.disabled = true;
+
+            if(divId) {
+                fetch(`/api/get_sections_by_division/?division_id=${divId}`)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(s => {
+                        secSelect.innerHTML += `<option value="${s.id}">${s.section_name}</option>`;
+                    });
+                    secSelect.disabled = false;
+                });
+            }
+        });
+
+        secSelect.addEventListener('change', function() {
+            const secId = this.value;
+            vilSelect.innerHTML = '<option value="">-- Select Village --</option>';
+            pltSelect.innerHTML = '<option value="">-- Select Plot --</option>';
+            vilSelect.disabled = true;
+            pltSelect.disabled = true;
+
+            if(secId) {
+                fetch(`/api/get_villages_by_section/?section_id=${secId}`)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(v => {
+                        vilSelect.innerHTML += `<option value="${v.id}">${v.village_name}</option>`;
+                    });
+                    vilSelect.disabled = false;
+                });
+            }
+        });
+
+        vilSelect.addEventListener('change', function() {
+            const vilId = this.value;
+            pltSelect.innerHTML = '<option value="">-- Select Plot --</option>';
+            pltSelect.disabled = true;
+
+            if(vilId) {
+                fetch(`/api/get_plots_by_village/?village_id=${vilId}`)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(p => {
+                        pltSelect.innerHTML += `<option value="${p.id}">${p.plot_code} - ${p.farmer__name}</option>`;
+                    });
+                    pltSelect.disabled = false;
+                });
+            }
         });
     });
 </script>

@@ -90,4 +90,8 @@ urlpatterns = [
     path('assign_scout/', views.assign_scout, name='assign_scout'),
     path('api/compare-ndvi/', views.compare_ndvi_data, name='compare_ndvi_data'),
     path('api/scouts/', mobile_api_views.api_scouts, name='api_scouts'),
+    path('api/get_sections_by_division/', views.get_sections_by_division, name='get_sections_by_division'),
+    path('api/get_villages_by_section/', views.get_villages_by_section, name='get_villages_by_section'),
+    path('api/get_plots_by_village/', views.get_plots_by_village, name='get_plots_by_village'),
+    path('create_manual_scout/', views.create_manual_scout, name='create_manual_scout'),
 ]
