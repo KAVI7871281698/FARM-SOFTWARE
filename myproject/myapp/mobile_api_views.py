@@ -1150,11 +1150,15 @@ def api_mobile_dashboard(request):
 
     total_plots = all_plots.count()
     
+    from django.db.models import Prefetch
+    
     mapped_plots_qs = all_plots.filter(
         Q(center_lt_ln__isnull=False) | 
         (Q(latitude__isnull=False) & Q(longitude__isnull=False)) |
         Q(boundaries__isnull=False)
-    ).distinct()
+    ).distinct().select_related('farmer', 'village', 'crop_type').prefetch_related(
+        Prefetch('ndvi_records', queryset=NDVIRecord.objects.order_by('-date_recorded'), to_attr='prefetched_ndvi_records')
+    )
     
     mapped_count = mapped_plots_qs.count()
     not_mapped_count = total_plots - mapped_count
@@ -1167,7 +1171,7 @@ def api_mobile_dashboard(request):
     
     # Iterate through mapped plots to compute crop health and NDVI declining
     for plot in mapped_plots_qs:
-        records = list(plot.ndvi_records.order_by('-date_recorded')[:2])
+        records = plot.prefetched_ndvi_records[:2]
         latest_ndvi = records[0] if len(records) > 0 else None
         prev_ndvi = records[1] if len(records) > 1 else None
         
