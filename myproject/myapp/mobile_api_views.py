@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult,NDVIRecord
+from django.db.models import Q
 import json
 
 def parse_legacy_field(val):
@@ -1134,8 +1135,6 @@ def api_mobile_dashboard(request):
     officer = Officer.objects.filter(id=officer_id).first()
     if not officer:
         return JsonResponse({"status": "error", "message": "Invalid officer_id"}, status=400)
-        
-    from django.db.models import Q
     
     # Filter by factories allowed for the officer
     is_superadmin = (str(officer.role_id) == '1') if getattr(officer, 'role_id', None) else False
