@@ -96,4 +96,5 @@ urlpatterns = [
     path('create_manual_scout/', views.create_manual_scout, name='create_manual_scout'),
     path('scout_result/', views.scout_result_view, name='scout_result'),
     path('api/add_scout_result/', mobile_api_views.api_add_scout_result, name='api_add_scout_result'),
+    path('api/mobile_dashboard/', mobile_api_views.api_mobile_dashboard, name='api_mobile_dashboard'),
 ]

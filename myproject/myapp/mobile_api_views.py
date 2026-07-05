@@ -1123,3 +1123,103 @@ def api_add_scout_result(request):
             }, status=400)
             
     return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
+
+@csrf_exempt
+def api_mobile_dashboard(request):
+    officer_id = request.GET.get('officer_id') or request.POST.get('officer_id')
+    
+    if not officer_id:
+        return JsonResponse({"status": "error", "message": "officer_id is required"}, status=400)
+        
+    officer = Officer.objects.filter(id=officer_id).first()
+    if not officer:
+        return JsonResponse({"status": "error", "message": "Invalid officer_id"}, status=400)
+        
+    from django.db.models import Q
+    
+    # Filter by factories allowed for the officer
+    is_superadmin = (str(officer.role_id) == '1') if getattr(officer, 'role_id', None) else False
+    if is_superadmin:
+        all_plots = Plot.objects.all()
+    else:
+        fids = [int(x.strip()) for x in str(officer.factory_ids).split(',') if getattr(officer, 'factory_ids', None) and x.strip().isdigit()]
+        if fids:
+            all_plots = Plot.objects.filter(farmer__section__division__factory_name_id__in=fids)
+        else:
+            all_plots = Plot.objects.none()
+
+    total_plots = all_plots.count()
+    
+    mapped_plots_qs = all_plots.filter(
+        Q(center_lt_ln__isnull=False) | 
+        (Q(latitude__isnull=False) & Q(longitude__isnull=False)) |
+        Q(boundaries__isnull=False)
+    ).distinct()
+    
+    mapped_count = mapped_plots_qs.count()
+    not_mapped_count = total_plots - mapped_count
+
+    good_count = 0
+    optimal_count = 0
+    need_attention_count = 0
+    
+    ndvi_declining_list = []
+    
+    # Iterate through mapped plots to compute crop health and NDVI declining
+    for plot in mapped_plots_qs:
+        records = list(plot.ndvi_records.order_by('-date_recorded')[:2])
+        latest_ndvi = records[0] if len(records) > 0 else None
+        prev_ndvi = records[1] if len(records) > 1 else None
+        
+        health_status = 'Good'
+        
+        if latest_ndvi:
+            hs = (latest_ndvi.health_status or '').lower()
+            if 'critical' in hs or 'attention' in hs:
+                health_status = 'Need Attention'
+            elif 'moderate' in hs or 'optimal' in hs:
+                health_status = 'Optimal'
+            else:
+                health_status = 'Good'
+                
+        if health_status == 'Good':
+            good_count += 1
+        elif health_status == 'Optimal':
+            optimal_count += 1
+        else:
+            need_attention_count += 1
+            
+        # Check NDVI declining
+        if latest_ndvi and prev_ndvi:
+            latest_val = float(latest_ndvi.ndvi_mean or latest_ndvi.ndvi_value or 0)
+            prev_val = float(prev_ndvi.ndvi_mean or prev_ndvi.ndvi_value or 0)
+            
+            if latest_val < prev_val:
+                drop = prev_val - latest_val
+                ndvi_declining_list.append({
+                    'farmer_name': plot.farmer.name if plot.farmer else '-',
+                    'plot_code': plot.plot_code,
+                    'village_name': plot.village.village_name if plot.village else '-',
+                    'stage': latest_ndvi.stage or (plot.crop_type.crop_name if plot.crop_type else '-'),
+                    'latest_ndvi': round(latest_val, 2),
+                    'previous_ndvi': round(prev_val, 2),
+                    'drop': round(drop, 2)
+                })
+
+    return JsonResponse({
+        "status": "success",
+        "data": {
+            "total_plots": total_plots,
+            "mapped": mapped_count,
+            "not_mapped": not_mapped_count,
+            "crop_health": {
+                "good": good_count,
+                "optimal": optimal_count,
+                "need_attention": need_attention_count
+            },
+            "ndvi_declining": {
+                "count": len(ndvi_declining_list),
+                "fields": ndvi_declining_list
+            }
+        }
+    })
