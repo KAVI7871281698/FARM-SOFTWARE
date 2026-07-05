@@ -719,3 +719,20 @@ def create_scout_on_critical_health(sender, instance, created, **kwargs):
                 )
                 scout.status = 'Assigned'
                 scout.save()
+
+class ScoutResult(models.Model):
+    previous_scout_id = models.CharField(max_length=50, blank=True, null=True)
+    farmer_name = models.CharField(max_length=150, blank=True, null=True)
+    plot_id = models.CharField(max_length=50, blank=True, null=True)
+    recommendation_adopted = models.BooleanField(default=False)
+    current_problem_status = models.CharField(max_length=255, blank=True, null=True)
+    current_crop_status = models.CharField(max_length=255, blank=True, null=True)
+    seek_expert_help = models.BooleanField(default=False)
+    field_photos = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "scout_result"
+
+    def __str__(self):
+        return f"Scout Result - {self.id}"

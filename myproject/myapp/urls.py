@@ -94,4 +94,6 @@ urlpatterns = [
     path('api/get_villages_by_section/', views.get_villages_by_section, name='get_villages_by_section'),
     path('api/get_plots_by_village/', views.get_plots_by_village, name='get_plots_by_village'),
     path('create_manual_scout/', views.create_manual_scout, name='create_manual_scout'),
+    path('scout_result/', views.scout_result_view, name='scout_result'),
+    path('api/add_scout_result/', mobile_api_views.api_add_scout_result, name='api_add_scout_result'),
 ]

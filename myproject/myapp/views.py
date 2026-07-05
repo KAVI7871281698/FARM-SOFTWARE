@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult
 
 import json
 
@@ -2336,6 +2336,7 @@ def compare_ndvi_data(request):
         
     data = qs.values('name').annotate(
         avg_ndvi=Avg('ndvi_mean')
+
     ).exclude(name__isnull=True).exclude(name='').order_by('name')
     
     labels = []
@@ -2349,3 +2350,7 @@ def compare_ndvi_data(request):
         'labels': labels,
         'avg_ndvis': avg_ndvis
     })
+
+def scout_result_view(request):
+    results = ScoutResult.objects.all().order_by('-created_at')
+    return render(request, 'scout_result.html', {'results': results})

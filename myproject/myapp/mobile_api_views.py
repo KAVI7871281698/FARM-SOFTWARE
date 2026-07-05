@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult
 import json
 
 def parse_legacy_field(val):
@@ -1058,3 +1058,68 @@ def api_scouts(request):
         "status": "success",
         "data": scouts_data
     }, status=200)
+
+@csrf_exempt
+def api_add_scout_result(request):
+    if request.method == 'POST':
+        try:            
+            # Extract basic text fields
+            previous_scout_id = request.POST.get('previous_scout_id', '')
+            farmer_name = request.POST.get('farmer_name', '')
+            plot_id = request.POST.get('plot_id', '')
+            
+            # Handle booleans
+            rec_adopted_str = request.POST.get('recommendation_adopted', 'false').strip().lower()
+            rec_adopted = rec_adopted_str in ['true', '1', 'yes']
+            
+            current_prob = request.POST.get('current_problem_status', '')
+            current_crop = request.POST.get('current_crop_status', '')
+            
+            seek_help_str = request.POST.get('seek_expert_help', 'false').strip().lower()
+            seek_help = seek_help_str in ['true', '1', 'yes']
+            
+            # Extract photos (base64 strings or URLs typically sent from mobile)
+            field_photos = []
+            for key in request.POST.keys():
+                key_lower = key.lower()
+                if 'photo' in key_lower or 'image' in key_lower or 'pic' in key_lower:
+                    for val in request.POST.getlist(key):
+                        if str(val).strip():
+                            field_photos.append(val)
+                            
+            # Create the record in DB
+            scout_result = ScoutResult.objects.create(
+                previous_scout_id=previous_scout_id,
+                farmer_name=farmer_name,
+                plot_id=plot_id,
+                recommendation_adopted=rec_adopted,
+                current_problem_status=current_prob,
+                current_crop_status=current_crop,
+                seek_expert_help=seek_help,
+                field_photos=field_photos if field_photos else None
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Scout result saved successfully',
+                'data': {
+                    'id': scout_result.id,
+                    'previous_scout_id': scout_result.previous_scout_id,
+                    'farmer_name': scout_result.farmer_name,
+                    'plot_id': scout_result.plot_id,
+                    'recommendation_adopted': scout_result.recommendation_adopted,
+                    'current_problem_status': scout_result.current_problem_status,
+                    'current_crop_status': scout_result.current_crop_status,
+                    'seek_expert_help': scout_result.seek_expert_help,
+                    'field_photos': scout_result.field_photos,
+                    'created_at': scout_result.created_at.strftime('%Y-%m-%d %H:%M:%S') if scout_result.created_at else None
+                }
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+            
+    return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
