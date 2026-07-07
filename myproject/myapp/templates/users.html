@@ -7,9 +7,17 @@
 <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h3>Registered Farmers</h3>
-        <button onclick="window.location.href='{% url 'add_farmer' %}'"
+        
+        <div style="display: flex; gap: 10px;">
+            <form action="{% url 'import_farmers' %}" method="post" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center;">
+                {% csrf_token %}
+                <input type="file" name="excel_file" accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv" required style="padding: 0.4rem; border-radius: 6px; border: 1px solid #ccc; font-family: 'Outfit'; font-size: 14px;">
+                <button type="submit" style="background: #28a745; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-file-import"></i> Import</button>
+            </form>
+            <button onclick="window.location.href='{% url 'add_farmer' %}'"
             style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
                 class="fa-solid fa-plus"></i> Add User</button>
+        </div>
     </div>
     <div style="overflow-x: auto; width: 100%;">
         <table style="width: 100%; min-width: 800px; border-collapse: collapse; text-align: left;">

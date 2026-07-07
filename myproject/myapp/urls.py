@@ -97,4 +97,10 @@ urlpatterns = [
     path('scout_result/', views.scout_result_view, name='scout_result'),
     path('api/add_scout_result/', mobile_api_views.api_add_scout_result, name='api_add_scout_result'),
     path('api/mobile_dashboard/', mobile_api_views.api_mobile_dashboard, name='api_mobile_dashboard'),
+    path('import_groups/', views.import_groups, name='import_groups'),
+    path('import_factories/', views.import_factories, name='import_factories'),
+    path('import_divisions/', views.import_divisions, name='import_divisions'),
+    path('import_sections/', views.import_sections, name='import_sections'),
+    path('import_villages/', views.import_villages, name='import_villages'),
+    path('import_farmers/', views.import_farmers, name='import_farmers'),
 ]

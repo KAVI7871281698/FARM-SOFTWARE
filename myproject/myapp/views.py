@@ -871,7 +871,8 @@ def add_farmer(request):
         group_name = group_obj.name if group_obj else None
         factory_obj = Factory.objects.filter(id=factory_id).first() if factory_id else None
         factory_name = factory_obj.name if factory_obj else None
-        
+        if not division and section and section.division:
+            division = section.division.name
         Farmer.objects.create(
             name=name,
             father_name=father_name,
@@ -1349,6 +1350,8 @@ def add_village(request):
         section = Section.objects.get(id=section_id) if section_id else None
         
         if section:
+            if not division and section and section.division:
+                division = section.division.name
             Village.objects.create(
                 village_name=village_name,
                 division=division,
@@ -1474,7 +1477,7 @@ def edit_village(request, id):
     village = get_object_or_404(Village, id=id)
     if request.method == 'POST':
         village.village_name = request.POST.get('village_name')
-        village.division = request.POST.get('division')
+        village.division = request.POST.get('division') or (section.division.name if section and section.division else '')
         section_id = request.POST.get('section_id')
         village.section = Section.objects.get(id=section_id) if section_id else None
         village.taluk = request.POST.get('taluk')
@@ -2354,3 +2357,266 @@ def compare_ndvi_data(request):
 def scout_result_view(request):
     results = ScoutResult.objects.all().order_by('-created_at')
     return render(request, 'scout_result.html', {'results': results})
+
+import pandas as pd
+from django.contrib import messages
+
+def import_groups(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.str.strip().str.lower()
+            for index, row in df.iterrows():
+                code = str(row.get('code', row.get('group code', '')))
+                name = str(row.get('name', row.get('group name', '')))
+                if name and name != 'nan':
+                    group, created = Group.objects.get_or_create(name=name, defaults={'code': code if code != 'nan' else ''})
+                    if not created and code and code != 'nan':
+                        group.code = code
+                        group.save()
+            messages.success(request, 'Groups imported successfully!')
+        except Exception as e:
+            messages.error(request, f'Error importing groups: {str(e)}')
+    return redirect('groups')
+
+def import_factories(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.astype(str).str.strip().str.lower()
+            print(f"DEBUG: Loaded file. Columns found: {list(df.columns)}")
+            
+            imported_count = 0
+            for index, row in df.iterrows():
+                group_name = str(row.get('group_name', row.get('group name', row.get('group', '')))).strip()
+                group_code_col = str(row.get('group_code', row.get('group code', ''))).strip()
+                
+                code = str(row.get('code', row.get('factory code', ''))).strip()
+                name = str(row.get('name', row.get('factory name', row.get('factory', '')))).strip()
+                location = str(row.get('location', row.get('location (lat/long)', row.get('location_latlong', '')))).strip()
+                capacity = str(row.get('crushing_capacity', row.get('crushing capacity', row.get('capacity', '')))).strip()
+                
+                has_group = (group_name and group_name != 'nan') or (group_code_col and group_code_col != 'nan')
+                if name and name != 'nan' and has_group:
+                    group = None
+                    if group_name and group_name != 'nan':
+                        group = Group.objects.filter(name__iexact=group_name).first()
+                        if not group:
+                            group = Group.objects.filter(code__iexact=group_name).first()
+                    
+                    if not group and group_code_col and group_code_col != 'nan':
+                        group = Group.objects.filter(code__iexact=group_code_col).first()
+                        if not group:
+                            group = Group.objects.filter(name__iexact=group_code_col).first()
+                            
+                    if group:
+                        factory, created = Factory.objects.get_or_create(name=name, group=group, defaults={
+                            'code': code if code != 'nan' else '',
+                            'location_LatLong': location if location != 'nan' else '',
+                            'crushing_capacity': capacity if capacity != 'nan' else ''
+                        })
+                        if not created:
+                            factory.code = code if code != 'nan' else factory.code
+                            factory.location_LatLong = location if location != 'nan' else factory.location_LatLong
+                            factory.crushing_capacity = capacity if capacity != 'nan' else factory.crushing_capacity
+                            factory.save()
+                        imported_count += 1
+            
+            if imported_count == 0:
+                print(f"DEBUG: No factories imported. Columns: {list(df.columns)}")
+                messages.error(request, f'No factories imported. Columns found: {list(df.columns)}. Make sure Group Name and Factory Name are present and Groups already exist.')
+            else:
+                print(f"DEBUG: {imported_count} factories imported successfully!")
+                messages.success(request, f'{imported_count} Factories imported successfully!')
+        except Exception as e:
+            print(f"DEBUG EXCEPTION: {str(e)}")
+            messages.error(request, f'Error importing factories: {str(e)}')
+    return redirect('factories')
+
+def import_divisions(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.astype(str).str.strip().str.lower()
+            print(f"DEBUG: Loaded file. Columns found: {list(df.columns)}")
+            
+            imported_count = 0
+            for index, row in df.iterrows():
+                code = str(row.get('code', row.get('division code', ''))).strip()
+                name = str(row.get('name', row.get('division name', ''))).strip()
+                factory_code_col = str(row.get('factory_code', row.get('factory code', ''))).strip()
+                
+                if name and name != 'nan':
+                    factory = Factory.objects.filter(code__iexact=factory_code_col).first() if factory_code_col and factory_code_col != 'nan' else None
+                    if factory:
+                        div, created = Division.objects.get_or_create(name=name, factory_name=factory, defaults={'code': code if code != 'nan' else ''})
+                        if not created and code and code != 'nan':
+                            div.code = code
+                            div.save()
+                        imported_count += 1
+            if imported_count == 0:
+                print(f"DEBUG: No divisions imported. Columns: {list(df.columns)}"); messages.error(request, f'No divisions imported. Columns found: {list(df.columns)}')
+            else:
+                messages.success(request, f'{imported_count} Divisions imported successfully!')
+        except Exception as e:
+            print(f"DEBUG Error importing divisions: {str(e)}"); messages.error(request, f'Error importing divisions: {str(e)}')
+    return redirect('divisions')
+
+def import_sections(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.astype(str).str.strip().str.lower()
+            print(f"DEBUG: Loaded file. Columns found: {list(df.columns)}")
+            
+            imported_count = 0
+            for index, row in df.iterrows():
+                code = str(row.get('section_code', row.get('section code', row.get('code', '')))).strip()
+                name = str(row.get('section_name', row.get('section name', row.get('name', '')))).strip()
+                desc = str(row.get('description', '')).strip()
+                division_code = str(row.get('division_code', row.get('division code', ''))).strip()
+                
+                if name and name != 'nan':
+                    division = Division.objects.filter(code__iexact=division_code).first() if division_code and division_code != 'nan' else None
+                    if division:
+                        sec, created = Section.objects.get_or_create(section_name=name, division=division, defaults={
+                            'section_code': code if code != 'nan' else '',
+                            'description': desc if desc != 'nan' else ''
+                        })
+                        if not created:
+                            if code and code != 'nan': sec.section_code = code
+                            if desc and desc != 'nan': sec.description = desc
+                            sec.save()
+                        imported_count += 1
+            if imported_count == 0:
+                print(f"DEBUG: No sections imported. Columns: {list(df.columns)}"); messages.error(request, f'No sections imported. Columns found: {list(df.columns)}')
+            else:
+                messages.success(request, f'{imported_count} Sections imported successfully!')
+        except Exception as e:
+            print(f"DEBUG Error importing sections: {str(e)}"); messages.error(request, f'Error importing sections: {str(e)}')
+    return redirect('sections')
+
+def import_villages(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.astype(str).str.strip().str.lower()
+            print(f"DEBUG: Loaded file. Columns found: {list(df.columns)}")
+            
+            imported_count = 0
+            for index, row in df.iterrows():
+                code = str(row.get('village_code', row.get('village code', row.get('code', '')))).strip()
+                name = str(row.get('village_name', row.get('village name', row.get('name', '')))).strip()
+                div_name = str(row.get('division', '')).strip()
+                taluk = str(row.get('taluk', '')).strip()
+                district = str(row.get('district', '')).strip()
+                state = str(row.get('state', '')).strip()
+                section_code = str(row.get('section_code', row.get('section code', row.get('code', '')))).strip()
+                
+                if name and name != 'nan':
+                    section = Section.objects.filter(section_code__iexact=section_code).first() if section_code and section_code != 'nan' else None
+                    if section:
+                        vil, created = Village.objects.get_or_create(village_name=name, section=section, defaults={
+                            'village_code': code if code != 'nan' else '',
+                            'division': div_name if div_name and div_name != 'nan' else (section.division.name if section and section.division else ''),
+                            'taluk': taluk if taluk != 'nan' else '',
+                            'district': district if district != 'nan' else '',
+                            'state': state if state != 'nan' else ''
+                        })
+                        if not created:
+                            if code and code != 'nan': vil.village_code = code
+                            if div_name and div_name != 'nan':
+                                vil.division = div_name
+                            elif section and section.division:
+                                vil.division = section.division.name
+                            if taluk and taluk != 'nan': vil.taluk = taluk
+                            if district and district != 'nan': vil.district = district
+                            if state and state != 'nan': vil.state = state
+                            vil.save()
+                        imported_count += 1
+            if imported_count == 0:
+                print(f"DEBUG: No villages imported. Columns: {list(df.columns)}"); messages.error(request, f'No villages imported. Columns found: {list(df.columns)}')
+            else:
+                messages.success(request, f'{imported_count} Villages imported successfully!')
+        except Exception as e:
+            print(f"DEBUG Error importing villages: {str(e)}"); messages.error(request, f'Error importing villages: {str(e)}')
+    return redirect('villages')
+
+def import_farmers(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        try:
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.astype(str).str.strip().str.lower()
+            print(f"DEBUG: Loaded file. Columns found: {list(df.columns)}")
+            
+            imported_count = 0
+            for index, row in df.iterrows():
+                code = str(row.get('farmer_code', row.get('farmer code', row.get('code', '')))).strip()
+                name = str(row.get('name', row.get('farmer name', ''))).strip()
+                father = str(row.get('father_name', row.get('father name', ''))).strip()
+                phone = str(row.get('phone', row.get('phone number', ''))).strip()
+                
+                sec_code = str(row.get('section_code', row.get('section code', row.get('code', '')))).strip()
+                vil_code = str(row.get('village_code', row.get('village code', row.get('code', '')))).strip()
+                group_code = str(row.get('group_code', row.get('group code', ''))).strip()
+                factory_code = str(row.get('factory_code', row.get('factory code', ''))).strip()
+                
+                if name and name != 'nan':
+                    section = Section.objects.filter(section_code__iexact=sec_code).first() if sec_code and sec_code != 'nan' else None
+                    village = Village.objects.filter(village_code__iexact=vil_code).first() if vil_code and vil_code != 'nan' else None
+                    group = Group.objects.filter(code__iexact=group_code).first() if group_code and group_code != 'nan' else None
+                    factory = Factory.objects.filter(code__iexact=factory_code).first() if factory_code and factory_code != 'nan' else None
+                    
+                    if section and village:
+                        frm, created = Farmer.objects.get_or_create(name=name, phone=phone if phone != 'nan' else '', defaults={
+                            'farmer_code': code if code != 'nan' else '',
+                            'father_name': father if father != 'nan' else '',
+                            'section': section,
+                            'village': village,
+                            'group': group,
+                            'group_name': group.name if group else '',
+                            'factory': factory,
+                            'factory_name': factory.name if factory else ''
+                        })
+                        if not created:
+                            frm.farmer_code = code if code != 'nan' else frm.farmer_code
+                            frm.father_name = father if father != 'nan' else frm.father_name
+                            frm.section = section
+                            frm.village = village
+                            frm.group = group
+                            frm.group_name = group.name if group else ''
+                            frm.factory = factory
+                            frm.factory_name = factory.name if factory else ''
+                            frm.save()
+                        imported_count += 1
+            if imported_count == 0:
+                print(f"DEBUG: No farmers imported. Columns: {list(df.columns)}"); messages.error(request, f'No farmers imported. Columns found: {list(df.columns)}')
+            else:
+                messages.success(request, f'{imported_count} Farmers imported successfully!')
+        except Exception as e:
+            print(f"DEBUG Error importing farmers: {str(e)}"); messages.error(request, f'Error importing farmers: {str(e)}')
+    return redirect('users')
