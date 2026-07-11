@@ -2562,8 +2562,15 @@ def import_villages(request):
             print(f"DEBUG Error importing villages: {str(e)}"); messages.error(request, f'Error importing villages: {str(e)}')
     return redirect('villages')
 
+from django.core.cache import cache
+
 def import_farmers(request):
     if request.method == 'POST' and request.FILES.get('excel_file'):
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        task_id = request.POST.get('task_id')
+        if task_id:
+            cache.set(task_id, 0, timeout=300)
+            
         excel_file = request.FILES['excel_file']
         try:
             if excel_file.name.endswith('.csv'):
@@ -2574,7 +2581,14 @@ def import_farmers(request):
             print(f"DEBUG: Loaded file. Columns found: {list(df.columns)}")
             
             imported_count = 0
+            total_rows = len(df)
+            
             for index, row in df.iterrows():
+                # Update progress
+                if task_id and total_rows > 0:
+                    percentage = int(((index + 1) / total_rows) * 100)
+                    cache.set(task_id, percentage, timeout=300)
+
                 code = str(row.get('farmer_code', row.get('farmer code', row.get('code', '')))).strip()
                 name = str(row.get('name', row.get('farmer name', ''))).strip()
                 father = str(row.get('father_name', row.get('father name', ''))).strip()
@@ -2586,37 +2600,120 @@ def import_farmers(request):
                 factory_code = str(row.get('factory_code', row.get('factory code', ''))).strip()
                 
                 if name and name != 'nan':
-                    section = Section.objects.filter(section_code__iexact=sec_code).first() if sec_code and sec_code != 'nan' else None
-                    village = Village.objects.filter(village_code__iexact=vil_code).first() if vil_code and vil_code != 'nan' else None
-                    group = Group.objects.filter(code__iexact=group_code).first() if group_code and group_code != 'nan' else None
-                    factory = Factory.objects.filter(code__iexact=factory_code).first() if factory_code and factory_code != 'nan' else None
-                    
-                    if section and village:
+                    sec_val = sec_code if sec_code and sec_code != 'nan' else None
+                    vil_val = vil_code if vil_code and vil_code != 'nan' else None
+                    group_val = group_code if group_code and group_code != 'nan' else None
+                    factory_val = factory_code if factory_code and factory_code != 'nan' else None
+
+                    section = Section.objects.filter(section_code__iexact=sec_val).first() if sec_val else None
+                    village = Village.objects.filter(village_code__iexact=vil_val).first() if vil_val else None
+                    group = Group.objects.filter(code__iexact=group_val).first() if group_val else None
+                    factory = Factory.objects.filter(code__iexact=factory_val).first() if factory_val else None
+
+                    if village and not section:
+                        section = village.section
+
+                    if section:
+                        if not factory and hasattr(section, 'division') and section.division and hasattr(section.division, 'factory_name') and section.division.factory_name:
+                            factory = section.division.factory_name
+                        if not group and factory and hasattr(factory, 'group') and factory.group:
+                            group = factory.group
+
+                    division_name = None
+                    if section and hasattr(section, 'division') and section.division:
+                        division_name = section.division.name
+                    elif village and hasattr(village, 'division') and village.division:
+                        division_name = village.division
+
+                    # We can proceed if we have at least name, we don't strictly reject if village is missing, or we can just require village. 
+                    # Previous code was `if section and village:`. We will keep it but now section can be derived from village.
+                    if village:
                         frm, created = Farmer.objects.get_or_create(name=name, phone=phone if phone != 'nan' else '', defaults={
                             'farmer_code': code if code != 'nan' else '',
                             'father_name': father if father != 'nan' else '',
                             'section': section,
                             'village': village,
+                            'division': division_name,
                             'group': group,
                             'group_name': group.name if group else '',
                             'factory': factory,
                             'factory_name': factory.name if factory else ''
                         })
                         if not created:
-                            frm.farmer_code = code if code != 'nan' else frm.farmer_code
-                            frm.father_name = father if father != 'nan' else frm.father_name
-                            frm.section = section
-                            frm.village = village
-                            frm.group = group
-                            frm.group_name = group.name if group else ''
-                            frm.factory = factory
-                            frm.factory_name = factory.name if factory else ''
+                            if code and code != 'nan': frm.farmer_code = code
+                            if father and father != 'nan': frm.father_name = father
+                            if section: frm.section = section
+                            if village: frm.village = village
+                            if division_name: frm.division = division_name
+                            if group:
+                                frm.group = group
+                                frm.group_name = group.name
+                            if factory:
+                                frm.factory = factory
+                                frm.factory_name = factory.name
                             frm.save()
                         imported_count += 1
             if imported_count == 0:
-                print(f"DEBUG: No farmers imported. Columns: {list(df.columns)}"); messages.error(request, f'No farmers imported. Columns found: {list(df.columns)}')
+                print(f"DEBUG: No farmers imported. Columns: {list(df.columns)}")
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': f'No farmers imported. Columns found: {list(df.columns)}'})
+                messages.error(request, f'No farmers imported. Columns found: {list(df.columns)}')
             else:
+                if is_ajax:
+                    return JsonResponse({'status': 'success', 'message': f'{imported_count} Farmers imported successfully!', 'imported_count': imported_count})
                 messages.success(request, f'{imported_count} Farmers imported successfully!')
         except Exception as e:
-            print(f"DEBUG Error importing farmers: {str(e)}"); messages.error(request, f'Error importing farmers: {str(e)}')
+            print(f"DEBUG Error importing farmers: {str(e)}")
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': f'Error importing farmers: {str(e)}'})
+            messages.error(request, f'Error importing farmers: {str(e)}')
     return redirect('users')
+
+def import_progress(request):
+    task_id = request.GET.get('task_id')
+    progress = 0
+    if task_id:
+        from django.core.cache import cache
+        progress = cache.get(task_id, 0)
+    return JsonResponse({'progress': progress})
+
+import json
+from django.apps import apps
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+@require_POST
+def bulk_delete(request):
+    if not request.session.get('user_id'):
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        model_name = data.get('model')
+        action = data.get('action')
+        ids = data.get('ids', [])
+
+        if not model_name:
+            return JsonResponse({'status': 'error', 'message': 'Model name is required'}, status=400)
+            
+        model = apps.get_model('myapp', model_name)
+        
+        if action == 'delete_all':
+            # Optionally check if user is superadmin
+            if request.session.get('role_id') != 1:
+                return JsonResponse({'status': 'error', 'message': 'Only superadmins can delete all records'}, status=403)
+            deleted_count, _ = model.objects.all().delete()
+            return JsonResponse({'status': 'success', 'message': f'Successfully deleted all {deleted_count} records.'})
+            
+        elif ids and isinstance(ids, list):
+            deleted_count, _ = model.objects.filter(id__in=ids).delete()
+            return JsonResponse({'status': 'success', 'message': f'Successfully deleted {deleted_count} records.'})
+            
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid action or missing IDs'}, status=400)
+            
+    except LookupError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid model name'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

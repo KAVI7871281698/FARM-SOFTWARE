@@ -464,7 +464,68 @@
             }
             window._turboLoaded = true;
         });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const tables = document.querySelectorAll('table[data-model]');
+            
+            tables.forEach(table => {
+                const modelName = table.getAttribute('data-model');
+                const selectAllCb = table.querySelector('.select-all-checkbox');
+                const rowCbs = table.querySelectorAll('.row-checkbox');
+                const deleteSelectedBtn = document.querySelector('.delete-selected-btn');
+                const deleteAllBtn = document.querySelector('.delete-all-btn');
+                
+                if (selectAllCb) {
+                    selectAllCb.addEventListener('change', function() {
+                        rowCbs.forEach(cb => cb.checked = this.checked);
+                    });
+                }
+                
+                function performBulkDelete(payload) {
+                    fetch('/api/bulk_delete/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert(data.message);
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(err => {
+                        alert('Network error occurred.');
+                    });
+                }
+                
+                if (deleteSelectedBtn) {
+                    deleteSelectedBtn.addEventListener('click', function() {
+                        const selectedIds = Array.from(table.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                        if (selectedIds.length === 0) {
+                            alert('Please select at least one item to delete.');
+                            return;
+                        }
+                        if (confirm(`Are you sure you want to delete ${selectedIds.length} selected records?`)) {
+                            performBulkDelete({ model: modelName, ids: selectedIds });
+                        }
+                    });
+                }
+                
+                if (deleteAllBtn) {
+                    deleteAllBtn.addEventListener('click', function() {
+                        if (confirm('WARNING: Are you sure you want to delete ALL records for this module? This action cannot be undone!')) {
+                            performBulkDelete({ model: modelName, action: 'delete_all' });
+                        }
+                    });
+                }
+            });
+        });
     </script>
 </body>
-
 </html>

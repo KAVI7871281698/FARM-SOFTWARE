@@ -7,14 +7,17 @@
 <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h3>Registered Varieties</h3>
-        <button onclick="window.location.href='{% url 'add_variety' %}'"
+        <button type="button" class="delete-selected-btn" style="background: #f57c00; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-trash-can"></i> Delete Selected</button>
+            <button type="button" class="delete-all-btn" style="background: #d32f2f; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-dumpster-fire"></i> Delete All</button>
+            <button onclick="window.location.href='{% url 'add_variety' %}'"
             style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
                 class="fa-solid fa-plus"></i> Add Variety</button>
     </div>
     <div style="overflow-x: auto; width: 100%;">
-        <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: left;">
+        <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: left;" data-model="Variety">
             <thead style="background: var(--primary-light); color: var(--primary-color);">
                 <tr>
+                    <th style="padding: 1rem; width: 40px;"><input type="checkbox" class="select-all-checkbox"></th>
                     <th style="padding: 1rem;">Variety Code</th>
                     <th style="padding: 1rem;">Variety Name</th>
                     <th style="padding: 1rem;">Crop Type</th>
@@ -24,6 +27,7 @@
             <tbody>
                 {% for variety in varieties %}
                 <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem;"><input type="checkbox" class="row-checkbox" value="{{ variety.id }}"></td>
                     <td style="padding: 1rem; font-weight: 500;">{{ variety.variety_code }}</td>
                     <td style="padding: 1rem;">{{ variety.variety_name }}</td>
                     <td style="padding: 1rem;">{{ variety.crop_type.crop_name|default:"-" }}</td>
@@ -34,7 +38,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" style="padding: 1rem; text-align: center; color: var(--text-muted);">No varieties
+                    <td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No varieties
                         registered yet.</td>
                 </tr>
                 {% endfor %}

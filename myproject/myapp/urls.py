@@ -103,4 +103,6 @@ urlpatterns = [
     path('import_sections/', views.import_sections, name='import_sections'),
     path('import_villages/', views.import_villages, name='import_villages'),
     path('import_farmers/', views.import_farmers, name='import_farmers'),
+    path('import_progress/', views.import_progress, name='import_progress'),
+    path('api/bulk_delete/', views.bulk_delete, name='bulk_delete'),
 ]

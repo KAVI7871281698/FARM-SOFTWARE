@@ -95,9 +95,14 @@
     {% endif %}
 
     <div class="table-responsive">
-        <table class="data-table">
+        <div style="margin-bottom: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="delete-selected-btn" style="background: #f57c00; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-trash-can"></i> Delete Selected</button>
+            <button type="button" class="delete-all-btn" style="background: #d32f2f; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-dumpster-fire"></i> Delete All</button>
+            </div>
+            <table class="data-table" data-model="ScoutLog">
             <thead>
                 <tr>
+                    <th style="padding: 1rem; width: 40px;"><input type="checkbox" class="select-all-checkbox"></th>
                     <th>Date</th>
                     <th>Plot Code</th>
                     <th>Farmer</th>
@@ -111,6 +116,7 @@
             <tbody>
                 {% for log in logs %}
                 <tr>
+                    <td style="padding: 1rem;"><input type="checkbox" class="row-checkbox" value="{{ message.id }}"></td>
                     <td>{{ log.created_at|date:"M d, Y" }}</td>
                     <td><strong>{{ log.plot.plot_code }}</strong></td>
                     <td>{{ log.plot.farmer.name|default:"-" }}</td>
@@ -161,7 +167,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 2rem;">No scouting logs found.</td>
+                    <td colspan="9" style="text-align: center; padding: 2rem;">No scouting logs found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

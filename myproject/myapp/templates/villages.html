@@ -14,15 +14,18 @@
                 <input type="file" name="excel_file" accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv" required style="padding: 0.4rem; border-radius: 6px; border: 1px solid #ccc; font-family: 'Outfit'; font-size: 14px;">
                 <button type="submit" style="background: #28a745; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-file-import"></i> Import</button>
             </form>
+            <button type="button" class="delete-selected-btn" style="background: #f57c00; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-trash-can"></i> Delete Selected</button>
+            <button type="button" class="delete-all-btn" style="background: #d32f2f; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-dumpster-fire"></i> Delete All</button>
             <button onclick="window.location.href='{% url 'add_village' %}'"
             style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
                 class="fa-solid fa-plus"></i> Add Village</button>
         </div>
     </div>
     <div style="overflow-x: auto; width: 100%;">
-        <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: left;">
+        <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: left;" data-model="Village">
             <thead style="background: var(--primary-light); color: var(--primary-color);">
                 <tr>
+                    <th style="padding: 1rem; width: 40px;"><input type="checkbox" class="select-all-checkbox"></th>
                     <th style="padding: 1rem;">Village Code</th>
                     <th style="padding: 1rem;">Village Name</th>
                     <th style="padding: 1rem;">Taluk</th>
@@ -37,6 +40,7 @@
             <tbody>
                 {% for village in villages %}
                 <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem;"><input type="checkbox" class="row-checkbox" value="{{ village.id }}"></td>
                     <td style="padding: 1rem; font-weight: 500;">{{ village.village_code }}</td>
                     <td style="padding: 1rem;">{{ village.village_name }}</td>
                     <td style="padding: 1rem;">{{ village.taluk|default:"-" }}</td>
@@ -62,7 +66,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" style="padding: 1rem; text-align: center; color: var(--text-muted);">No villages
+                    <td colspan="9" style="padding: 1rem; text-align: center; color: var(--text-muted);">No villages
                         available.</td>
                 </tr>
                 {% endfor %}
