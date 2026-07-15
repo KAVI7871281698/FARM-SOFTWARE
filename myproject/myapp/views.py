@@ -148,7 +148,7 @@ def index(request):
     return render(request, 'index.html')
 
 def scout_management(request):
-    scouts = Scout.objects.all().order_by('-created_at')
+    scouts = Scout.objects.select_related('plot', 'plot__farmer').order_by('-created_at')
     officers = Officer.objects.all()
     
     total_scouts = scouts.count()
@@ -422,7 +422,7 @@ def dashboard(request):
             officers_count = sum(1 for o in Officer.objects.all() if any(div_id in valid_div_ids for div_id in (o.division_ids or "").split(',')))
 
     # Calculate real data metrics for the dashboard
-    from django.db.models import Avg, Q
+    from django.db.models import Avg, Q, OuterRef, Subquery
     if selected_section_id != 'all':
         plots_qs = Plot.objects.filter(farmer__section_id=selected_section_id)
     elif selected_division_id != 'all':
@@ -437,16 +437,34 @@ def dashboard(request):
     else:
         plots_qs = Plot.objects.all()
 
-    total_plots = plots_qs.count()
-    mapped = plots_qs.filter(Q(boundaries__isnull=False) & ~Q(boundaries='')).count()
+    from django.db.models import Count
+    plot_stats = plots_qs.aggregate(
+        total=Count('id'),
+        mapped=Count('id', filter=Q(boundaries__isnull=False) & ~Q(boundaries=''))
+    )
+    total_plots = plot_stats['total']
+    mapped = plot_stats['mapped']
     unmapped = total_plots - mapped
 
-    avg_ndvi_val = NDVIRecord.objects.filter(plot__in=plots_qs).aggregate(Avg('ndvi_value'))['ndvi_value__avg']
-    avg_ndvi = round(avg_ndvi_val, 2) if avg_ndvi_val else 0.0
+    ndvi_stats = NDVIRecord.objects.filter(plot__in=plots_qs).aggregate(
+        avg_val=Avg('ndvi_value'),
+        need_attention=Count('plot', filter=Q(health_status='Critical'), distinct=True)
+    )
+    avg_ndvi = round(ndvi_stats['avg_val'], 2) if ndvi_stats['avg_val'] else 0.0
+    need_attention = ndvi_stats['need_attention']
 
-    need_attention = NDVIRecord.objects.filter(plot__in=plots_qs, health_status='Critical').values('plot').distinct().count()
+    scout_stats_agg = Scout.objects.filter(plot__in=plots_qs).aggregate(
+        overdue=Count('id', filter=Q(status='Pending Assignment')),
+        completed=Count('id', filter=Q(status='Completed')),
+        assigned=Count('id', filter=Q(status='Assigned'))
+    )
+    overdue_scouts = scout_stats_agg['overdue']
+    scout_completed = scout_stats_agg['completed']
+    scout_pending = scout_stats_agg['overdue']
+    scout_assigned = scout_stats_agg['assigned']
+    scout_status_data = [scout_completed, scout_pending, scout_assigned]
+
     damage_reports = ScoutSurveyReport.objects.filter(scout__plot__in=plots_qs).exclude(pest_details='', disease_details='').count()
-    overdue_scouts = Scout.objects.filter(plot__in=plots_qs, status='Pending Assignment').count()
 
     # Charts Data
     from datetime import date, timedelta
@@ -455,21 +473,22 @@ def dashboard(request):
     six_months_ago = today.replace(day=1) - timedelta(days=5*30)
     six_months_ago = six_months_ago.replace(day=1)
     
-    plot_ids = [p.id for p in plots_qs]
+    ndvi_records_values = NDVIRecord.objects.filter(plot__in=plots_qs, date_recorded__gte=six_months_ago).values('date_recorded', 'ndvi_value', 'health_status', 'stage')
     
-    ndvi_records = NDVIRecord.objects.filter(plot_id__in=plot_ids, date_recorded__gte=six_months_ago)
     monthly_ndvi = {}
-    
     for i in range(5, -1, -1):
         d = today - timedelta(days=i*30)
         month_key = f"{d.year}-{d.month:02d}"
         month_label = calendar.month_abbr[d.month]
         monthly_ndvi[month_key] = {'label': month_label, 'total': 0, 'count': 0}
         
-    for rec in ndvi_records:
-        month_key = f"{rec.date_recorded.year}-{rec.date_recorded.month:02d}"
+    unique_dates = set()
+    for rec in ndvi_records_values:
+        d = rec['date_recorded']
+        unique_dates.add(d)
+        month_key = f"{d.year}-{d.month:02d}"
         if month_key in monthly_ndvi:
-            monthly_ndvi[month_key]['total'] += float(rec.ndvi_value)
+            monthly_ndvi[month_key]['total'] += float(rec['ndvi_value'])
             monthly_ndvi[month_key]['count'] += 1
             
     ndvi_trend_labels = []
@@ -480,32 +499,41 @@ def dashboard(request):
         ndvi_trend_data.append(round(avg_val, 2))
 
     # Fortnightly trend for Health and Stage
-    unique_dates = list(ndvi_records.order_by('date_recorded').values_list('date_recorded', flat=True).distinct())
+    unique_dates = sorted(list(unique_dates))
     unique_dates = unique_dates[-15:] if len(unique_dates) > 15 else unique_dates
     
     ht_labels = [d.strftime('%Y-%m-%d') for d in unique_dates]
     
-    ht_health_data = { 'Good': [], 'Moderate': [], 'Need Attention': [] }
-    ht_stage_data = { 'Germination': [], 'Early Tiller': [], 'Tillering': [], 'Grand growth': [], 'Maturity': [] }
+    ht_health_data = { 'Good': [0]*len(unique_dates), 'Moderate': [0]*len(unique_dates), 'Need Attention': [0]*len(unique_dates) }
+    ht_stage_data = { 'Germination': [0]*len(unique_dates), 'Early Tiller': [0]*len(unique_dates), 'Tillering': [0]*len(unique_dates), 'Grand growth': [0]*len(unique_dates), 'Maturity': [0]*len(unique_dates) }
     
-    for d in unique_dates:
-        records_for_date = ndvi_records.filter(date_recorded=d)
-        ht_health_data['Good'].append(records_for_date.filter(health_status='Good').count())
-        ht_health_data['Moderate'].append(records_for_date.filter(health_status='Moderate').count())
-        ht_health_data['Need Attention'].append(records_for_date.filter(health_status='Need Attention').count())
-        
-        ht_stage_data['Germination'].append(records_for_date.filter(stage='Germination').count())
-        ht_stage_data['Early Tiller'].append(records_for_date.filter(stage='Early Tiller').count())
-        ht_stage_data['Tillering'].append(records_for_date.filter(stage='Tillering').count())
-        ht_stage_data['Grand growth'].append(records_for_date.filter(stage='Grand growth').count())
-        ht_stage_data['Maturity'].append(records_for_date.filter(stage='Maturity').count())
+    date_to_index = {d: i for i, d in enumerate(unique_dates)}
+    
+    for rec in ndvi_records_values:
+        d = rec['date_recorded']
+        if d in date_to_index:
+            idx = date_to_index[d]
+            h = rec['health_status']
+            if h == 'Good': ht_health_data['Good'][idx] += 1
+            elif h == 'Moderate': ht_health_data['Moderate'][idx] += 1
+            elif h == 'Need Attention': ht_health_data['Need Attention'][idx] += 1
+            
+            s = rec['stage']
+            if s in ht_stage_data:
+                ht_stage_data[s][idx] += 1
 
+    latest_scouts = ScoutingLog.objects.filter(plot__in=plots_qs).order_by('plot', '-created_at').distinct('plot')
+    latest_ndvis = NDVIRecord.objects.filter(plot__in=plots_qs).order_by('plot', '-date_recorded').distinct('plot')
+    
+    scout_dict = {s.plot_id: s for s in latest_scouts}
+    ndvi_dict = {n.plot_id: n for n in latest_ndvis}
+    
     health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
-    for plot in plots_qs:
-        latest_scout = plot.scouting_logs.order_by('-created_at').first()
-        latest_ndvi = plot.ndvi_records.order_by('-date_recorded').first()
-        
+    for p_id in plots_qs.values_list('id', flat=True):
         health_status = 'Healthy'
+        latest_ndvi = ndvi_dict.get(p_id)
+        latest_scout = scout_dict.get(p_id)
+        
         if latest_ndvi:
             health_status = latest_ndvi.health_status
         if latest_scout:
@@ -513,21 +541,23 @@ def dashboard(request):
                 health_status = 'Critical'
             elif latest_scout.pest_presence or latest_scout.water_stress_symptoms or latest_scout.nutrient_deficiency:
                 health_status = 'Moderate'
+            
         if health_status in health_counts:
             health_counts[health_status] += 1
-            
-    scout_completed = Scout.objects.filter(plot_id__in=plot_ids, status='Completed').count()
-    scout_pending = Scout.objects.filter(plot_id__in=plot_ids, status='Pending Assignment').count()
-    scout_assigned = Scout.objects.filter(plot_id__in=plot_ids, status='Assigned').count()
-    scout_status_data = [scout_completed, scout_pending, scout_assigned]
 
-    surveys = Survey.objects.filter(plot_id__in=plot_ids)
+    surveys = Survey.objects.filter(plot__in=plots_qs).prefetch_related('results')
     total_surveys = surveys.count()
-    completed_surveys = sum(1 for s in surveys if s.status == 'Completed')
+    completed_surveys = 0
+    for s in surveys:
+        completed_count = len(set(r.survey_date for r in s.results.all() if r.survey_status == 'Completed'))
+        perc = min(int((completed_count / s.number_of_days) * 100), 100) if s.number_of_days else 0
+        if perc == 100:
+            completed_surveys += 1
+            
     if total_surveys > 0:
         survey_completed_perc = int((completed_surveys / total_surveys) * 100)
     else:
-        survey_completed_perc = 100 if plot_ids else 0
+        survey_completed_perc = 100 if total_plots > 0 else 0
     survey_completion_data = [survey_completed_perc, 100 - survey_completed_perc]
 
     import json
@@ -640,7 +670,7 @@ def field_intelligence(request):
     base_plots = Plot.objects.filter(
         Q(center_lt_ln__isnull=False) | 
         (Q(latitude__isnull=False) & Q(longitude__isnull=False))
-    )
+    ).select_related('division', 'section', 'village', 'farmer', 'soil_type')
     plots = filter_by_factory(base_plots, 'farmer__section__division__factory_name_id', request)
     
     plots_data = []
@@ -745,12 +775,16 @@ def scouting(request):
             return redirect('scout_logs')
 
     # Fetch logs history
-    logs = filter_by_factory(ScoutingLog.objects.all(), 'plot__farmer__section__division__factory_name_id', request).order_by('-created_at')
+    logs = filter_by_factory(ScoutingLog.objects.all(), 'plot__farmer__section__division__factory_name_id', request).select_related(
+        'group', 'factory', 'division', 'section', 'village', 'plot', 'officer'
+    ).order_by('-created_at')
     
     return render(request, 'scouting.html', {'plots': plots, 'logs': logs})
 
 def scout_logs(request):
-    logs = filter_by_factory(ScoutingLog.objects.all(), 'plot__farmer__section__division__factory_name_id', request).order_by('-created_at')
+    logs = filter_by_factory(ScoutingLog.objects.all(), 'plot__farmer__section__division__factory_name_id', request).select_related(
+        'group', 'factory', 'division', 'section', 'village', 'plot', 'officer'
+    ).order_by('-created_at')
     return render(request, 'scout_logs.html', {'logs': logs})
 
 def edit_scout_log(request, id):
@@ -954,6 +988,109 @@ def add_officer(request):
     superadmin_role = Role.objects.filter(name__iexact='superadmin').first()
     superadmin_role_id = str(superadmin_role.id) if superadmin_role else "1"
     return render(request, 'add_officer.html', {'roles': roles, 'divisions': divisions, 'groups': groups, 'superadmin_role_id': superadmin_role_id, 'is_superadmin': is_superadmin})
+
+def import_officers(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        task_id = request.POST.get('task_id')
+        if task_id:
+            from django.core.cache import cache
+            cache.set(task_id, 0, timeout=300)
+            
+        excel_file = request.FILES['excel_file']
+        try:
+            import pandas as pd
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.astype(str).str.strip().str.lower()
+            
+            # DEBUG: Print columns to the terminal
+            print("\n" + "="*50)
+            print("IMPORTED FILE COLUMNS:")
+            print(df.columns.tolist())
+            print("="*50 + "\n")
+            
+            imported_count = 0
+            total_rows = len(df)
+            
+            for index, row in df.iterrows():
+                if task_id and total_rows > 0:
+                    from django.core.cache import cache
+                    percentage = int(((index + 1) / total_rows) * 100)
+                    cache.set(task_id, percentage, timeout=300)
+                    
+                name = str(row.get('name', '')).strip()
+                mobile = str(row.get('phone', row.get('mobile', ''))).strip()
+                employee_code = str(row.get('employee_code', '')).strip()
+                original_id = str(row.get('id', '')).strip()
+                email = str(row.get('email', '')).strip()
+                
+                # If email is missing, generate a dummy one as it's required by the model
+                if not email or email == 'nan':
+                    email = f"{employee_code}@farmsignals.com" if employee_code and employee_code != 'nan' else f"{mobile}@farmsignals.com"
+                
+                password = str(row.get('password', 'default123')).strip()
+                role_name = str(row.get('role', '')).strip()
+                group_name = str(row.get('group', '')).strip()
+                factory_names = str(row.get('factory_code', row.get('factories', ''))).strip()
+                division_names = str(row.get('division_code', row.get('divisions', ''))).strip()
+                section_names = str(row.get('sections', '')).strip()
+                
+                if name and name != 'nan' and mobile and mobile != 'nan':
+                    role = Role.objects.filter(name__iexact=role_name).first() if role_name and role_name != 'nan' else None
+                    group = Group.objects.filter(name__iexact=group_name).first() if group_name and group_name != 'nan' else None
+                    
+                    try:
+                        officer, created = Officer.objects.get_or_create(mobile=mobile, defaults={
+                            'name': name,
+                            'email': email,
+                            'user_id': employee_code if employee_code != 'nan' else "",
+                            'device_id': original_id if original_id != 'nan' else "",
+                            'password': password if password and password != 'nan' else 'default123',
+                            'role': role,
+                            'role_name': role.name if role else role_name if role_name != 'nan' else "",
+                            'group': group,
+                            'group_name': group.name if group else group_name if group_name != 'nan' else "",
+                            'factory_names': factory_names if factory_names != 'nan' else "",
+                            'division_names': division_names if division_names != 'nan' else "",
+                            'section_names': section_names if section_names != 'nan' else "",
+                        })
+                        if not created:
+                            officer.name = name
+                            if email: officer.email = email
+                            if employee_code and employee_code != 'nan': officer.user_id = employee_code
+                            if original_id and original_id != 'nan': officer.device_id = original_id
+                            officer.role = role
+                            officer.role_name = role.name if role else role_name if role_name != 'nan' else ""
+                            officer.group = group
+                            officer.group_name = group.name if group else group_name if group_name != 'nan' else ""
+                            if password and password != 'nan': officer.password = password
+                            if factory_names and factory_names != 'nan': officer.factory_names = factory_names
+                            if division_names and division_names != 'nan': officer.division_names = division_names
+                            if section_names and section_names != 'nan': officer.section_names = section_names
+                            officer.save()
+                        imported_count += 1
+                    except Exception as e:
+                        print(f"Error importing officer {mobile}: {e}")
+            
+            if imported_count == 0:
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'status': 'error', 'message': 'No officers imported. Please check the file format.'})
+                messages.error(request, f'No officers imported. Please check the file format.')
+            else:
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'status': 'success', 'message': f'{imported_count} Officers imported successfully!', 'imported_count': imported_count})
+                messages.success(request, f'{imported_count} Officers imported successfully!')
+        except Exception as e:
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({'status': 'error', 'message': f'Error importing officers: {str(e)}'})
+            messages.error(request, f'Error importing officers: {str(e)}')
+    return redirect('officers')
 
 def add_plots(request):
     if request.method == 'POST':
@@ -1723,6 +1860,102 @@ def delete_division(request, id):
 
 
 from django.views.decorators.csrf import csrf_exempt
+
+def import_work_assigns(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        task_id = request.POST.get('task_id')
+        if task_id:
+            from django.core.cache import cache
+            cache.set(task_id, 0, timeout=300)
+            
+        excel_file = request.FILES['excel_file']
+        try:
+            import pandas as pd
+            if excel_file.name.endswith('.csv'):
+                df = pd.read_csv(excel_file)
+            else:
+                df = pd.read_excel(excel_file)
+            df.columns = df.columns.astype(str).str.strip().str.lower()
+            
+            # DEBUG: Print columns to the terminal
+            print("\n" + "="*50)
+            print("IMPORTED WORK ASSIGN FILE COLUMNS:")
+            print(df.columns.tolist())
+            print("="*50 + "\n")
+            
+            imported_count = 0
+            total_rows = len(df)
+            
+            error_messages = []
+            
+            for index, row in df.iterrows():
+                if task_id and total_rows > 0:
+                    from django.core.cache import cache
+                    percentage = int(((index + 1) / total_rows) * 100)
+                    cache.set(task_id, percentage, timeout=300)
+                    
+                # Basic mapping based on user's exact columns
+                officer_id_raw = str(row.get('officer_id', '')).strip()
+                if officer_id_raw.endswith('.0'):
+                    officer_id_raw = officer_id_raw[:-2]
+                    
+                division_code = str(row.get('division_code', '')).strip()
+                status = str(row.get('status', 'active')).strip()
+                
+                if officer_id_raw and officer_id_raw != 'nan':
+                    # Try finding officer by PK id, or user_id, or mobile
+                    officer = None
+                    if officer_id_raw.isdigit():
+                        officer = Officer.objects.filter(id=int(officer_id_raw)).first()
+                    
+                    if not officer:
+                        from django.db.models import Q
+                        officer = Officer.objects.filter(Q(device_id=officer_id_raw) | Q(user_id=officer_id_raw) | Q(mobile=officer_id_raw)).first()
+                    
+                    if not officer:
+                        error_messages.append(f"Row {index+1}: Officer not found for ID '{officer_id_raw}'")
+                        continue
+                        
+                    try:
+                        assign, created = WorkAssign.objects.get_or_create(
+                            officer=officer,
+                            division=division_code if division_code != 'nan' else '',
+                            defaults={
+                                'status': status if status != 'nan' else 'active'
+                            }
+                        )
+                        if not created:
+                            if status and status != 'nan': assign.status = status
+                            assign.save()
+                        imported_count += 1
+                    except Exception as e:
+                        error_messages.append(f"Row {index+1}: {str(e)}")
+            
+            if imported_count == 0 and not error_messages:
+                err_msg = 'No work assignments imported. Please check the file format.'
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'status': 'error', 'message': err_msg})
+                messages.error(request, err_msg)
+            else:
+                success_msg = f'{imported_count} imported successfully.'
+                if error_messages:
+                    if imported_count == 0:
+                        success_msg = f"0 imported. Skipped {len(error_messages)} rows (e.g., {error_messages[0]})"
+                    else:
+                        success_msg += f" Skipped {len(error_messages)} rows."
+                        
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'status': 'success', 'message': success_msg, 'imported_count': imported_count})
+                messages.success(request, success_msg)
+        except Exception as e:
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({'status': 'error', 'message': f'Error importing work assignments: {str(e)}'})
+            messages.error(request, f'Error importing work assignments: {str(e)}')
+    return redirect('work_assigns')
 
 def work_assigns(request):
     if 'user_id' not in request.session:

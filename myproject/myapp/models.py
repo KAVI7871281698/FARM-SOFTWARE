@@ -318,6 +318,13 @@ class WorkAssign(models.Model):
     class Meta:
         db_table = "work_assign"
 
+    @property
+    def get_division_obj(self):
+        from .models import Division
+        if self.division:
+            return Division.objects.filter(code=self.division).first() or Division.objects.filter(name=self.division).first()
+        return None
+
     def save(self, *args, **kwargs):
         if not self.work_assign_code:
             last_assign = WorkAssign.objects.all().order_by('id').last()

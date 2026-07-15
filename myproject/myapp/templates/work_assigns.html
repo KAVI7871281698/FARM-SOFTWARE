@@ -7,11 +7,30 @@
 <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h3>Work Assignments</h3>
-        <button type="button" class="delete-selected-btn" style="background: #f57c00; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-trash-can"></i> Delete Selected</button>
+        <div style="display: flex; gap: 10px;">
+            <form id="importWorkAssignForm" action="{% url 'import_work_assigns' %}" method="post" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center;">
+                {% csrf_token %}
+                <input type="file" id="workAssignExcelFile" name="excel_file" accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv" required style="padding: 0.4rem; border-radius: 6px; border: 1px solid #ccc; font-family: 'Outfit'; font-size: 14px;">
+                <button type="submit" style="background: #28a745; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-file-import"></i> Import</button>
+            </form>
+            <!-- Import Progress Popup -->
+            <div id="importProgressPopup" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+                <div style="background: white; padding: 2rem; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                    <h3 style="margin-top: 0;">Importing Work Assignments</h3>
+                    <div style="width: 100%; background: #e0e0e0; border-radius: 8px; height: 12px; margin: 15px 0; overflow: hidden;">
+                        <div id="importProgressBar" style="width: 0%; height: 100%; background: #28a745; transition: width 0.3s;"></div>
+                    </div>
+                    <p id="importProgressText" style="font-weight: bold; margin-bottom: 10px;">0%</p>
+                    <p id="importMessageText" style="margin-bottom: 15px; font-size: 14px; color: #333;"></p>
+                    <button id="importCloseBtn" style="display: none; background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer;" onclick="window.location.reload()">Close</button>
+                </div>
+            </div>
+            <button type="button" class="delete-selected-btn" style="background: #f57c00; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-trash-can"></i> Delete Selected</button>
             <button type="button" class="delete-all-btn" style="background: #d32f2f; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-dumpster-fire"></i> Delete All</button>
             <button onclick="window.location.href='{% url 'add_work_assign' %}'"
             style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
                 class="fa-solid fa-plus"></i> Assign Work</button>
+        </div>
     </div>
     <div style="overflow-x: auto; width: 100%;">
         <table style="width: 100%; min-width: 800px; border-collapse: collapse; text-align: left;" data-model="WorkAssign">
@@ -20,10 +39,9 @@
                     <th style="padding: 1rem; width: 40px;"><input type="checkbox" class="select-all-checkbox"></th>
                     <th style="padding: 1rem;">Work Code</th>
                     <th style="padding: 1rem;">Officer</th>
+                    <th style="padding: 1rem;">Group</th>
                     <th style="padding: 1rem;">Factory</th>
                     <th style="padding: 1rem;">Division</th>
-                    <th style="padding: 1rem;">Section (Zone)</th>
-                    <th style="padding: 1rem;">Village</th>
                     <th style="padding: 1rem;">Status</th>
                     <th style="padding: 1rem;">Action</th>
                 </tr>
@@ -34,10 +52,9 @@
                     <td style="padding: 1rem;"><input type="checkbox" class="row-checkbox" value="{{ assign.id }}"></td>
                     <td style="padding: 1rem; font-weight: 500;">{{ assign.work_assign_code }}</td>
                     <td style="padding: 1rem;">{{ assign.officer.name|default:"Unassigned" }}</td>
-                    <td style="padding: 1rem;">{{ assign.section.division.factory_name.name|default:"-" }}</td>
+                    <td style="padding: 1rem;">{{ assign.get_division_obj.factory_name.group.name|default:"-" }}</td>
+                    <td style="padding: 1rem;">{{ assign.get_division_obj.factory_name.name|default:"-" }}</td>
                     <td style="padding: 1rem;">{{ assign.division|default:"-" }}</td>
-                    <td style="padding: 1rem;">{{ assign.section.section_name|default:"-" }}</td>
-                    <td style="padding: 1rem;">{{ assign.village.village_name|default:"-" }}</td>
                     <td style="padding: 1rem;">
                         <span
                             style="background: {% if assign.status == 'active' %}#e8f5e9{% else %}#ffebee{% endif %}; color: {% if assign.status == 'active' %}#2e7d32{% else %}#c62828{% endif %}; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
@@ -67,14 +84,80 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    (function() {
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.querySelector('.sidebar');
-        if (menuToggle && sidebar) {
+        if (menuToggle && sidebar && !menuToggle.dataset.initialized) {
+            menuToggle.dataset.initialized = 'true';
             menuToggle.addEventListener('click', function () {
                 sidebar.classList.toggle('open');
             });
         }
-    });
+    })();
+</script>
+
+<script>
+    (function() {
+        const importForm = document.getElementById('importWorkAssignForm');
+        if(importForm && !importForm.dataset.initialized) {
+            importForm.dataset.initialized = 'true';
+            importForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const fileInput = document.getElementById('workAssignExcelFile');
+                if(!fileInput.files.length) return;
+                
+                const formData = new FormData(importForm);
+                const taskId = Date.now().toString();
+                formData.append('task_id', taskId);
+                
+                // Show popup
+                document.getElementById('importProgressPopup').style.display = 'flex';
+                document.getElementById('importProgressBar').style.width = '0%';
+                document.getElementById('importProgressText').innerText = '0%';
+                document.getElementById('importMessageText').innerText = 'Starting import...';
+                document.getElementById('importCloseBtn').style.display = 'none';
+                
+                // Start polling
+                const pollInterval = setInterval(() => {
+                    fetch(`/import_progress/?task_id=${taskId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const progress = data.progress || 0;
+                        document.getElementById('importProgressBar').style.width = progress + '%';
+                        document.getElementById('importProgressText').innerText = progress + '%';
+                        document.getElementById('importMessageText').innerText = `Importing data (${progress}%)...`;
+                    });
+                }, 1000);
+                
+                // Submit data
+                fetch(importForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    clearInterval(pollInterval);
+                    document.getElementById('importProgressBar').style.width = '100%';
+                    document.getElementById('importProgressText').innerText = '100%';
+                    
+                    if(data.status === 'success') {
+                        document.getElementById('importMessageText').innerHTML = `<span style="color: green;">${data.message}</span>`;
+                    } else {
+                        document.getElementById('importMessageText').innerHTML = `<span style="color: red;">${data.message || 'An error occurred'}</span>`;
+                    }
+                    document.getElementById('importCloseBtn').style.display = 'inline-block';
+                })
+                .catch(err => {
+                    clearInterval(pollInterval);
+                    document.getElementById('importMessageText').innerHTML = `<span style="color: red;">Network error. Please try again.</span>`;
+                    document.getElementById('importCloseBtn').style.display = 'inline-block';
+                });
+            });
+        }
+    })();
 </script>
 {% endblock %}

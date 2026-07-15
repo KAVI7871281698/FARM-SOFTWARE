@@ -6,6 +6,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('officers/', views.officers, name='officers'),
+    path('import_officers/', views.import_officers, name='import_officers'),
     path('field_intelligence/', views.field_intelligence, name='field_intelligence'),
     path('analytics/', views.analytics, name='analytics'),
 
@@ -69,6 +70,7 @@ urlpatterns = [
     path('delete_factory/<int:id>/', views.delete_factory, name='delete_factory'),
     path('delete_division/<int:id>/', views.delete_division, name='delete_division'),
     path('work_assigns/', views.work_assigns, name='work_assigns'),
+    path('import_work_assigns/', views.import_work_assigns, name='import_work_assigns'),
     path('add_work_assign/', views.add_work_assign, name='add_work_assign'),
     path('edit_work_assign/<int:id>/', views.edit_work_assign, name='edit_work_assign'),
     path('delete_work_assign/<int:id>/', views.delete_work_assign, name='delete_work_assign'),
