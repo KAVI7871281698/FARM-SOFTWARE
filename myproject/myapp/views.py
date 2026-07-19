@@ -2957,7 +2957,7 @@ def bulk_delete(request):
         
         if action == 'delete_all':
             # Optionally check if user is superadmin
-            if request.session.get('role_id') != 1:
+            if str(request.session.get('role_id')) != '1':
                 return JsonResponse({'status': 'error', 'message': 'Only superadmins can delete all records'}, status=403)
             deleted_count, _ = model.objects.all().delete()
             return JsonResponse({'status': 'success', 'message': f'Successfully deleted all {deleted_count} records.'})
