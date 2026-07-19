@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult
+from django.core.paginator import Paginator
 
 import json
 
@@ -149,7 +150,7 @@ def index(request):
 
 def scout_management(request):
     scouts = Scout.objects.select_related('plot', 'plot__farmer').order_by('-created_at')
-    officers = Officer.objects.all()
+    officers = Officer.objects.select_related('role', 'division', 'group', 'factory', 'section').all()
     
     total_scouts = scouts.count()
     pending_scouts = scouts.filter(status='Pending Assignment').count()
@@ -158,9 +159,13 @@ def scout_management(request):
     critical_alerts = scouts.filter(priority='High').count()
 
     divisions = Division.objects.all()
+    
+    paginator = Paginator(scouts, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        'scouts': scouts,
+        'scouts': page_obj,
         'officers': officers,
         'divisions': divisions,
         'total_scouts': total_scouts,
@@ -234,7 +239,7 @@ def create_manual_scout(request):
                     division_id = plot.farmer.division.id
                 
                 if division_id:
-                    officers = Officer.objects.all()
+                    officers = Officer.objects.select_related('role', 'division', 'group', 'factory', 'section').all()
                     assigned_officer = None
                     for officer in officers:
                         if officer.division_ids:
@@ -440,7 +445,7 @@ def dashboard(request):
     from django.db.models import Count
     plot_stats = plots_qs.aggregate(
         total=Count('id'),
-        mapped=Count('id', filter=Q(boundaries__isnull=False) & ~Q(boundaries=''))
+        mapped=Count('id', filter=Q(status='Mapped') | Q(status='mapped') | (Q(boundaries__isnull=False) & ~Q(boundaries='')))
     )
     total_plots = plot_stats['total']
     mapped = plot_stats['mapped']
@@ -662,7 +667,12 @@ def officers(request):
     for officer in officers_list:
         display_divs = parse_legacy_field(officer.division_names)
         officer.display_divisions = ", ".join(display_divs) if display_divs else "-"
-    return render(request, 'officers.html', {'officers': officers_list})
+        
+    paginator = Paginator(officers_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'officers.html', {'officers': page_obj})
 
 from django.db.models import Q
 
@@ -779,13 +789,22 @@ def scouting(request):
         'group', 'factory', 'division', 'section', 'village', 'plot', 'officer'
     ).order_by('-created_at')
     
-    return render(request, 'scouting.html', {'plots': plots, 'logs': logs})
+    paginator = Paginator(logs, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'scouting.html', {'plots': plots, 'logs': page_obj})
 
 def scout_logs(request):
     logs = filter_by_factory(ScoutingLog.objects.all(), 'plot__farmer__section__division__factory_name_id', request).select_related(
         'group', 'factory', 'division', 'section', 'village', 'plot', 'officer'
     ).order_by('-created_at')
-    return render(request, 'scout_logs.html', {'logs': logs})
+    
+    paginator = Paginator(logs, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'scout_logs.html', {'logs': page_obj})
 
 def edit_scout_log(request, id):
     log = ScoutingLog.objects.get(id=id)
@@ -842,23 +861,38 @@ def settings(request):
 
 def users(request):
     farmers_list = filter_by_factory(Farmer.objects.all(), 'section__division__factory_name_id', request)
-    return render(request, 'users.html', {'farmers': farmers_list})
+    paginator = Paginator(farmers_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'users.html', {'farmers': page_obj})
 
 def villages(request):
     villages_list = filter_by_factory(Village.objects.all(), 'section__division__factory_name_id', request)
-    return render(request, 'villages.html', {'villages': villages_list})
+    paginator = Paginator(villages_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'villages.html', {'villages': page_obj})
 
 def sections(request):
     sections_list = filter_by_factory(Section.objects.all(), 'division__factory_name_id', request)
-    return render(request, 'sections.html', {'sections': sections_list})
+    paginator = Paginator(sections_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'sections.html', {'sections': page_obj})
 
 def varieties(request):
     varieties_list = Variety.objects.all()
-    return render(request, 'varieties.html', {'varieties': varieties_list})
+    paginator = Paginator(varieties_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'varieties.html', {'varieties': page_obj})
 
 def plots(request):
-    plots_list = filter_by_factory(Plot.objects.all(), 'farmer__section__division__factory_name_id', request)
-    return render(request, 'plots.html', {'plots': plots_list})
+    plots_list = filter_by_factory(Plot.objects.all(), 'farmer__section__division__factory_name_id', request).select_related('farmer', 'crop_type', 'variety', 'soil_type')
+    paginator = Paginator(plots_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'plots.html', {'plots': page_obj})
 
 def surveys(request):
     surveys_list = list(Survey.objects.prefetch_related('results').all().order_by('-id'))
@@ -878,8 +912,12 @@ def surveys(request):
     total = len(surveys_list)
     completion_rate = int((completed_surveys / total) * 100) if total > 0 else 0
     
+    paginator = Paginator(surveys_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'surveys': surveys_list,
+        'surveys': page_obj,
         'active_count': active_count,
         'pending_count': pending_count,
         'completion_rate': completion_rate
@@ -1376,8 +1414,8 @@ def add_survey(request):
             result.save()
             return redirect('surveys')
             
-    plots = Plot.objects.all()
-    officers = Officer.objects.all()
+    plots = Plot.objects.select_related('farmer', 'division', 'section', 'village', 'crop_type', 'variety', 'soil_type', 'group', 'factory', 'officer').all()
+    officers = Officer.objects.select_related('role', 'division', 'group', 'factory', 'section').all()
     return render(request, 'add_survey.html', {'plots': plots, 'officers': officers})
 
 def edit_survey(request, id):
@@ -1437,8 +1475,8 @@ def edit_survey(request, id):
         survey.save()
         return redirect('surveys')
         
-    plots = Plot.objects.all()
-    officers = Officer.objects.all()
+    plots = Plot.objects.select_related('farmer', 'division', 'section', 'village', 'crop_type', 'variety', 'soil_type', 'group', 'factory', 'officer').all()
+    officers = Officer.objects.select_related('role', 'division', 'group', 'factory', 'section').all()
     return render(request, 'edit_survey.html', {'survey': survey, 'plots': plots, 'officers': officers})
 
 def delete_survey(request, id):
@@ -2015,9 +2053,9 @@ def add_work_assign(request):
         return redirect('work_assigns')
 
     divisions = Division.objects.all()
-    sections = Section.objects.all().select_related('division')
-    villages = Village.objects.all().select_related('section')
-    officers = Officer.objects.all()
+    sections = Section.objects.select_related('division').all().select_related('division')
+    villages = Village.objects.select_related('division', 'section').all().select_related('section')
+    officers = Officer.objects.select_related('role', 'division', 'group', 'factory', 'section').all()
 
     return render(request, 'add_work_assign.html', {
         'divisions': divisions,
@@ -2047,9 +2085,9 @@ def edit_work_assign(request, id):
         return redirect('work_assigns')
 
     divisions = Division.objects.all()
-    sections = Section.objects.all().select_related('division')
-    villages = Village.objects.all().select_related('section')
-    officers = Officer.objects.all()
+    sections = Section.objects.select_related('division').all().select_related('division')
+    villages = Village.objects.select_related('division', 'section').all().select_related('section')
+    officers = Officer.objects.select_related('role', 'division', 'group', 'factory', 'section').all()
 
     return render(request, 'edit_work_assign.html', {
         'work_assign': work_assign,
@@ -2145,7 +2183,9 @@ def field_intelligence(request):
             return redirect('field_intelligence')
             
     from django.db.models import Q
-    base_plots = Plot.objects.filter(
+    base_plots = Plot.objects.select_related(
+        'division', 'section', 'village', 'farmer', 'soil_type'
+    ).filter(
         Q(center_lt_ln__isnull=False) | 
         (Q(latitude__isnull=False) & Q(longitude__isnull=False))
     )
@@ -2200,7 +2240,7 @@ def field_intelligence(request):
             continue
 
     import json
-    farmers = Farmer.objects.all()
+    farmers = Farmer.objects.select_related('division', 'section', 'village', 'group', 'factory').all()
     is_superadmin = request.session.get('role_id') == 1
     return render(request, 'field_intelligence.html', {
         'farmers': farmers,
@@ -2338,7 +2378,11 @@ def ndvi_dashboard(request):
         s.is_selected = (str(s.id) == selected_section_id)
 
     # Base Plot Query with Filters
-    plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).distinct()
+    from django.db.models import Prefetch
+    plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).select_related('farmer').prefetch_related(
+        Prefetch('scouting_logs', queryset=ScoutingLog.objects.order_by('-created_at')),
+        Prefetch('ndvi_records', queryset=NDVIRecord.objects.order_by('-date_recorded'))
+    ).distinct()
     
     if selected_section_id != 'all':
         plots_query = plots_query.filter(farmer__section_id=selected_section_id)
@@ -2418,8 +2462,10 @@ def ndvi_dashboard(request):
     plot_data = []
     
     for plot in plots:
-        latest_scout = plot.scouting_logs.order_by('-created_at').first()
-        latest_ndvi = plot.ndvi_records.order_by('-date_recorded').first()
+        scouts = list(plot.scouting_logs.all())
+        latest_scout = scouts[0] if scouts else None
+        ndvis = list(plot.ndvi_records.all())
+        latest_ndvi = ndvis[0] if ndvis else None
         
         health_status = 'Healthy'
         ndvi_display = 'N/A'
@@ -2451,30 +2497,27 @@ def ndvi_dashboard(request):
         
         lat = None
         lng = None
-        if isinstance(plot.center_lt_ln, dict):
-            lat = plot.center_lt_ln.get('lat', 0)
-            lng = plot.center_lt_ln.get('lng', 0)
+        if isinstance(plot.center_lt_ln, list) and len(plot.center_lt_ln) >= 2:
+            lat = float(plot.center_lt_ln[0])
+            lng = float(plot.center_lt_ln[1])
+        elif isinstance(plot.center_lt_ln, dict):
+            lat = float(plot.center_lt_ln.get('lat', 0))
+            lng = float(plot.center_lt_ln.get('lng', 0))
         elif plot.center_lt_ln:
             try:
                 import json
-                parsed = json.loads(plot.center_lt_ln.replace("'", '"'))
+                if isinstance(plot.center_lt_ln, str):
+                    parsed = json.loads(plot.center_lt_ln.replace("'", '"'))
+                else:
+                    parsed = plot.center_lt_ln
+                if isinstance(parsed, list) and len(parsed) >= 2:
+                    lat = float(parsed[0])
+                    lng = float(parsed[1])
+                elif isinstance(parsed, dict):
+                    lat = float(parsed.get('lat', 0))
+                    lng = float(parsed.get('lng', 0))
             except:
-                try:
-                    import ast
-                    parsed = ast.literal_eval(plot.center_lt_ln)
-                except:
-                    parsed = None
-                    
-            if isinstance(parsed, dict):
-                lat = parsed.get('lat', 0)
-                lng = parsed.get('lng', 0)
-            elif isinstance(parsed, list) and len(parsed) >= 2:
-                lat = float(parsed[0])
-                lng = float(parsed[1])
-            elif isinstance(parsed, list) and len(parsed) == 1 and isinstance(parsed[0], str) and ',' in parsed[0]:
-                parts = parsed[0].split(',')
-                lat = float(parts[0].strip())
-                lng = float(parts[1].strip())
+                pass
                 
         if lat is None or lng is None:
             lat = plot.latitude

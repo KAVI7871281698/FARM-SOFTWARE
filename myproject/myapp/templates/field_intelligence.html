@@ -626,11 +626,9 @@
         // If there's only 1 marker, getBounds() has 0 area. We need to create a slightly larger bounds manually to setMaxBounds
         var paddedBounds = bounds.isValid() ? bounds.pad(0.3) : bounds;
 
-        // Prevent user from panning to other areas
-        map.setMaxBounds(paddedBounds);
-
-        // Restrict minimum zoom so they can't zoom out to see the whole world
-        map.setMinZoom(map.getBoundsZoom(paddedBounds));
+        // Removed maxBounds and minZoom to allow free panning and zooming as requested
+        // map.setMaxBounds(paddedBounds);
+        // map.setMinZoom(map.getBoundsZoom(paddedBounds));
     }
 </script>
 {% endblock %}

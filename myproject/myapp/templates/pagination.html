@@ -1,0 +1,22 @@
+<div class="pagination" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--card-bg); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+    <div style="font-size: 0.9rem; color: var(--text-muted);">
+        Showing page <span style="font-weight: 600; color: var(--text-dark);">{{ items.number }}</span> of <span style="font-weight: 600; color: var(--text-dark);">{{ items.paginator.num_pages }}</span>
+    </div>
+    <div class="step-links" style="display: flex; gap: 8px;">
+        {% if items.has_previous %}
+            <a href="?page=1" style="padding: 0.5rem 1rem; background: var(--primary-light); color: var(--primary-color); border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;">&laquo; First</a>
+            <a href="?page={{ items.previous_page_number }}" style="padding: 0.5rem 1rem; background: var(--primary-light); color: var(--primary-color); border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;">Previous</a>
+        {% else %}
+            <span style="padding: 0.5rem 1rem; background: #f0f0f0; color: #aaa; border-radius: 6px; font-weight: 600; font-size: 0.9rem;">&laquo; First</span>
+            <span style="padding: 0.5rem 1rem; background: #f0f0f0; color: #aaa; border-radius: 6px; font-weight: 600; font-size: 0.9rem;">Previous</span>
+        {% endif %}
+
+        {% if items.has_next %}
+            <a href="?page={{ items.next_page_number }}" style="padding: 0.5rem 1rem; background: var(--primary-light); color: var(--primary-color); border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;">Next</a>
+            <a href="?page={{ items.paginator.num_pages }}" style="padding: 0.5rem 1rem; background: var(--primary-light); color: var(--primary-color); border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;">Last &raquo;</a>
+        {% else %}
+            <span style="padding: 0.5rem 1rem; background: #f0f0f0; color: #aaa; border-radius: 6px; font-weight: 600; font-size: 0.9rem;">Next</span>
+            <span style="padding: 0.5rem 1rem; background: #f0f0f0; color: #aaa; border-radius: 6px; font-weight: 600; font-size: 0.9rem;">Last &raquo;</span>
+        {% endif %}
+    </div>
+</div>
