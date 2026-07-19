@@ -150,7 +150,7 @@ def index(request):
 
 def scout_management(request):
     scouts = Scout.objects.select_related('plot', 'plot__farmer').order_by('-created_at')
-    officers = Officer.objects.select_related('role', 'division', 'group', 'factory', 'section').all()
+    officers = Officer.objects.select_related('role', 'group').all()
     
     total_scouts = scouts.count()
     pending_scouts = scouts.filter(status='Pending Assignment').count()
