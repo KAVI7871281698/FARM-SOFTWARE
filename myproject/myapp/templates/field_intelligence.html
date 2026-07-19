@@ -4,7 +4,24 @@
 {% block header_title %}
 <div style="display: flex; align-items: center; gap: 20px;">
     <span>Field Intelligence</span>
-    <div class="header-search-bar" style="position: relative;">
+    
+    <!-- Group Selector -->
+    {% if groups|length == 1 %}
+    <span class="premium-badge">
+        <i class="fa-solid fa-layer-group" style="color: #0288D1; margin-right: 6px;"></i> {{ groups.0.name }}
+    </span>
+    {% elif groups|length > 1 %}
+    <form method="GET" action="{% url 'field_intelligence' %}" style="margin: 0;">
+        <select name="group" onchange="this.form.submit()" class="premium-select">
+            <option value="all" {% if all_selected %}selected{% endif %}>All Groups</option>
+            {% for group in groups %}
+            <option value="{{ group.id }}" {% if group.is_selected %}selected{% endif %}>{{ group.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+    {% endif %}
+
+    <div class="header-search-bar" style="position: relative; margin-left: auto;">
         <i id="mapSearchIcon" class="fas fa-search"
             style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--fi-text-muted); cursor: pointer; z-index: 10;"></i>
         <input type="text" id="mapSearchInput" placeholder="Search for country, state, village, etc..."
@@ -16,6 +33,38 @@
         border-color: var(--fi-primary) !important;
         box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15) !important;
     }
+    
+    .premium-select {
+        padding: 8px 35px 8px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>') no-repeat right 12px center;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #333;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        appearance: none;
+    }
+
+    .premium-select:hover {
+        border-color: #0288D1;
+        box-shadow: 0 4px 15px rgba(2, 136, 209, 0.1);
+    }
+
+    .premium-badge {
+        padding: 8px 16px;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
 </style>
 {% endblock %}
 
@@ -23,6 +72,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
     /* CSS Variables for theme */
@@ -404,13 +455,158 @@
             height: 500px;
         }
     }
+    .premium-filter-bar {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--fi-border);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border-radius: var(--fi-radius);
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-end;
+        z-index: 1000;
+        position: relative;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--fi-text-muted);
+        margin-left: 4px;
+    }
+
+    .filter-input-group {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 10px;
+        padding: 4px;
+        border: 1px solid var(--fi-border);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        transition: all 0.2s ease;
+    }
+
+    .filter-input-group:focus-within,
+    .filter-input-group:hover {
+        border-color: var(--fi-primary);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.08);
+    }
+
+    .filter-input-group select,
+    .filter-input-group .static-text {
+        border: none;
+        background: transparent;
+        padding: 6px 10px;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 500;
+        color: var(--fi-text);
+        outline: none;
+        min-width: 130px;
+        appearance: none;
+    }
+
+    .filter-btn {
+        background: #f8fafc;
+        border: none;
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--fi-primary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover {
+        background: var(--fi-primary);
+        color: white;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="fi-container">
+<div class="fi-container" style="flex-direction: column; display: flex;">
+    
+    {% if not all_selected %}
+    <div class="premium-filter-bar">
+        <form method="GET" action="{% url 'field_intelligence' %}"
+            style="display: flex; width: 100%; gap: 20px; align-items: flex-end; margin: 0; flex-wrap: wrap;">
+            <!-- Preserve selected group -->
+            <input type="hidden" name="group" value="{{ request.GET.group|default:'all' }}">
+
+            <!-- Factory -->
+            <div class="filter-group">
+                <label class="filter-label">Factory</label>
+                <div class="filter-input-group">
+                    {% if factories|length == 1 %}
+                    <div class="static-text">{{ factories.0.name }}</div>
+                    <input type="hidden" name="factory" value="{{ factories.0.id }}">
+                    {% elif factories|length > 1 %}
+                    <select name="factory">
+                        <option value="all" {% if all_factories_selected %}selected{% endif %}>All Factories</option>
+                        {% for f in factories %}
+                        <option value="{{ f.id }}" {% if f.is_selected %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div class="static-text" style="color: #94a3b8;">No Factories</div>
+                    {% endif %}
+                    <button type="submit" class="filter-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+            </div>
+
+            <!-- Division -->
+            <div class="filter-group">
+                <label class="filter-label">Division</label>
+                <div class="filter-input-group">
+                    <select name="division">
+                        <option value="all" {% if all_divisions_selected %}selected{% endif %}>All Divisions</option>
+                        {% for d in divisions %}
+                        <option value="{{ d.id }}" {% if d.is_selected %}selected{% endif %}>{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="filter-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+            </div>
+
+            <!-- Section -->
+            <div class="filter-group">
+                <label class="filter-label">Section</label>
+                <div class="filter-input-group">
+                    <select name="section">
+                        <option value="all" {% if all_sections_selected %}selected{% endif %}>All Sections</option>
+                        {% for s in sections %}
+                        <option value="{{ s.id }}" {% if s.is_selected %}selected{% endif %}>{{ s.section_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="filter-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+            </div>
+
+            <!-- Apply All -->
+            <button type="submit" class="fi-btn fi-btn-primary" style="margin-left: auto; padding: 10px 20px; border-radius: 10px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-bolt"></i> Apply Filters
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- Map Area -->
-    <div class="fi-map-container">
+    <div class="fi-map-container" style="flex: 1; min-height: 500px;">
         <div id="map"></div>
 
         <div class="map-overlay-card">
@@ -430,6 +626,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script>
     // Initialize Map
     var map = L.map('map', {
@@ -564,7 +761,20 @@
 
     // Fallback sample data removed as requested by the user
 
-    var plotMarkersGroup = L.featureGroup().addTo(map);
+    var plotMarkersGroup = L.markerClusterGroup({
+        chunkedLoading: true,
+        maxClusterRadius: 50,
+        disableClusteringAtZoom: 16
+    }).addTo(map);
+
+    var circleGroup = L.featureGroup();
+    map.on('zoomend', function() {
+        if (map.getZoom() >= 15) {
+            if (!map.hasLayer(circleGroup)) map.addLayer(circleGroup);
+        } else {
+            if (map.hasLayer(circleGroup)) map.removeLayer(circleGroup);
+        }
+    });
 
     plotsData.forEach(function (plot) {
         var customIcon = L.divIcon({
@@ -595,7 +805,7 @@
             fillOpacity: 0.2,
             weight: 2,
             dashArray: '5, 5' // Dashed line to look like a marked zone
-        }).addTo(plotMarkersGroup);
+        }).addTo(circleGroup);
 
         var tooltipHtml = `
             <div class="plot-popup-content">

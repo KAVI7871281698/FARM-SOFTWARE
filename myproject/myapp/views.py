@@ -299,6 +299,129 @@ def filter_by_factory(queryset, factory_path, request):
             return queryset.filter(**{f"{factory_path}__in": allowed_factories})
         return queryset
 
+def get_filter_context(request):
+    logged_group_id = request.session.get('group_id')
+    is_superadmin = (str(request.session.get('role_id')) == '1')
+    
+    try:
+        if is_superadmin or not logged_group_id:
+            groups = list(Group.objects.all())
+        else:
+            groups = list(Group.objects.filter(id=logged_group_id))
+    except Exception as e:
+        groups = []
+        
+    if not is_superadmin and logged_group_id:
+        selected_group_id = str(logged_group_id)
+        all_selected = False
+    else:
+        selected_group_id = request.GET.get('group', 'all')
+        all_selected = (selected_group_id == 'all')
+
+    if 'factory' in request.GET:
+        selected_factory_id = request.GET.get('factory', 'all')
+        request.session['active_factory_id'] = selected_factory_id
+    else:
+        selected_factory_id = request.session.get('active_factory_id', 'all')
+
+    if selected_factory_id != 'all':
+        try:
+            fac = Factory.objects.get(id=selected_factory_id)
+            if fac.group_id:
+                selected_group_id = str(fac.group_id)
+                all_selected = False
+        except:
+            selected_factory_id = 'all'
+
+    for group in groups:
+        group.is_selected = (str(group.id) == selected_group_id)
+        
+    factories = []
+    divisions = []
+    sections = []
+
+    selected_division_id = request.GET.get('division', 'all')
+    selected_section_id = request.GET.get('section', 'all')
+
+    if not all_selected:
+        if not is_superadmin:
+            allowed_factories_qs = get_allowed_factories(request)
+            factories = list(allowed_factories_qs.filter(group_id=selected_group_id))
+        else:
+            factories = list(Factory.objects.filter(group_id=selected_group_id))
+        
+        if selected_factory_id != 'all' and not any(str(f.id) == selected_factory_id for f in factories):
+            selected_factory_id = 'all'
+
+        if selected_factory_id != 'all':
+            divisions = list(Division.objects.filter(factory_name_id=selected_factory_id))
+        else:
+            divisions = list(Division.objects.filter(factory_name__group_id=selected_group_id))
+            
+        if selected_division_id != 'all' and not any(str(d.id) == selected_division_id for d in divisions):
+            selected_division_id = 'all'
+            
+        if selected_division_id != 'all':
+            sections = list(Section.objects.filter(division_id=selected_division_id))
+        else:
+            if selected_factory_id != 'all':
+                sections = list(Section.objects.filter(division__factory_name_id=selected_factory_id))
+            else:
+                sections = list(Section.objects.filter(division__factory_name__group_id=selected_group_id))
+                
+        if selected_section_id != 'all' and not any(str(s.id) == selected_section_id for s in sections):
+            selected_section_id = 'all'
+
+    for f in factories:
+        f.is_selected = (str(f.id) == selected_factory_id)
+    for d in divisions:
+        d.is_selected = (str(d.id) == selected_division_id)
+    for s in sections:
+        s.is_selected = (str(s.id) == selected_section_id)
+        
+    if all_selected:
+        if not is_superadmin:
+            allowed_factories_qs = get_allowed_factories(request)
+            factories = list(allowed_factories_qs)
+        else:
+            factories = list(Factory.objects.all())
+        divisions = list(Division.objects.filter(factory_name__in=factories)) if not is_superadmin else list(Division.objects.all())
+        sections = list(Section.objects.filter(division__in=divisions)) if not is_superadmin else list(Section.objects.all())
+
+    all_factories_selected = (selected_factory_id == 'all')
+    all_divisions_selected = (selected_division_id == 'all')
+    all_sections_selected = (selected_section_id == 'all')
+    
+    return {
+        'groups': groups,
+        'factories': factories,
+        'divisions': divisions,
+        'sections': sections,
+        'all_selected': all_selected,
+        'all_factories_selected': all_factories_selected,
+        'all_divisions_selected': all_divisions_selected,
+        'all_sections_selected': all_sections_selected,
+        'selected_group_id': selected_group_id,
+        'selected_factory_id': selected_factory_id,
+        'selected_division_id': selected_division_id,
+        'selected_section_id': selected_section_id,
+        'is_superadmin': is_superadmin,
+    }
+
+def filter_plots_by_hierarchy(plots_qs, filter_ctx):
+    if filter_ctx['selected_section_id'] != 'all':
+        return plots_qs.filter(farmer__section_id=filter_ctx['selected_section_id'])
+    elif filter_ctx['selected_division_id'] != 'all':
+        return plots_qs.filter(farmer__section__division_id=filter_ctx['selected_division_id'])
+    elif filter_ctx['selected_factory_id'] != 'all':
+        return plots_qs.filter(farmer__section__division__factory_name_id=filter_ctx['selected_factory_id'])
+    elif not filter_ctx['all_selected']:
+        return plots_qs.filter(farmer__section__division__factory_name__group_id=filter_ctx['selected_group_id'])
+    elif not filter_ctx['is_superadmin']:
+        allowed_f_ids = [f.id for f in filter_ctx['factories']]
+        return plots_qs.filter(farmer__section__division__factory_name_id__in=allowed_f_ids)
+    return plots_qs
+
 def dashboard(request):
     logged_group_id = request.session.get('group_id')
     role_name = request.session.get('role_name', '').lower()
@@ -677,28 +800,75 @@ def officers(request):
 from django.db.models import Q
 
 def field_intelligence(request):
+    if request.method == 'POST':
+        from .models import FieldMapping
+        farmer_id = request.POST.get('farmer_id')
+        plot_id = request.POST.get('plot_id')
+        boundary = request.POST.get('boundary') # JSON string
+        img1 = request.FILES.get('img1')
+        img2 = request.FILES.get('img2')
+        img3 = request.FILES.get('img3')
+        
+        farmer = Farmer.objects.filter(id=farmer_id).first()
+        plot = Plot.objects.filter(id=plot_id).first()
+        
+        if farmer and plot:
+            mapping = FieldMapping(
+                farmer=farmer,
+                farmer_code=farmer.farmer_code,
+                plot=plot,
+                division=farmer.division,
+                section=farmer.section.section_name if farmer.section else '',
+                village=farmer.village.village_name if farmer.village else '',
+                group=farmer.group,
+                group_name=farmer.group_name,
+                factory=farmer.factory,
+                factory_name=farmer.factory_name,
+                boundary=boundary,
+                img1=img1,
+                img2=img2,
+                img3=img3,
+                officer_name=request.session.get('officer_name')
+            )
+            mapping.save()
+            
+            plot.status = 'Mapped'
+            plot.save()
+            
+            return redirect('field_intelligence')
+
+    filter_ctx = get_filter_context(request)
+
     base_plots = Plot.objects.filter(
         Q(center_lt_ln__isnull=False) | 
         (Q(latitude__isnull=False) & Q(longitude__isnull=False))
-    ).select_related('division', 'section', 'village', 'farmer', 'soil_type')
-    plots = filter_by_factory(base_plots, 'farmer__section__division__factory_name_id', request)
+    )
+    plots_qs = filter_plots_by_hierarchy(base_plots, filter_ctx)
+    
+    plots_values = plots_qs.values(
+        'id', 'plot_code', 'latitude', 'longitude', 'center_lt_ln',
+        'division_name', 'division__name',
+        'section_name', 'section__section_name',
+        'village_name', 'village__village_name',
+        'farmer__name', 'planting_date', 'area_acre',
+        'soil_type__soil_name', 'status'
+    )
     
     plots_data = []
-    print("IN_VIEW_PLOTS_COUNT:", plots.count())
-    for p in plots:
+    print("IN_VIEW_PLOTS_COUNT:", plots_values.count())
+    for p in plots_values:
         try:
             lat, lon = None, None
             
-            # First try center_lt_ln
-            if p.center_lt_ln:
-                if isinstance(p.center_lt_ln, list) and len(p.center_lt_ln) >= 2:
-                    lat = float(p.center_lt_ln[0])
-                    lon = float(p.center_lt_ln[1])
+            center = p['center_lt_ln']
+            if center:
+                if isinstance(center, list) and len(center) >= 2:
+                    lat = float(center[0])
+                    lon = float(center[1])
             
-            # Fallback to latitude/longitude fields
             if lat is None or lon is None:
-                lat_str = str(p.latitude).strip("[]'\"")
-                lon_str = str(p.longitude).strip("[]'\"")
+                lat_str = str(p['latitude']).strip("[]'\"")
+                lon_str = str(p['longitude']).strip("[]'\"")
                 if lat_str and lon_str and lat_str != 'None' and lon_str != 'None':
                     lat = float(lat_str)
                     lon = float(lon_str)
@@ -707,26 +877,29 @@ def field_intelligence(request):
                 continue
             
             plots_data.append({
-                'id': p.id,
-                'plot_code': p.plot_code or 'Unknown',
+                'id': p['id'],
+                'plot_code': p['plot_code'] or 'Unknown',
                 'lat': lat,
                 'lon': lon,
-                'division': p.division_name or (p.division.name if p.division else '-'),
-                'section': p.section_name or (p.section.section_name if p.section else '-'),
-                'village': p.village_name or (p.village.village_name if p.village else '-'),
-                'farmer_name': p.farmer.name if p.farmer else '-',
-                'planting_date': str(p.planting_date) if p.planting_date else '-',
-                'acres': str(p.area_acre) if p.area_acre else '-',
-                'soil_type': p.soil_type.soil_name if p.soil_type else '-',
-                'status': p.status or '-'
+                'division': p['division_name'] or p['division__name'] or '-',
+                'section': p['section_name'] or p['section__section_name'] or '-',
+                'village': p['village_name'] or p['village__village_name'] or '-',
+                'farmer_name': p['farmer__name'] or '-',
+                'planting_date': str(p['planting_date']) if p['planting_date'] else '-',
+                'acres': str(p['area_acre']) if p['area_acre'] else '-',
+                'soil_type': p['soil_type__soil_name'] or '-',
+                'status': p['status'] or '-'
             })
         except (ValueError, TypeError, IndexError):
             continue
 
+    farmers = Farmer.objects.select_related('division', 'section', 'village', 'group', 'factory').all()
+    
     context = {
-        'plots_json': json.dumps(plots_data)
+        'plots_json': json.dumps(plots_data),
+        'farmers': farmers,
     }
-    print("DEBUG PLOTS_JSON:", context['plots_json'])
+    context.update(filter_ctx)
     return render(request, 'field_intelligence.html', context)
 
 def analytics(request):
@@ -2145,108 +2318,6 @@ def delete_crop(request, id):
         pass
     return redirect('crops')
 
-def field_intelligence(request):
-    if request.method == 'POST':
-        farmer_id = request.POST.get('farmer_id')
-        plot_id = request.POST.get('plot_id')
-        boundary = request.POST.get('boundary') # JSON string
-        img1 = request.FILES.get('img1')
-        img2 = request.FILES.get('img2')
-        img3 = request.FILES.get('img3')
-        
-        farmer = Farmer.objects.filter(id=farmer_id).first()
-        plot = Plot.objects.filter(id=plot_id).first()
-        
-        if farmer and plot:
-            mapping = FieldMapping(
-                farmer=farmer,
-                farmer_code=farmer.farmer_code,
-                plot=plot,
-                division=farmer.division,
-                section=farmer.section.section_name if farmer.section else '',
-                village=farmer.village.village_name if farmer.village else '',
-                group=farmer.group,
-                group_name=farmer.group_name,
-                factory=farmer.factory,
-                factory_name=farmer.factory_name,
-                boundary=boundary,
-                img1=img1,
-                img2=img2,
-                img3=img3,
-                officer_name=request.session.get('officer_name')
-            )
-            mapping.save()
-            
-            plot.status = 'Mapped'
-            plot.save()
-            
-            return redirect('field_intelligence')
-            
-    from django.db.models import Q
-    base_plots = Plot.objects.select_related(
-        'division', 'section', 'village', 'farmer', 'soil_type'
-    ).filter(
-        Q(center_lt_ln__isnull=False) | 
-        (Q(latitude__isnull=False) & Q(longitude__isnull=False))
-    )
-    plots = filter_by_factory(base_plots, 'farmer__section__division__factory_name_id', request)
-    
-    plots_data = []
-    for p in plots:
-        try:
-            lat, lon = None, None
-            
-            # First try center_lt_ln
-            if p.center_lt_ln:
-                if isinstance(p.center_lt_ln, list) and len(p.center_lt_ln) >= 2:
-                    lat = float(p.center_lt_ln[0])
-                    lon = float(p.center_lt_ln[1])
-                elif isinstance(p.center_lt_ln, str):
-                    try:
-                        import json
-                        parsed = json.loads(p.center_lt_ln)
-                        if isinstance(parsed, list) and len(parsed) >= 2:
-                            lat = float(parsed[0])
-                            lon = float(parsed[1])
-                    except:
-                        pass
-            
-            # Fallback to latitude/longitude fields
-            if lat is None or lon is None:
-                lat_str = str(p.latitude).strip("[]'\"")
-                lon_str = str(p.longitude).strip("[]'\"")
-                if lat_str and lon_str and lat_str != 'None' and lon_str != 'None':
-                    lat = float(lat_str)
-                    lon = float(lon_str)
-            
-            if lat is None or lon is None:
-                continue
-            
-            plots_data.append({
-                'id': p.id,
-                'plot_code': p.plot_code or 'Unknown',
-                'lat': lat,
-                'lon': lon,
-                'division': p.division_name or (p.division.name if p.division else '-'),
-                'section': p.section_name or (p.section.section_name if p.section else '-'),
-                'village': p.village_name or (p.village.village_name if p.village else '-'),
-                'farmer_name': p.farmer.name if p.farmer else '-',
-                'planting_date': str(p.planting_date) if p.planting_date else '-',
-                'acres': str(p.area_acre) if p.area_acre else '-',
-                'soil_type': p.soil_type.soil_name if p.soil_type else '-',
-                'status': p.status or '-'
-            })
-        except (ValueError, TypeError, IndexError):
-            continue
-
-    import json
-    farmers = Farmer.objects.select_related('division', 'section', 'village', 'group', 'factory').all()
-    is_superadmin = request.session.get('role_id') == 1
-    return render(request, 'field_intelligence.html', {
-        'farmers': farmers,
-        'is_superadmin': is_superadmin,
-        'plots_json': json.dumps(plots_data)
-    })
 
 def soil_types(request):
     soil_types_list = SoilType.objects.all()
@@ -2286,97 +2357,17 @@ def ndvi_dashboard(request):
     from datetime import date, timedelta
     import calendar
 
-    logged_group_id = request.session.get('group_id')
-    role_name = request.session.get('role_name', '').lower()
-    is_superadmin = (str(request.session.get('role_id')) == '1')
-    
-    # 1. Handle Filters (Group, Factory, Division, Section)
-    try:
-        if is_superadmin or not logged_group_id:
-            groups = list(Group.objects.all())
-        else:
-            groups = list(Group.objects.filter(id=logged_group_id))
-    except Exception as e:
-        groups = []
-        
-    if not is_superadmin and logged_group_id:
-        selected_group_id = str(logged_group_id)
-        all_selected = False
-    else:
-        selected_group_id = request.GET.get('group', 'all')
-        all_selected = (selected_group_id == 'all')
-
-    if 'factory' in request.GET:
-        selected_factory_id = request.GET.get('factory', 'all')
-        request.session['active_factory_id'] = selected_factory_id
-    else:
-        selected_factory_id = request.session.get('active_factory_id', 'all')
-
-    if selected_factory_id != 'all':
-        try:
-            fac = Factory.objects.get(id=selected_factory_id)
-            if fac.group_id:
-                selected_group_id = str(fac.group_id)
-                all_selected = False
-        except:
-            selected_factory_id = 'all'
-            
-    for group in groups:
-        group.is_selected = (str(group.id) == selected_group_id)
-
-    factories = []
-    divisions = []
-    sections = []
-
-
-
-    selected_division_id = request.GET.get('division', 'all')
-    selected_section_id = request.GET.get('section', 'all')
-
-    if not all_selected:
-        if not is_superadmin:
-            allowed_factories_qs = get_allowed_factories(request)
-            factories = list(allowed_factories_qs.filter(group_id=selected_group_id))
-        else:
-            factories = list(Factory.objects.filter(group_id=selected_group_id))
-        
-        if selected_factory_id != 'all' and not any(str(f.id) == selected_factory_id for f in factories):
-            selected_factory_id = 'all'
-
-        if selected_factory_id != 'all':
-            divisions = list(Division.objects.filter(factory_name_id=selected_factory_id))
-        else:
-            divisions = list(Division.objects.filter(factory_name__group_id=selected_group_id))
-            
-        if selected_division_id != 'all' and not any(str(d.id) == selected_division_id for d in divisions):
-            selected_division_id = 'all'
-            
-        if selected_division_id != 'all':
-            sections = list(Section.objects.filter(division_id=selected_division_id))
-        else:
-            if selected_factory_id != 'all':
-                sections = list(Section.objects.filter(division__factory_name_id=selected_factory_id))
-            else:
-                sections = list(Section.objects.filter(division__factory_name__group_id=selected_group_id))
-                
-        if selected_section_id != 'all' and not any(str(s.id) == selected_section_id for s in sections):
-            selected_section_id = 'all'
-    else:
-        if not is_superadmin:
-            allowed_factories_qs = get_allowed_factories(request)
-            factories = list(allowed_factories_qs)
-        else:
-            factories = list(Factory.objects.all())
-        divisions = list(Division.objects.filter(factory_name__in=factories)) if not is_superadmin else list(Division.objects.all())
-        sections = list(Section.objects.filter(division__in=divisions)) if not is_superadmin else list(Section.objects.all())
-
-    for f in factories:
-        f.is_selected = (str(f.id) == selected_factory_id)
-    for d in divisions:
-        d.is_selected = (str(d.id) == selected_division_id)
-    for s in sections:
-        s.is_selected = (str(s.id) == selected_section_id)
-
+    filter_ctx = get_filter_context(request)
+    groups = filter_ctx['groups']
+    factories = filter_ctx['factories']
+    divisions = filter_ctx['divisions']
+    sections = filter_ctx['sections']
+    all_selected = filter_ctx['all_selected']
+    selected_group_id = filter_ctx['selected_group_id']
+    selected_factory_id = filter_ctx['selected_factory_id']
+    selected_division_id = filter_ctx['selected_division_id']
+    selected_section_id = filter_ctx['selected_section_id']
+    is_superadmin = filter_ctx['is_superadmin']
     # Base Plot Query with Filters
     from django.db.models import Prefetch
     plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).select_related('farmer').prefetch_related(
@@ -2384,18 +2375,7 @@ def ndvi_dashboard(request):
         Prefetch('ndvi_records', queryset=NDVIRecord.objects.order_by('-date_recorded'))
     ).distinct()
     
-    if selected_section_id != 'all':
-        plots_query = plots_query.filter(farmer__section_id=selected_section_id)
-    elif selected_division_id != 'all':
-        plots_query = plots_query.filter(farmer__section__division_id=selected_division_id)
-    elif selected_factory_id != 'all':
-        plots_query = plots_query.filter(farmer__section__division__factory_name_id=selected_factory_id)
-    elif not all_selected:
-        plots_query = plots_query.filter(farmer__section__division__factory_name__group_id=selected_group_id)
-    elif not is_superadmin:
-        allowed_f_ids = get_allowed_factories(request).values_list('id', flat=True)
-        plots_query = plots_query.filter(farmer__section__division__factory_name_id__in=allowed_f_ids)
-
+    plots_query = filter_plots_by_hierarchy(plots_query, filter_ctx)
     plots = list(plots_query)
 
     # Hierarchy Data

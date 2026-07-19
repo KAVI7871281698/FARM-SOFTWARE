@@ -139,18 +139,18 @@
         {% endif %}
 
         <!-- Factory Selector -->
-        {% if user_factories|length == 1 %}
+        {% if factories|length == 1 %}
         <span
             style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: #f9f9f9;">
-            {{ user_factories.0.name }}
+            {{ factories.0.name }}
         </span>
-        {% elif user_factories|length > 1 %}
+        {% elif factories|length > 1 %}
         <form method="GET" action="{% url 'ndvi_dashboard' %}" style="margin: 0;">
             <select name="factory" onchange="this.form.submit()"
                 style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: white; outline: none; cursor: pointer;">
-                <option value="all" {% if active_factory_id == 'all' %}selected{% endif %}>All My Factories</option>
-                {% for f in user_factories %}
-                <option value="{{ f.id }}" {% if active_factory_id == f.id|stringformat:"s" %}selected{% endif %}>{{ f.name }}</option>
+                <option value="all" {% if all_factories_selected %}selected{% endif %}>All My Factories</option>
+                {% for f in factories %}
+                <option value="{{ f.id }}" {% if f.is_selected %}selected{% endif %}>{{ f.name }}</option>
                 {% endfor %}
             </select>
         </form>
