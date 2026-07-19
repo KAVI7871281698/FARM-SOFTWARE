@@ -157,30 +157,42 @@ def mobile_index_handler(request):
                     'description': s.description or '-'
                 })
             return JsonResponse({'status': 'success', 'message': 'Surveys fetched successfully', 'data': surveys_data})
-        work_assigns = WorkAssign.objects.filter(officer_id=officer_id)
         update_fields = {}
         if device_id: update_fields['device_id'] = device_id
         if lt: update_fields['latitude'] = lt
         if ln: update_fields['longitude'] = ln
         if update_fields:
-            work_assigns.update(**update_fields)
+            WorkAssign.objects.filter(officer_id=officer_id).update(**update_fields)
+        work_assigns = WorkAssign.objects.filter(officer_id=officer_id).select_related('section', 'village')
+        
+        village_ids = [wa.village_id for wa in work_assigns if wa.village_id]
+        
+        all_plots = Plot.objects.filter(village_id__in=village_ids).values(
+            'id', 'plot_code', 'farmer__name', 'farmer__phone', 'crop_type__crop_name',
+            'variety__variety_name', 'area_acre', 'status', 'soil_type__soil_name',
+            'latitude', 'longitude', 'planting_date', 'village_id'
+        )
+        
+        plots_by_village = {}
+        for p in all_plots:
+            vid = p['village_id']
+            if vid not in plots_by_village:
+                plots_by_village[vid] = []
+            plots_by_village[vid].append({
+                'id': p['id'], 'plot_code': p['plot_code'], 'farmer_name': p['farmer__name'],
+                'farmer_phone': p['farmer__phone'], 'crop_name': p['crop_type__crop_name'],
+                'variety_name': p['variety__variety_name'], 'area_acre': str(p['area_acre']) if p['area_acre'] is not None else None,
+                'status': p['status'], 'soil_name': p['soil_type__soil_name'],
+                'latitude': p['latitude'], 'longitude': p['longitude'], 'date_planted': str(p['planting_date']) if p['planting_date'] else None,
+            })
+            
         data = []
         for wa in work_assigns:
-            village_plots = []
-            if wa.village:
-                plots = Plot.objects.filter(village=wa.village)
-                for p in plots:
-                    village_plots.append({
-                        'id': p.id, 'plot_code': p.plot_code, 'farmer_name': p.farmer.name if p.farmer else None,
-                        'farmer_phone': p.farmer.phone if p.farmer else None, 'crop_name': p.crop_type.crop_name if p.crop_type else None,
-                        'variety_name': p.variety.variety_name if p.variety else None, 'area_acre': str(p.area_acre) if p.area_acre is not None else None,
-                        'status': p.status, 'soil_name': p.soil_type.soil_name if p.soil_type else None,
-                        'latitude': p.latitude, 'longitude': p.longitude, 'date_planted': str(p.planting_date) if p.planting_date else None,
-                    })
+            village_plots = plots_by_village.get(wa.village_id, []) if wa.village_id else []
             data.append({
                 'id': wa.id, 'work_assign_code': wa.work_assign_code, 'division': wa.division,
-                'section_id': wa.section.id if wa.section else None, 'section_name': wa.section.section_name if wa.section else None,
-                'village_id': wa.village.id if wa.village else None, 'village_name': wa.village.village_name if wa.village else None,
+                'section_id': wa.section_id, 'section_name': wa.section.section_name if wa.section else None,
+                'village_id': wa.village_id, 'village_name': wa.village.village_name if wa.village else None,
                 'status': wa.status, 'plots': village_plots
             })
         return JsonResponse({'status': 'success', 'message': 'Work assigns fetched successfully', 'data': data})
@@ -378,17 +390,15 @@ def api_get_farmers(request):
     ln = request.POST.get('ln') or request.GET.get('ln')
     device_id = request.POST.get('device_id') or request.GET.get('device_id')
     
-    if group_id:
-        farmers = Farmer.objects.filter(group_id=group_id)
-    else:
-        farmers = Farmer.objects.all()
-        
+    farmers_qs = Farmer.objects.filter(group_id=group_id) if group_id else Farmer.objects.all()
+    farmers = farmers_qs.values('id', 'name', 'village__village_name')
+    
     data = []
     for f in farmers:
-        village_name = f.village.village_name if f.village else ''
-        display_name = f"{f.name} - {village_name}" if village_name else f.name
+        v_name = f['village__village_name']
+        display_name = f"{f['name']} - {v_name}" if v_name else f['name']
         data.append({
-            'id': f.id,
+            'id': f['id'],
             'name': display_name
         })
         
@@ -738,32 +748,38 @@ def api_get_plots(request):
     if str(plot_action).lower() != 'true':
         return JsonResponse({"status": "error", "message": "plot_action must be 'true' to view plots"}, status=400)
         
-    plots = Plot.objects.filter(group_id=group_id, officer_id=officer_id).order_by('-id')
+    plots_qs = Plot.objects.filter(group_id=group_id, officer_id=officer_id).order_by('-id')
+    plots = plots_qs.values(
+        'id', 'plot_code', 'farmer__name', 'division_name', 'section_name', 'village_name',
+        'crop_type__crop_name', 'variety__variety_name', 'planting_date', 'area_acre',
+        'status', 'soil_type__soil_name', 'latitude', 'longitude', 'center_lt_ln', 'device_id',
+        'group_name', 'factory_name', 'officer__name', 'boundary_image', 'boundaries'
+    )
     
     data = []
     for plot in plots:
         data.append({
-            "plot_id": plot.id,
-            "plot_code": plot.plot_code,
-            "farmer_name": plot.farmer.name if plot.farmer else None,
-            "division_name": plot.division_name,
-            "section_name": plot.section_name,
-            "village_name": plot.village_name,
-            "crop_type": plot.crop_type.crop_name if plot.crop_type else None,
-            "variety": plot.variety.variety_name if plot.variety else None,
-            "planting_date": str(plot.planting_date) if plot.planting_date else None,
-            "area_acre": str(plot.area_acre) if plot.area_acre else None,
-            "status": plot.status,
-            "soil_name": plot.soil_type.soil_name if plot.soil_type else None,
-            "latitude": plot.latitude,
-            "longitude": plot.longitude,
-            "center_lt_ln": plot.center_lt_ln,
-            "device_id": plot.device_id,
-            "group_name": plot.group_name,
-            "factory_name": plot.factory_name,
-            "officer_name": plot.officer.name if plot.officer else None,
-            "boundary_image": plot.boundary_image,
-            "boundaries": plot.boundaries
+            "plot_id": plot['id'],
+            "plot_code": plot['plot_code'],
+            "farmer_name": plot['farmer__name'],
+            "division_name": plot['division_name'],
+            "section_name": plot['section_name'],
+            "village_name": plot['village_name'],
+            "crop_type": plot['crop_type__crop_name'],
+            "variety": plot['variety__variety_name'],
+            "planting_date": str(plot['planting_date']) if plot['planting_date'] else None,
+            "area_acre": str(plot['area_acre']) if plot['area_acre'] else None,
+            "status": plot['status'],
+            "soil_name": plot['soil_type__soil_name'],
+            "latitude": plot['latitude'],
+            "longitude": plot['longitude'],
+            "center_lt_ln": plot['center_lt_ln'],
+            "device_id": plot['device_id'],
+            "group_name": plot['group_name'],
+            "factory_name": plot['factory_name'],
+            "officer_name": plot['officer__name'],
+            "boundary_image": plot['boundary_image'],
+            "boundaries": plot['boundaries']
         })
         
     return JsonResponse({
@@ -776,13 +792,13 @@ from .models import FieldMapping
 def api_get_farmer_plots(request):
     farmer_id = request.GET.get('farmer_id')
     if farmer_id:
-        plots_qs = Plot.objects.filter(farmer_id=farmer_id)
+        plots_qs = Plot.objects.filter(farmer_id=farmer_id).values('id', 'plot_code', 'area_acre')
         plots_data = []
         for p in plots_qs:
             plots_data.append({
-                'id': p.id,
-                'plot_code': p.plot_code,
-                'area_acre': str(p.area_acre) if p.area_acre else '0'
+                'id': p['id'],
+                'plot_code': p['plot_code'],
+                'area_acre': str(p['area_acre']) if p['area_acre'] else '0'
             })
         return JsonResponse({'status': 'success', 'plots': plots_data})
     return JsonResponse({'status': 'error', 'message': 'No farmer_id provided'}, status=400)
@@ -816,11 +832,11 @@ def api_field_intelligence_plots(request):
     # Filter by factories allowed for the officer
     is_superadmin = (str(officer.role_id) == '1') if getattr(officer, 'role_id', None) else False
     if is_superadmin:
-        plots = base_plots
+        plots = base_plots.select_related('division', 'section', 'village', 'farmer', 'soil_type')
     else:
         fids = [int(x.strip()) for x in str(officer.factory_ids).split(',') if x.strip().isdigit()] if getattr(officer, 'factory_ids', None) else []
         if fids:
-            plots = base_plots.filter(farmer__section__division__factory_name_id__in=fids)
+            plots = base_plots.filter(farmer__section__division__factory_name_id__in=fids).select_related('division', 'section', 'village', 'farmer', 'soil_type')
         else:
             plots = base_plots.none()
         
@@ -893,7 +909,7 @@ def api_surveys(request):
         return JsonResponse({"status": "error", "message": "officer_id is required"}, status=400)
         
     surveys = Survey.objects.filter(officer__user_id=officer_id) | Survey.objects.filter(officer_id=officer_id)
-    surveys = surveys.distinct().order_by('-id')
+    surveys = surveys.distinct().order_by('-id').select_related('plot', 'plot__farmer').prefetch_related('results')
     
     surveys_data = []
     for s in surveys:
@@ -935,7 +951,7 @@ def api_update_survey(request):
         if not survey_id:
             return JsonResponse({"status": "error", "message": "survey_id is required"}, status=400)
             
-        survey = Survey.objects.filter(survey_id=survey_id).first()
+        survey = Survey.objects.filter(survey_id=survey_id).select_related('plot', 'plot__farmer').first()
         if not survey:
             return JsonResponse({"status": "error", "message": "Survey not found"}, status=404)
             
