@@ -444,6 +444,12 @@ class Survey(models.Model):
     survey_month = models.CharField(max_length=50, blank=True, null=True)
     number_of_days = models.IntegerField(default=0)
     allocated_dates = models.JSONField(blank=True, null=True)
+    
+    group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
+    group_name = models.CharField(max_length=100, blank=True, null=True)
+    factory = models.ForeignKey('Factory', on_delete=models.SET_NULL, null=True, blank=True)
+    factory_name = models.CharField(max_length=100, blank=True, null=True)
+    plot_name = models.CharField(max_length=100, blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -452,12 +458,51 @@ class Survey(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.survey_id:
-            last_survey = Survey.objects.all().order_by('id').last()
-            if last_survey:
-                last_id = last_survey.id
-                self.survey_id = f"SRV-{last_id + 1:03d}"
-            else:
-                self.survey_id = "SRV-001"
+            from django.db.models import Max
+            max_survey = Survey.objects.all().aggregate(Max('id'))
+            next_id = (max_survey['id__max'] or 0) + 1
+            
+            while True:
+                candidate_id = f"SRV-{next_id:03d}"
+                if not Survey.objects.filter(survey_id=candidate_id).exists():
+                    self.survey_id = candidate_id
+                    break
+                next_id += 1
+                
+        # Auto-populate denormalized fields from the associated plot
+        if self.plot:
+            from .models import Group, Factory  # Import here to avoid circular imports if any
+            
+            if not self.group_id:
+                self.group_id = self.plot.group_id
+                if not self.group_id and self.officer_id:
+                    if Group.objects.filter(id=self.officer.group_id).exists():
+                        self.group_id = self.officer.group_id
+            if not self.group_name:
+                self.group_name = self.plot.group_name
+                if not self.group_name and self.officer_id:
+                    self.group_name = self.officer.group_name
+                    
+            if not self.factory_id:
+                self.factory_id = self.plot.factory_id
+                if not self.factory_id and self.officer_id and self.officer.factory_ids:
+                    f_ids = self.officer.factory_ids.replace('[', '').replace(']', '').replace("'", "").replace('"', "")
+                    f_ids_list = [x.strip() for x in f_ids.split(',') if x.strip()]
+                    if f_ids_list and f_ids_list[0].isdigit():
+                        cand_factory_id = int(f_ids_list[0])
+                        if Factory.objects.filter(id=cand_factory_id).exists():
+                            self.factory_id = cand_factory_id
+                            
+            if not self.factory_name:
+                self.factory_name = self.plot.factory_name
+                if not self.factory_name and self.officer_id and self.officer.factory_names:
+                    f_names = self.officer.factory_names.replace('[', '').replace(']', '').replace("'", "").replace('"', "")
+                    f_names_list = [x.strip() for x in f_names.split(',') if x.strip()]
+                    if f_names_list:
+                        self.factory_name = f_names_list[0]
+                        
+            if not self.plot_name:
+                self.plot_name = self.plot.plot_code
 
         super().save(*args, **kwargs)
 
@@ -622,62 +667,60 @@ STAGE_SURVEY_DAYS = {
     'Maturity': [255, 270] 
 }
 
-@receiver(post_save, sender=NDVIRecord)
-def create_survey_on_stage_change(sender, instance, created, **kwargs):
+@receiver(post_save, sender=Plot)
+def create_surveys_on_plot_creation(sender, instance, created, **kwargs):
     """
-    Automatically create a Survey assigned to the respective division officer
-    when a plot enters a new stage threshold.
+    Automatically create all surveys for all stages when a plot is created with a planting_date,
+    or if planting_date is updated.
     """
-    if instance.stage:
-        # Check if a survey already exists for this plot at this stage
-        survey_exists = Survey.objects.filter(plot=instance.plot, survey_stage=instance.stage).exists()
+    if instance.planting_date:
+        officer = None
+        if instance.division_id:
+            div_id_str = str(instance.division_id)
+            for off in Officer.objects.all():
+                if off.division_ids:
+                    cleaned = off.division_ids.replace('[', '').replace(']', '').replace("'", "").replace('"', "")
+                    ids = [x.strip() for x in cleaned.split(',') if x.strip()]
+                    if div_id_str in ids:
+                        officer = off
+                        break
         
-        if not survey_exists:
-            officer = None
-            if instance.plot.division_id:
-                div_id_str = str(instance.plot.division_id)
-                # Find the officer assigned to this division
-                for off in Officer.objects.all():
-                    if off.division_ids:
-                        cleaned = off.division_ids.replace('[', '').replace(']', '').replace("'", "").replace('"', "")
-                        ids = [x.strip() for x in cleaned.split(',') if x.strip()]
-                        if div_id_str in ids:
-                            officer = off
-                            break
-                            
-            allocated_dates = []
-            
-            survey_days = STAGE_SURVEY_DAYS.get(instance.stage, [])
-            
-            # Use planting date to calculate dates, default to current date if not set
-            base_date = instance.plot.planting_date if instance.plot.planting_date else datetime.date.today()
-            
-            for day_offset in survey_days:
-                calc_date = base_date + datetime.timedelta(days=day_offset)
-                allocated_dates.append(calc_date.strftime('%Y-%m-%d'))
+        for stage, survey_days in STAGE_SURVEY_DAYS.items():
+            if not survey_days:
+                continue
                 
-            number_of_days = len(allocated_dates)
-            
-            # Automatically create the survey assignment
-            survey = Survey.objects.create(
-                plot=instance.plot,
-                officer=officer,
-                survey_stage=instance.stage,
-                title=f"{instance.stage} Survey for Plot {instance.plot.plot_code}",
-                description=f"Auto-assigned survey triggered because plot entered the {instance.stage} stage.",
-                number_of_days=number_of_days,
-                allocated_dates=allocated_dates,
-                survey_month=base_date.strftime('%B %Y')
-            )
-            
-            # Create corresponding SurveyResult instances for each date so it shows as Pending
-            for date_str in allocated_dates:
-                survey_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
-                SurveyResult.objects.create(
-                    survey=survey,
-                    survey_date=survey_date,
-                    survey_status='Pending'
+            survey_exists = Survey.objects.filter(plot=instance, survey_stage=stage).exists()
+            if not survey_exists:
+                allocated_dates = []
+                base_date = instance.planting_date
+                
+                # Absolute days from planting_date
+                for day_offset in survey_days:
+                    calc_date = base_date + datetime.timedelta(days=day_offset)
+                    allocated_dates.append(calc_date.strftime('%Y-%m-%d'))
+                    
+                number_of_days = len(allocated_dates)
+                first_date_obj = base_date + datetime.timedelta(days=survey_days[0])
+                survey_month = first_date_obj.strftime('%B %Y')
+                
+                survey = Survey.objects.create(
+                    plot=instance,
+                    officer=officer,
+                    survey_stage=stage,
+                    title=f"{stage} Survey for Plot {instance.plot_code}",
+                    description=f"Auto-assigned future survey for {stage} stage based on planting date.",
+                    number_of_days=number_of_days,
+                    allocated_dates=allocated_dates,
+                    survey_month=survey_month
                 )
+                
+                for date_str in allocated_dates:
+                    survey_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+                    SurveyResult.objects.create(
+                        survey=survey,
+                        survey_date=survey_date,
+                        survey_status='Pending'
+                    )
 
 @receiver(post_save, sender=NDVIRecord)
 def create_scout_on_critical_health(sender, instance, created, **kwargs):
