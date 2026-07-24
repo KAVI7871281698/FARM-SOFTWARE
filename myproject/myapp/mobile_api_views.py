@@ -1161,7 +1161,14 @@ def api_mobile_dashboard(request):
         if fids:
             all_plots = Plot.objects.filter(farmer__section__division__factory_name_id__in=fids)
         else:
-            all_plots = Plot.objects.none()
+            work_assigns = WorkAssign.objects.filter(officer_id=officer.id)
+            village_ids = [wa.village_id for wa in work_assigns if wa.village_id]
+            if village_ids:
+                all_plots = Plot.objects.filter(village_id__in=village_ids)
+            elif getattr(officer, 'group_id', None):
+                all_plots = Plot.objects.filter(group_id=officer.group_id)
+            else:
+                all_plots = Plot.objects.filter(officer_id=officer.id)
 
     total_plots = all_plots.count()
     
