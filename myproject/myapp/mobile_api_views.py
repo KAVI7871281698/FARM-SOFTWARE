@@ -170,7 +170,7 @@ def mobile_index_handler(request):
         all_plots = Plot.objects.filter(village_id__in=village_ids).values(
             'id', 'plot_code', 'farmer__name', 'farmer__phone', 'crop_type__crop_name',
             'variety__variety_name', 'area_acre', 'status', 'soil_type__soil_name',
-            'latitude', 'longitude', 'planting_date', 'village_id'
+            'latitude', 'longitude', 'center_lt_ln', 'planting_date', 'village_id'
         )
         
         plots_by_village = {}
@@ -183,7 +183,7 @@ def mobile_index_handler(request):
                 'farmer_phone': p['farmer__phone'], 'crop_name': p['crop_type__crop_name'],
                 'variety_name': p['variety__variety_name'], 'area_acre': str(p['area_acre']) if p['area_acre'] is not None else None,
                 'status': p['status'], 'soil_name': p['soil_type__soil_name'],
-                'latitude': p['latitude'], 'longitude': p['longitude'], 'date_planted': str(p['planting_date']) if p['planting_date'] else None,
+                'latitude': p['latitude'], 'longitude': p['longitude'], 'center_lt_ln': p['center_lt_ln'], 'date_planted': str(p['planting_date']) if p['planting_date'] else None,
             })
             
         data = []
