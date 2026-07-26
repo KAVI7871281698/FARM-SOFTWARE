@@ -921,8 +921,10 @@ def api_surveys(request):
     if not officer_id:
         return JsonResponse({"status": "error", "message": "officer_id is required"}, status=400)
         
-    surveys = Survey.objects.filter(officer__user_id=officer_id) | Survey.objects.filter(officer_id=officer_id)
-    surveys = surveys.distinct().order_by('-id').select_related('plot', 'plot__farmer').prefetch_related('results')
+    from django.db.models import Q
+    surveys = Survey.objects.filter(
+        Q(officer__user_id=officer_id) | Q(officer_id=officer_id)
+    ).order_by('-id').select_related('plot', 'plot__farmer').prefetch_related('results')
     
     surveys_data = []
     for s in surveys:
