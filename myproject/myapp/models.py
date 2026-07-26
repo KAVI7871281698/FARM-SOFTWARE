@@ -510,8 +510,11 @@ class Survey(models.Model):
     def completion_percentage(self):
         allocated_count = self.number_of_days
         if allocated_count and allocated_count > 0:
-            completed_count = self.results.filter(survey_status='Completed').values('survey_date').distinct().count()
-            return min(int((completed_count / allocated_count) * 100), 100)
+            completed_dates = {
+                r.survey_date for r in self.results.all()
+                if getattr(r, 'survey_status', None) == 'Completed' and getattr(r, 'survey_date', None)
+            }
+            return min(int((len(completed_dates) / allocated_count) * 100), 100)
         return 0
         
     @property
@@ -520,8 +523,11 @@ class Survey(models.Model):
 
     @property
     def completed_dates_list(self):
-        dates = self.results.filter(survey_status='Completed').values_list('survey_date', flat=True)
-        return [d.strftime('%Y-%m-%d') if d else '' for d in dates]
+        dates = {
+            r.survey_date.strftime('%Y-%m-%d') for r in self.results.all()
+            if getattr(r, 'survey_status', None) == 'Completed' and getattr(r, 'survey_date', None)
+        }
+        return list(dates)
 
     def __str__(self):
         return f"{self.survey_id} - {self.title}"

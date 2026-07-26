@@ -1083,26 +1083,29 @@ def plots(request):
     return render(request, 'plots.html', {'plots': page_obj})
 
 def surveys(request):
-    surveys_list = list(Survey.objects.prefetch_related('results').all().order_by('-id'))
-    
-    active_count = 0
-    pending_count = 0
-    completed_surveys = 0
-    
-    for s in surveys_list:
-        if s.status == 'Active':
-            active_count += 1
-        elif s.status == 'Pending':
-            pending_count += 1
-        elif s.status == 'Completed':
-            completed_surveys += 1
+    total = Survey.objects.count()
+    s_days = dict(Survey.objects.values_list('id', 'number_of_days'))
+    res = SurveyResult.objects.filter(survey_status='Completed').values_list('survey_id', 'survey_date')
+    comp_dates = {}
+    for sid, sdate in res:
+        if sdate:
+            comp_dates.setdefault(sid, set()).add(sdate)
             
-    total = len(surveys_list)
+    completed_surveys = sum(
+        1 for sid, days in s_days.items()
+        if days and days > 0 and len(comp_dates.get(sid, set())) >= days
+    )
+    active_count = total - completed_surveys
+    pending_count = 0
     completion_rate = int((completed_surveys / total) * 100) if total > 0 else 0
-    
-    paginator = Paginator(surveys_list, 50)
+
+    surveys_qs = Survey.objects.select_related('plot', 'plot__farmer', 'officer', 'group', 'factory').order_by('-id')
+    paginator = Paginator(surveys_qs, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    from django.db.models import prefetch_related_objects
+    prefetch_related_objects(page_obj.object_list, 'results')
     
     context = {
         'surveys': page_obj,
