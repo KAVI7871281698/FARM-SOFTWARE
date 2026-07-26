@@ -140,8 +140,10 @@ def mobile_index_handler(request):
         survey_view = request.POST.get('survey_view')
         if str(survey_view).lower() == 'true':
             from django.core.paginator import Paginator
-            surveys = Survey.objects.filter(officer__user_id=officer_id) | Survey.objects.filter(officer_id=officer_id)
-            surveys = surveys.distinct().order_by('-id')
+            from django.db.models import Q
+            surveys = Survey.objects.filter(
+                Q(officer__user_id=officer_id) | Q(officer_id=officer_id)
+            ).distinct().select_related('plot', 'plot__farmer').prefetch_related('results').order_by('-id')
 
             # Pagination params
             page = request.POST.get('page') or 1
@@ -162,6 +164,18 @@ def mobile_index_handler(request):
 
             surveys_data = []
             for s in page_obj:
+                # Compute completion from prefetched results (no extra DB hit)
+                allocated_count = s.number_of_days or 0
+                if allocated_count > 0:
+                    completed_dates = {
+                        r.survey_date for r in s.results.all()
+                        if r.survey_status == 'Completed' and r.survey_date
+                    }
+                    comp_pct = min(int((len(completed_dates) / allocated_count) * 100), 100)
+                else:
+                    comp_pct = 0
+                srv_status = 'Completed' if comp_pct == 100 else 'Active'
+
                 surveys_data.append({
                     'survey_id': s.survey_id,
                     'title': s.title or '-',
@@ -177,8 +191,8 @@ def mobile_index_handler(request):
                     'survey_month': s.survey_month or '-',
                     'number_of_days': s.number_of_days,
                     'allocated_dates': s.allocated_dates or [],
-                    'status': s.status,
-                    'completion_percentage': s.completion_percentage,
+                    'status': srv_status,
+                    'completion_percentage': comp_pct,
                     'description': s.description or '-'
                 })
             return JsonResponse({
