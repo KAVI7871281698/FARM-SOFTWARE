@@ -139,10 +139,29 @@ def mobile_index_handler(request):
         ln = request.POST.get('ln')
         survey_view = request.POST.get('survey_view')
         if str(survey_view).lower() == 'true':
+            from django.core.paginator import Paginator
             surveys = Survey.objects.filter(officer__user_id=officer_id) | Survey.objects.filter(officer_id=officer_id)
             surveys = surveys.distinct().order_by('-id')
+
+            # Pagination params
+            page = request.POST.get('page') or 1
+            page_size = request.POST.get('page_size') or 20
+            try:
+                page = int(page)
+                page_size = int(page_size)
+                if page_size < 1:
+                    page_size = 20
+                if page_size > 100:
+                    page_size = 100
+            except (ValueError, TypeError):
+                page = 1
+                page_size = 20
+
+            paginator = Paginator(surveys, page_size)
+            page_obj = paginator.get_page(page)
+
             surveys_data = []
-            for s in surveys:
+            for s in page_obj:
                 surveys_data.append({
                     'survey_id': s.survey_id,
                     'title': s.title or '-',
@@ -162,7 +181,19 @@ def mobile_index_handler(request):
                     'completion_percentage': s.completion_percentage,
                     'description': s.description or '-'
                 })
-            return JsonResponse({'status': 'success', 'message': 'Surveys fetched successfully', 'data': surveys_data})
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Surveys fetched successfully',
+                'data': surveys_data,
+                'pagination': {
+                    'current_page': page_obj.number,
+                    'total_pages': paginator.num_pages,
+                    'total_count': paginator.count,
+                    'page_size': page_size,
+                    'has_next': page_obj.has_next(),
+                    'has_previous': page_obj.has_previous()
+                }
+            })
         update_fields = {}
         if device_id: update_fields['device_id'] = device_id
         if lt: update_fields['latitude'] = lt
