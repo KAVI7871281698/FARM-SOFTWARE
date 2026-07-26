@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult,NDVIRecord
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult,NDVIRecord, Scout
 from django.db.models import Q
 import json
 
@@ -304,7 +304,8 @@ def mobile_api(request):
             else:
                 return JsonResponse({'status': 'error', 'message': 'Invalid User ID or password.'}, status=401)
                 
-        # Add other actions here, e.g. elif action == 'get_dashboard':
+        elif action in ('get_dashboard', 'dashboard', 'mobile_dashboard'):
+            return api_mobile_dashboard(request)
         
         else:
             return JsonResponse({'status': 'error', 'message': 'Invalid or missing action parameter'}, status=400)
@@ -1244,12 +1245,27 @@ def api_mobile_dashboard(request):
                     'drop': round(drop, 2)
                 })
 
+    from datetime import timedelta
+    from django.utils import timezone
+    damage_reports_count = (
+        Scout.objects.filter(plot__in=all_plots).filter(Q(priority='High') | Q(alert_reason__icontains='Disease') | Q(alert_reason__icontains='Damage')).values('plot').distinct().count()
+        + ScoutingLog.objects.filter(plot__in=all_plots).filter(Q(disease_presence=True) | Q(pest_presence=True) | ~Q(pest_type='') | ~Q(disease_type='')).values('plot').distinct().count()
+    )
+    overdue_scouts_count = Scout.objects.filter(plot__in=all_plots).filter(
+        Q(status='Pending Assignment') |
+        (Q(status='Assigned') & Q(created_at__lte=timezone.now() - timedelta(days=2))) |
+        (Q(priority='High') & ~Q(status='Completed'))
+    ).count()
+
     return JsonResponse({
         "status": "success",
         "data": {
             "total_plots": total_plots,
             "mapped": mapped_count,
             "not_mapped": not_mapped_count,
+            "need_attention": need_attention_count,
+            "damage_reports": damage_reports_count,
+            "overdue_scouts": overdue_scouts_count,
             "crop_health": {
                 "good": good_count,
                 "optimal": optimal_count,

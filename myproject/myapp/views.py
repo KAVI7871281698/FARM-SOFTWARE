@@ -591,23 +591,28 @@ def dashboard(request):
 
     ndvi_stats = NDVIRecord.objects.filter(plot__in=plots_qs).aggregate(
         avg_val=Avg('ndvi_value'),
-        need_attention=Count('plot', filter=Q(health_status='Critical'), distinct=True)
+        need_attention=Count('plot', filter=Q(health_status__icontains='need') | Q(health_status__iexact='Critical'), distinct=True)
     )
     avg_ndvi = round(ndvi_stats['avg_val'], 2) if ndvi_stats['avg_val'] else 0.0
     need_attention = ndvi_stats['need_attention']
 
+    from datetime import timedelta
+    from django.utils import timezone
     scout_stats_agg = Scout.objects.filter(plot__in=plots_qs).aggregate(
-        overdue=Count('id', filter=Q(status='Pending Assignment')),
+        overdue=Count('id', filter=Q(status='Pending Assignment') | (Q(status='Assigned') & Q(created_at__lte=timezone.now() - timedelta(days=2))) | (Q(priority='High') & ~Q(status='Completed'))),
         completed=Count('id', filter=Q(status='Completed')),
         assigned=Count('id', filter=Q(status='Assigned'))
     )
     overdue_scouts = scout_stats_agg['overdue']
     scout_completed = scout_stats_agg['completed']
-    scout_pending = scout_stats_agg['overdue']
+    scout_pending = Scout.objects.filter(plot__in=plots_qs, status='Pending Assignment').count()
     scout_assigned = scout_stats_agg['assigned']
     scout_status_data = [scout_completed, scout_pending, scout_assigned]
 
-    damage_reports = ScoutSurveyReport.objects.filter(scout__plot__in=plots_qs).exclude(pest_details='', disease_details='').count()
+    damage_reports = (
+        Scout.objects.filter(plot__in=plots_qs).filter(Q(priority='High') | Q(alert_reason__icontains='Disease') | Q(alert_reason__icontains='Damage')).values('plot').distinct().count()
+        + ScoutingLog.objects.filter(plot__in=plots_qs).filter(Q(disease_presence=True) | Q(pest_presence=True) | ~Q(pest_type='') | ~Q(disease_type='')).values('plot').distinct().count()
+    )
 
     # Charts Data
     from datetime import date, timedelta
