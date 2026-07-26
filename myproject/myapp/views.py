@@ -165,17 +165,37 @@ def scout_management(request):
     if str(request.session.get('role_id')) == '4':
         return redirect('dashboard')
     filter_ctx = get_filter_context(request)
-    base_plots = Plot.objects.all()
-    plots_qs = filter_plots_by_hierarchy(base_plots, filter_ctx)
+    from django.db.models import Count, Q
+    
+    scouts = Scout.objects.select_related('plot', 'plot__farmer').order_by('-created_at')
+    
+    if filter_ctx['selected_section_id'] != 'all':
+        scouts = scouts.filter(plot__farmer__section_id=filter_ctx['selected_section_id'])
+    elif filter_ctx['selected_division_id'] != 'all':
+        scouts = scouts.filter(plot__farmer__section__division_id=filter_ctx['selected_division_id'])
+    elif filter_ctx['selected_factory_id'] != 'all':
+        scouts = scouts.filter(plot__farmer__section__division__factory_name_id=filter_ctx['selected_factory_id'])
+    elif not filter_ctx['all_selected']:
+        scouts = scouts.filter(plot__farmer__section__division__factory_name__group_id=filter_ctx['selected_group_id'])
+    elif not filter_ctx['is_superadmin']:
+        allowed_f_ids = [f.id for f in filter_ctx['factories']]
+        scouts = scouts.filter(plot__farmer__section__division__factory_name_id__in=allowed_f_ids)
 
-    scouts = Scout.objects.filter(plot__in=plots_qs).select_related('plot', 'plot__farmer').order_by('-created_at')
     officers = Officer.objects.select_related('role', 'group').all()
     
-    total_scouts = scouts.count()
-    pending_scouts = scouts.filter(status='Pending Assignment').count()
-    assigned_scouts = scouts.filter(status='Assigned').count()
-    completed_scouts = scouts.filter(status='Completed').count()
-    critical_alerts = scouts.filter(priority='High').count()
+    stats = scouts.aggregate(
+        total_s=Count('id'),
+        pending_s=Count('id', filter=Q(status='Pending Assignment')),
+        assigned_s=Count('id', filter=Q(status='Assigned')),
+        completed_s=Count('id', filter=Q(status='Completed')),
+        critical_a=Count('id', filter=Q(priority='High'))
+    )
+    
+    total_scouts = stats['total_s'] or 0
+    pending_scouts = stats['pending_s'] or 0
+    assigned_scouts = stats['assigned_s'] or 0
+    completed_scouts = stats['completed_s'] or 0
+    critical_alerts = stats['critical_a'] or 0
 
     divisions = filter_ctx['divisions']
     
