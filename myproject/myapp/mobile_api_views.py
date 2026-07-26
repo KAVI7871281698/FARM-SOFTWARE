@@ -922,12 +922,31 @@ def api_surveys(request):
         return JsonResponse({"status": "error", "message": "officer_id is required"}, status=400)
         
     from django.db.models import Q
+    from django.core.paginator import Paginator
+
     surveys = Survey.objects.filter(
         Q(officer__user_id=officer_id) | Q(officer_id=officer_id)
     ).order_by('-id').select_related('plot', 'plot__farmer').prefetch_related('results')
-    
+
+    # Pagination params
+    page = request.GET.get('page') or request.POST.get('page') or 1
+    page_size = request.GET.get('page_size') or request.POST.get('page_size') or 20
+    try:
+        page = int(page)
+        page_size = int(page_size)
+        if page_size < 1:
+            page_size = 20
+        if page_size > 100:
+            page_size = 100
+    except (ValueError, TypeError):
+        page = 1
+        page_size = 20
+
+    paginator = Paginator(surveys, page_size)
+    page_obj = paginator.get_page(page)
+
     surveys_data = []
-    for s in surveys:
+    for s in page_obj:
         plot_code = s.plot.plot_code if s.plot else '-'
         farmer_name = s.plot.farmer.name if s.plot and s.plot.farmer else '-'
         
@@ -956,7 +975,15 @@ def api_surveys(request):
         
     return JsonResponse({
         "status": "success",
-        "data": surveys_data
+        "data": surveys_data,
+        "pagination": {
+            "current_page": page_obj.number,
+            "total_pages": paginator.num_pages,
+            "total_count": paginator.count,
+            "page_size": page_size,
+            "has_next": page_obj.has_next(),
+            "has_previous": page_obj.has_previous()
+        }
     }, status=200)
 
 @csrf_exempt
