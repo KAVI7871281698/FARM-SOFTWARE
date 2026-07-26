@@ -1131,35 +1131,107 @@ def plots(request):
 def surveys(request):
     if str(request.session.get('role_id')) == '4':
         return redirect('dashboard')
-    total = Survey.objects.count()
-    s_days = dict(Survey.objects.values_list('id', 'number_of_days'))
-    res = SurveyResult.objects.filter(survey_status='Completed').values_list('survey_id', 'survey_date')
+    
+    filter_ctx = get_filter_context(request)
+    from django.db.models import Q, prefetch_related_objects
+    
+    surveys_qs = Survey.objects.select_related('plot', 'plot__farmer', 'officer', 'group', 'factory').order_by('-id')
+
+    if filter_ctx['selected_section_id'] != 'all':
+        surveys_qs = surveys_qs.filter(plot__farmer__section_id=filter_ctx['selected_section_id'])
+    elif filter_ctx['selected_division_id'] != 'all':
+        surveys_qs = surveys_qs.filter(plot__farmer__section__division_id=filter_ctx['selected_division_id'])
+    elif filter_ctx['selected_factory_id'] != 'all':
+        surveys_qs = surveys_qs.filter(plot__farmer__section__division__factory_name_id=filter_ctx['selected_factory_id'])
+    elif not filter_ctx['all_selected']:
+        surveys_qs = surveys_qs.filter(plot__farmer__section__division__factory_name__group_id=filter_ctx['selected_group_id'])
+    elif not filter_ctx['is_superadmin']:
+        allowed_f_ids = [f.id for f in filter_ctx['factories']]
+        surveys_qs = surveys_qs.filter(plot__farmer__section__division__factory_name_id__in=allowed_f_ids)
+
+    selected_officer_id = request.GET.get('officer', 'all')
+    selected_month = request.GET.get('month', 'all')
+    selected_status = request.GET.get('status', 'all')
+    search_query = request.GET.get('q', '').strip()
+
+    if selected_officer_id and selected_officer_id != 'all':
+        surveys_qs = surveys_qs.filter(officer_id=selected_officer_id)
+
+    if selected_month and selected_month != 'all':
+        surveys_qs = surveys_qs.filter(survey_month=selected_month)
+
+    if search_query:
+        surveys_qs = surveys_qs.filter(
+            Q(survey_id__icontains=search_query) |
+            Q(title__icontains=search_query) |
+            Q(plot__plot_code__icontains=search_query) |
+            Q(plot__farmer__name__icontains=search_query) |
+            Q(officer__name__icontains=search_query) |
+            Q(survey_stage__icontains=search_query)
+        )
+
+    s_days = dict(surveys_qs.values_list('id', 'number_of_days'))
+    res = SurveyResult.objects.filter(survey_status='Completed', survey_id__in=s_days.keys()).values_list('survey_id', 'survey_date')
     comp_dates = {}
     for sid, sdate in res:
         if sdate:
             comp_dates.setdefault(sid, set()).add(sdate)
-            
-    completed_surveys = sum(
-        1 for sid, days in s_days.items()
+
+    completed_sids = {
+        sid for sid, days in s_days.items()
         if days and days > 0 and len(comp_dates.get(sid, set())) >= days
-    )
+    }
+
+    if selected_status == 'Completed':
+        surveys_qs = surveys_qs.filter(id__in=completed_sids)
+    elif selected_status == 'Active':
+        surveys_qs = surveys_qs.exclude(id__in=completed_sids)
+
+    total = surveys_qs.count()
+    filtered_sids = set(surveys_qs.values_list('id', flat=True))
+    completed_surveys = len(filtered_sids.intersection(completed_sids))
     active_count = total - completed_surveys
     pending_count = 0
     completion_rate = int((completed_surveys / total) * 100) if total > 0 else 0
 
-    surveys_qs = Survey.objects.select_related('plot', 'plot__farmer', 'officer', 'group', 'factory').order_by('-id')
+    officers = Officer.objects.select_related('role', 'group').all().order_by('name')
+    if not filter_ctx['all_selected']:
+        officers = officers.filter(group_id=filter_ctx['selected_group_id'])
+
+    months = Survey.objects.exclude(survey_month__isnull=True).exclude(survey_month='').values_list('survey_month', flat=True).distinct()
+    months_list = sorted(list(months))
+
     paginator = Paginator(surveys_qs, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    from django.db.models import prefetch_related_objects
+
     prefetch_related_objects(page_obj.object_list, 'results')
-    
+
     context = {
         'surveys': page_obj,
         'active_count': active_count,
         'pending_count': pending_count,
-        'completion_rate': completion_rate
+        'completion_rate': completion_rate,
+        'total_surveys': total,
+        'officers': officers,
+        'months': months_list,
+        'selected_officer_id': selected_officer_id,
+        'selected_month': selected_month,
+        'selected_status': selected_status,
+        'search_query': search_query,
+        'groups': filter_ctx['groups'],
+        'factories': filter_ctx['factories'],
+        'divisions': filter_ctx['divisions'],
+        'sections': filter_ctx['sections'],
+        'all_selected': filter_ctx['all_selected'],
+        'all_factories_selected': filter_ctx['all_factories_selected'],
+        'all_divisions_selected': filter_ctx['all_divisions_selected'],
+        'all_sections_selected': filter_ctx['all_sections_selected'],
+        'selected_group_id': filter_ctx['selected_group_id'],
+        'selected_factory_id': filter_ctx['selected_factory_id'],
+        'selected_division_id': filter_ctx['selected_division_id'],
+        'selected_section_id': filter_ctx['selected_section_id'],
+        'is_superadmin': filter_ctx['is_superadmin'],
     }
     return render(request, 'surveys.html', context)
 
