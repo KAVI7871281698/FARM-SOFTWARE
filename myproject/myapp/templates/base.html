@@ -8,13 +8,6 @@
     <title>Farm Signals - {% block title %}Dashboard{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/@hotwired/turbo@7.3.0/dist/turbo.es2017-umd.js"></script>
-    <style>
-        .turbo-progress-bar {
-            height: 3px;
-            background-color: #2e7d32;
-        }
-    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -458,13 +451,6 @@
     {% block scripts %}
     {% endblock %}
     <script>
-        document.addEventListener("turbo:load", function() {
-            if (window._turboLoaded) {
-                window.dispatchEvent(new Event('DOMContentLoaded'));
-            }
-            window._turboLoaded = true;
-        });
-        
         document.addEventListener('DOMContentLoaded', function() {
             const tables = document.querySelectorAll('table[data-model]');
             
