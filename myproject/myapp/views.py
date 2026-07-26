@@ -167,7 +167,7 @@ def scout_management(request):
     filter_ctx = get_filter_context(request)
     from django.db.models import Count, Q
     
-    scouts = Scout.objects.select_related('plot', 'plot__farmer').order_by('-created_at')
+    scouts = Scout.objects.select_related('plot', 'plot__farmer', 'assignment', 'assignment__officer').order_by('-created_at')
     
     if filter_ctx['selected_section_id'] != 'all':
         scouts = scouts.filter(plot__farmer__section_id=filter_ctx['selected_section_id'])
