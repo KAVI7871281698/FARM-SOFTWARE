@@ -370,10 +370,10 @@
             {% if 'settings' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'settings' %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
             {% endif %}
+            {% if 'surveys' in request.session.permissions or request.session.role_id == 1 %}
             <li class="sidebar-category"
                 style="padding: 1.5rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase;">
                 SURVEY MANAGEMENT</li>
-            {% if 'surveys' in request.session.permissions or request.session.role_id == 1 %}
             <li class=""><a href="{% url 'surveys' %}"><i class="fa-solid fa-clipboard-list"></i> Surveys</a></li>
             {% endif %}
         </ul>

@@ -120,6 +120,19 @@ def upload_file_to_supabase(file_obj, original_filename):
 from django.views.decorators.csrf import csrf_exempt
 from .mobile_api_views import mobile_index_handler
 
+def get_default_permissions_for_role(role_id):
+    r_id = str(role_id)
+    if r_id == '1':
+        return ['dashboard', 'users', 'plots', 'villages', 'varieties', 'crops', 'soil_types', 'sections', 'divisions', 'factories', 'groups', 'officers', 'work_assigns', 'scouting', 'surveys', 'field_intelligence', 'analytics', 'ndvi_monitoring', 'reports', 'settings']
+    elif r_id == '2':
+        return ['dashboard', 'users', 'plots', 'villages', 'varieties', 'crops', 'soil_types', 'sections', 'divisions', 'factories', 'officers', 'work_assigns', 'scouting', 'surveys', 'field_intelligence', 'analytics', 'ndvi_monitoring', 'reports', 'settings']
+    elif r_id == '3':
+        return ['dashboard', 'users', 'plots', 'villages', 'varieties', 'crops', 'soil_types', 'sections', 'divisions', 'officers', 'work_assigns', 'scouting', 'surveys', 'field_intelligence', 'analytics', 'ndvi_monitoring', 'reports', 'settings']
+    elif r_id == '4':
+        return ['dashboard', 'users', 'plots', 'villages', 'varieties', 'crops', 'soil_types', 'field_intelligence', 'analytics', 'ndvi_monitoring', 'reports', 'settings']
+    else:
+        return ['dashboard', 'users', 'plots', 'villages', 'varieties', 'crops', 'soil_types', 'field_intelligence', 'analytics', 'ndvi_monitoring', 'reports', 'settings']
+
 @csrf_exempt
 def index(request):
     if request.method == 'POST':
@@ -135,7 +148,7 @@ def index(request):
             if user:
                 request.session['user_id'] = user.user_id
                 request.session['officer_name'] = user.name
-                request.session['permissions'] = user.permissions or []
+                request.session['permissions'] = user.permissions or get_default_permissions_for_role(user.role_id)
                 request.session['role_id'] = user.role_id
                 request.session['group_id'] = user.group_id if user.group else None
                 request.session['role_name'] = user.role.name if user.role else ''
@@ -149,6 +162,8 @@ def index(request):
     return render(request, 'index.html')
 
 def scout_management(request):
+    if str(request.session.get('role_id')) == '4':
+        return redirect('dashboard')
     filter_ctx = get_filter_context(request)
     base_plots = Plot.objects.all()
     plots_qs = filter_plots_by_hierarchy(base_plots, filter_ctx)
@@ -296,6 +311,9 @@ def get_allowed_factories(request):
     if factory_ids_str:
         fids = [int(x.strip()) for x in factory_ids_str.split(',') if x.strip().isdigit()]
         return Factory.objects.filter(id__in=fids)
+    logged_group_id = request.session.get('group_id')
+    if logged_group_id:
+        return Factory.objects.filter(group_id=logged_group_id)
     return Factory.objects.none()
 
 def get_active_factory_id(request):
@@ -798,6 +816,8 @@ def dashboard(request):
 
 
 def officers(request):
+    if str(request.session.get('role_id')) == '4':
+        return redirect('dashboard')
     logged_group_id = request.session.get('group_id')
     role_name = request.session.get('role_name', '').lower()
     is_superadmin = (str(request.session.get('role_id')) == '1')
@@ -1088,6 +1108,8 @@ def plots(request):
     return render(request, 'plots.html', {'plots': page_obj})
 
 def surveys(request):
+    if str(request.session.get('role_id')) == '4':
+        return redirect('dashboard')
     total = Survey.objects.count()
     s_days = dict(Survey.objects.values_list('id', 'number_of_days'))
     res = SurveyResult.objects.filter(survey_status='Completed').values_list('survey_id', 'survey_date')
@@ -1767,7 +1789,7 @@ def edit_officer(request, id):
         officer.section_ids = ",".join(section_ids) if section_ids else ""
         officer.section_names = ",".join(section_names) if section_names else ""
         
-        officer.permissions = request.POST.getlist('permissions[]')
+        officer.permissions = request.POST.getlist('permissions[]') or get_default_permissions_for_role(role_id)
         password = request.POST.get('password')
         if password:
             officer.password = password
@@ -1912,10 +1934,14 @@ def edit_role(request, id):
     return render(request, 'edit_role.html', {'role': role})
 
 def groups(request):
+    if str(request.session.get('role_id')) != '1':
+        return redirect('dashboard')
     groups_list = Group.objects.all()
     return render(request, 'groups.html', {'groups': groups_list})
 
 def add_group(request):
+    if str(request.session.get('role_id')) != '1':
+        return redirect('dashboard')
     if request.method == 'POST':
         name = request.POST.get('name')
         
@@ -1941,6 +1967,8 @@ def factories(request):
     return render(request, 'factories.html', {'factories': factories_list})
 
 def add_factory(request):
+    if str(request.session.get('role_id')) not in ('1', '2'):
+        return redirect('dashboard')
     if request.method == 'POST':
         group_id = request.POST.get('group_id')
         name = request.POST.get('name')
@@ -1980,6 +2008,8 @@ def divisions(request):
     return render(request, 'divisions.html', {'divisions': divisions_list})
 
 def add_division(request):
+    if str(request.session.get('role_id')) not in ('1', '2', '3'):
+        return redirect('dashboard')
     if request.method == 'POST':
         factory_id = request.POST.get('factory_id')
         name = request.POST.get('name')
@@ -2194,6 +2224,8 @@ def import_work_assigns(request):
 def work_assigns(request):
     if 'user_id' not in request.session:
         return redirect('index')
+    if str(request.session.get('role_id')) == '4':
+        return redirect('dashboard')
 
     wa_qs = WorkAssign.objects.all()
     

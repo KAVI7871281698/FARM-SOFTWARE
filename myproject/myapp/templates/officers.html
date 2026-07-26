@@ -27,9 +27,11 @@
                 </div>
             </div>
             <button type="button" class="delete-all-btn" style="background: #d32f2f; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-dumpster-fire"></i> Delete All</button>
+            {% if request.session.role_id != 4 %}
             <button onclick="window.location.href='{% url 'add_officer' %}'"
             style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i
                 class="fa-solid fa-plus"></i> Add Officer</button>
+            {% endif %}
         </div>
     </div>
     <div style="overflow-x: auto; width: 100%;">
