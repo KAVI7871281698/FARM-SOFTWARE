@@ -494,39 +494,26 @@
 </script>
 
 <script>
-    function isPointInPolygon(point, vs) {
-        var x = point[0], y = point[1];
-        var inside = false;
-        for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-            var xi = vs[i][0], yi = vs[i][1];
-            var xj = vs[j][0], yj = vs[j][1];
-            var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-        }
-        return inside;
-    }
-
-    function seededRandom(seed) {
-        var x = Math.sin(seed) * 10000;
-        return x - Math.floor(x);
-    }
-
-    const map = L.map('map').setView([20.5937, 78.9629], 5);
+    const map = L.map('map', {
+        preferCanvas: true,
+        zoomControl: true
+    }).setView([20.5937, 78.9629], 5);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri'
     }).addTo(map);
 
-    const plotData = {{ plot_data_json| safe }};
+    const plotData = {{ plot_data_json|safe }};
 
-    if (plotData.length > 0) {
+    if (plotData && plotData.length > 0) {
         const bounds = [];
+        const featureGroup = L.featureGroup().addTo(map);
 
         plotData.forEach(plot => {
-            let color = 'green';
+            let color = '#28a745';
             if (plot.health_status === 'Moderate') color = '#ffc107';
-            if (plot.health_status === 'Critical') color = 'red';
+            if (plot.health_status === 'Critical') color = '#dc3545';
 
             const handlePopup = (layer) => {
                 const popupId = `weather-${plot.plot_code.replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -599,59 +586,11 @@
 
             if (latlngs.length > 0) {
                 const polygon = L.polygon(latlngs, {
-                    color: 'white', fillOpacity: 0.0, weight: 2
-                }).addTo(map);
-
-                const polyBounds = polygon.getBounds();
-                const sw = polyBounds.getSouthWest();
-                const ne = polyBounds.getNorthEast();
-                const latStep = (ne.lat - sw.lat) / 25;
-                const lngStep = (ne.lng - sw.lng) / 25;
-
-                let validPoints = [];
-                for (let i = 0; i <= 25; i++) {
-                    for (let j = 0; j <= 25; j++) {
-                        let ptLat = sw.lat + i * latStep;
-                        let ptLng = sw.lng + j * lngStep;
-
-                        if (isPointInPolygon([ptLat, ptLng], latlngs)) {
-                            validPoints.push([ptLat, ptLng]);
-                        }
-                    }
-                }
-
-                // Randomize slightly so centers are not always corner 0
-                validPoints.sort(() => Math.random() - 0.5);
-
-                let redCount = Math.floor(validPoints.length * (plot.attn_pct || 0) / 100);
-                let yellowCount = Math.floor(validPoints.length * (plot.mod_pct || 0) / 100);
-                
-                let redPoints = [];
-                let yellowPoints = [];
-                let greenPoints = [];
-
-                if (validPoints.length > 0) {
-                    let redCenter = validPoints[Math.floor(Math.random() * validPoints.length)];
-                    let yellowCenter = validPoints[Math.floor(Math.random() * validPoints.length)];
-                    
-                    const dist = (p1, p2) => Math.pow(p1[0]-p2[0], 2) + Math.pow(p1[1]-p2[1], 2);
-                    
-                    validPoints.sort((a, b) => dist(a, redCenter) - dist(b, redCenter));
-                    redPoints = validPoints.splice(0, redCount);
-                    
-                    validPoints.sort((a, b) => dist(a, yellowCenter) - dist(b, yellowCenter));
-                    yellowPoints = validPoints.splice(0, yellowCount);
-                    
-                    greenPoints = validPoints;
-                }
-
-                redPoints = redPoints.map(p => [p[0], p[1], 1.0]);
-                yellowPoints = yellowPoints.map(p => [p[0], p[1], 1.0]);
-                greenPoints = greenPoints.map(p => [p[0], p[1], 1.0]);
-
-                if (redPoints.length > 0) L.heatLayer(redPoints, { radius: 25, blur: 25, maxZoom: 19, gradient: {0.4: '#dc3545', 1.0: '#dc3545'} }).addTo(map);
-                if (yellowPoints.length > 0) L.heatLayer(yellowPoints, { radius: 25, blur: 25, maxZoom: 19, gradient: {0.4: '#ffc107', 1.0: '#ffc107'} }).addTo(map);
-                if (greenPoints.length > 0) L.heatLayer(greenPoints, { radius: 25, blur: 25, maxZoom: 19, gradient: {0.4: '#28a745', 1.0: '#28a745'} }).addTo(map);
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.45,
+                    weight: 2
+                }).addTo(featureGroup);
 
                 const center = polygon.getBounds().getCenter();
                 const icon = L.divIcon({
@@ -659,7 +598,7 @@
                     html: `<div class="blinking-dot" style="background-color: ${color};"></div>`,
                     iconSize: [18, 18], iconAnchor: [9, 9]
                 });
-                const blinkingMarker = L.marker(center, { icon: icon }).addTo(map);
+                const blinkingMarker = L.marker(center, { icon: icon }).addTo(featureGroup);
 
                 handlePopup(polygon);
                 handlePopup(blinkingMarker);
@@ -671,7 +610,7 @@
                     html: `<div class="blinking-dot" style="background-color: ${color};"></div>`,
                     iconSize: [18, 18], iconAnchor: [9, 9]
                 });
-                const blinkingMarker = L.marker([plot.lat, plot.lng], { icon: icon }).addTo(map);
+                const blinkingMarker = L.marker([plot.lat, plot.lng], { icon: icon }).addTo(featureGroup);
 
                 handlePopup(blinkingMarker);
                 bounds.push([plot.lat, plot.lng]);
@@ -679,7 +618,7 @@
         });
 
         if (bounds.length > 0) {
-            map.fitBounds(bounds);
+            map.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
         }
     }
 </script>

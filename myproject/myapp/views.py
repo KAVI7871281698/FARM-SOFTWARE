@@ -2384,11 +2384,7 @@ def ndvi_dashboard(request):
     selected_section_id = filter_ctx['selected_section_id']
     is_superadmin = filter_ctx['is_superadmin']
     # Base Plot Query with Filters
-    from django.db.models import Prefetch
-    plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).select_related('farmer').prefetch_related(
-        Prefetch('scouting_logs', queryset=ScoutingLog.objects.order_by('-created_at')),
-        Prefetch('ndvi_records', queryset=NDVIRecord.objects.order_by('-date_recorded'))
-    ).distinct()
+    plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).select_related('farmer').defer('boundary_image').distinct()
     
     plots_query = filter_plots_by_hierarchy(plots_query, filter_ctx)
     plots = list(plots_query)
@@ -2422,15 +2418,14 @@ def ndvi_dashboard(request):
             group_data['factories'].append(factory_data)
         hierarchy_data.append(group_data)
 
-    # Real Data for Charts
-    # 1. NDVI Trend (Last 6 Months)
+    # Real Data for Charts - Ultra Optimized
     today = date.today()
-    six_months_ago = today.replace(day=1) - timedelta(days=5*30) # Approx 6 months
-    six_months_ago = six_months_ago.replace(day=1)
+    six_months_ago = (today.replace(day=1) - timedelta(days=5*30)).replace(day=1)
     
     plot_ids = [p.id for p in plots]
     
-    ndvi_records = NDVIRecord.objects.filter(plot_id__in=plot_ids, date_recorded__gte=six_months_ago)
+    # 1. NDVI Trend (Last 6 Months) using lightweight values_list
+    ndvi_records = NDVIRecord.objects.filter(plot_id__in=plot_ids, date_recorded__gte=six_months_ago).values_list('date_recorded', 'ndvi_value')
     monthly_ndvi = {}
     
     for i in range(5, -1, -1):
@@ -2439,93 +2434,99 @@ def ndvi_dashboard(request):
         month_label = calendar.month_abbr[d.month]
         monthly_ndvi[month_key] = {'label': month_label, 'total': 0, 'count': 0}
         
-    for rec in ndvi_records:
-        month_key = f"{rec.date_recorded.year}-{rec.date_recorded.month:02d}"
-        if month_key in monthly_ndvi:
-            monthly_ndvi[month_key]['total'] += float(rec.ndvi_value)
-            monthly_ndvi[month_key]['count'] += 1
+    for rec_date, ndvi_val in ndvi_records:
+        if rec_date and ndvi_val is not None:
+            month_key = f"{rec_date.year}-{rec_date.month:02d}"
+            if month_key in monthly_ndvi:
+                monthly_ndvi[month_key]['total'] += float(ndvi_val)
+                monthly_ndvi[month_key]['count'] += 1
             
     ndvi_trend_labels = []
     ndvi_trend_data = []
-    for key in sorted(monthly_ndvi.keys()): # chronological
+    for key in sorted(monthly_ndvi.keys()):
         ndvi_trend_labels.append(monthly_ndvi[key]['label'])
         avg = monthly_ndvi[key]['total'] / monthly_ndvi[key]['count'] if monthly_ndvi[key]['count'] > 0 else 0
         ndvi_trend_data.append(round(avg, 2))
 
-    # 2. Crop Health Distribution
+    # 2. Crop Health Distribution & Plot Map Data - Lightweight queries
+    all_ndvis = NDVIRecord.objects.filter(plot_id__in=plot_ids).values(
+        'plot_id', 'ndvi_value', 'health_status', 'date_recorded', 'good_percent', 'mod_percent', 'attn_percent'
+    ).order_by('plot_id', '-date_recorded')
+    latest_ndvi_by_plot = {}
+    for n in all_ndvis:
+        if n['plot_id'] not in latest_ndvi_by_plot:
+            latest_ndvi_by_plot[n['plot_id']] = n
+
+    all_scouts = ScoutingLog.objects.filter(plot_id__in=plot_ids).values(
+        'plot_id', 'disease_presence', 'pest_presence', 'water_stress_symptoms', 'nutrient_deficiency', 'created_at'
+    ).order_by('plot_id', '-created_at')
+    latest_scout_by_plot = {}
+    for s in all_scouts:
+        if s['plot_id'] not in latest_scout_by_plot:
+            latest_scout_by_plot[s['plot_id']] = s
+
     health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
     plot_data = []
     
+    import json, ast
     for plot in plots:
-        scouts = list(plot.scouting_logs.all())
-        latest_scout = scouts[0] if scouts else None
-        ndvis = list(plot.ndvi_records.all())
-        latest_ndvi = ndvis[0] if ndvis else None
+        latest_ndvi = latest_ndvi_by_plot.get(plot.id)
+        latest_scout = latest_scout_by_plot.get(plot.id)
         
         health_status = 'Healthy'
         ndvi_display = 'N/A'
         date_display = 'No records'
-        
-        good_pct = 100
-        mod_pct = 0
-        attn_pct = 0
+        good_pct = 100.0
+        mod_pct = 0.0
+        attn_pct = 0.0
         
         if latest_ndvi:
-            ndvi_display = str(latest_ndvi.ndvi_value)
-            health_status = latest_ndvi.health_status
-            date_display = str(latest_ndvi.date_recorded)
-            good_pct = float(latest_ndvi.good_percent or 0)
-            mod_pct = float(latest_ndvi.mod_percent or 0)
-            attn_pct = float(latest_ndvi.attn_percent or 0)
+            ndvi_display = str(latest_ndvi['ndvi_value'])
+            health_status = latest_ndvi['health_status']
+            date_display = str(latest_ndvi['date_recorded'])
+            good_pct = float(latest_ndvi['good_percent'] or 0)
+            mod_pct = float(latest_ndvi['mod_percent'] or 0)
+            attn_pct = float(latest_ndvi['attn_percent'] or 0)
             
         if latest_scout:
-            if latest_scout.disease_presence:
+            if latest_scout['disease_presence']:
                 health_status = 'Critical'
-            elif latest_scout.pest_presence or latest_scout.water_stress_symptoms or latest_scout.nutrient_deficiency:
+            elif latest_scout['pest_presence'] or latest_scout['water_stress_symptoms'] or latest_scout['nutrient_deficiency']:
                 health_status = 'Moderate'
-            
             if date_display == 'No records':
-                date_display = str(latest_scout.created_at.date())
+                date_display = str(latest_scout['created_at'].date())
                 
         if health_status in health_counts:
             health_counts[health_status] += 1
         
         lat = None
         lng = None
-        if isinstance(plot.center_lt_ln, list) and len(plot.center_lt_ln) >= 2:
-            lat = float(plot.center_lt_ln[0])
-            lng = float(plot.center_lt_ln[1])
-        elif isinstance(plot.center_lt_ln, dict):
-            lat = float(plot.center_lt_ln.get('lat', 0))
-            lng = float(plot.center_lt_ln.get('lng', 0))
-        elif plot.center_lt_ln:
+        c_val = plot.center_lt_ln
+        if isinstance(c_val, list) and len(c_val) >= 2:
+            lat = float(c_val[0])
+            lng = float(c_val[1])
+        elif isinstance(c_val, dict):
+            lat = float(c_val.get('lat', 0))
+            lng = float(c_val.get('lng', 0))
+        elif c_val:
             try:
-                import json
-                if isinstance(plot.center_lt_ln, str):
-                    parsed = json.loads(plot.center_lt_ln.replace("'", '"'))
-                else:
-                    parsed = plot.center_lt_ln
+                parsed = json.loads(c_val.replace("'", '"')) if isinstance(c_val, str) else c_val
                 if isinstance(parsed, list) and len(parsed) >= 2:
-                    lat = float(parsed[0])
-                    lng = float(parsed[1])
+                    lat, lng = float(parsed[0]), float(parsed[1])
                 elif isinstance(parsed, dict):
-                    lat = float(parsed.get('lat', 0))
-                    lng = float(parsed.get('lng', 0))
+                    lat, lng = float(parsed.get('lat', 0)), float(parsed.get('lng', 0))
             except:
                 pass
                 
         if lat is None or lng is None:
-            lat = plot.latitude
-            lng = plot.longitude
+            lat, lng = plot.latitude, plot.longitude
             
         boundaries = plot.boundaries
         if isinstance(boundaries, str):
             try:
-                import json
                 boundaries = json.loads(boundaries)
             except:
                 try:
-                    import ast
                     boundaries = ast.literal_eval(boundaries)
                 except:
                     pass
@@ -2544,21 +2545,17 @@ def ndvi_dashboard(request):
             'attn_pct': attn_pct
         })
 
-    # 3. Scout Status
-    scout_completed = Scout.objects.filter(plot_id__in=plot_ids, status='Completed').count()
-    scout_pending = Scout.objects.filter(plot_id__in=plot_ids, status='Pending Assignment').count()
-    scout_assigned = Scout.objects.filter(plot_id__in=plot_ids, status='Assigned').count()
+    # 3. Scout Status using fast aggregation
+    scout_counts = dict(Scout.objects.filter(plot_id__in=plot_ids).values_list('status').annotate(cnt=Count('id')))
+    scout_completed = scout_counts.get('Completed', 0)
+    scout_pending = scout_counts.get('Pending Assignment', 0)
+    scout_assigned = scout_counts.get('Assigned', 0)
     scout_status_data = [scout_completed, scout_pending, scout_assigned]
 
-    # 4. Survey Completion
-    surveys = Survey.objects.filter(plot_id__in=plot_ids)
-    total_surveys = surveys.count()
-    completed_surveys = sum(1 for s in surveys if s.status == 'Completed')
-    
-    if total_surveys > 0:
-        survey_completed_perc = int((completed_surveys / total_surveys) * 100)
-    else:
-        survey_completed_perc = 100 if plot_ids else 0
+    # 4. Survey Completion using fast count
+    total_surveys = Survey.objects.filter(plot_id__in=plot_ids).count()
+    completed_surveys = Survey.objects.filter(plot_id__in=plot_ids, results__isnull=False).distinct().count()
+    survey_completed_perc = int((completed_surveys / total_surveys) * 100) if total_surveys > 0 else (100 if plot_ids else 0)
     survey_completion_data = [survey_completed_perc, 100 - survey_completed_perc]
 
     import json
