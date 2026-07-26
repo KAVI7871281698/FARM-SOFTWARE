@@ -149,7 +149,11 @@ def index(request):
     return render(request, 'index.html')
 
 def scout_management(request):
-    scouts = Scout.objects.select_related('plot', 'plot__farmer').order_by('-created_at')
+    filter_ctx = get_filter_context(request)
+    base_plots = Plot.objects.all()
+    plots_qs = filter_plots_by_hierarchy(base_plots, filter_ctx)
+
+    scouts = Scout.objects.filter(plot__in=plots_qs).select_related('plot', 'plot__farmer').order_by('-created_at')
     officers = Officer.objects.select_related('role', 'group').all()
     
     total_scouts = scouts.count()
@@ -158,7 +162,7 @@ def scout_management(request):
     completed_scouts = scouts.filter(status='Completed').count()
     critical_alerts = scouts.filter(priority='High').count()
 
-    divisions = Division.objects.all()
+    divisions = filter_ctx['divisions']
     
     paginator = Paginator(scouts, 50)
     page_number = request.GET.get('page')
@@ -173,6 +177,15 @@ def scout_management(request):
         'assigned_scouts': assigned_scouts,
         'completed_scouts': completed_scouts,
         'critical_alerts': critical_alerts,
+        'groups': filter_ctx['groups'],
+        'factories': filter_ctx['factories'],
+        'all_selected': filter_ctx['all_selected'],
+        'all_factories_selected': filter_ctx['all_factories_selected'],
+        'all_divisions_selected': filter_ctx['all_divisions_selected'],
+        'selected_group_id': filter_ctx['selected_group_id'],
+        'selected_factory_id': filter_ctx['selected_factory_id'],
+        'selected_division_id': filter_ctx['selected_division_id'],
+        'is_superadmin': filter_ctx['is_superadmin'],
     }
     return render(request, 'scout_management.html', context)
 
@@ -301,7 +314,9 @@ def filter_by_factory(queryset, factory_path, request):
 
 def get_filter_context(request):
     logged_group_id = request.session.get('group_id')
-    is_superadmin = (str(request.session.get('role_id')) == '1')
+    role_id_str = str(request.session.get('role_id', ''))
+    role_name_str = str(request.session.get('role_name', '')).lower().replace(' ', '')
+    is_superadmin = (role_id_str == '1' or 'superadmin' in role_name_str or 'mastersuperadmin' in role_name_str)
     
     try:
         if is_superadmin or not logged_group_id:

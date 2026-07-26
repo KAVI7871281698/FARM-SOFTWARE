@@ -75,6 +75,63 @@
         </div>
     </div>
 
+    <!-- Hierarchy Filter Bar (Group, Factory, Division) -->
+    <div class="card mb-4" style="border-radius: 12px; border: 1px solid #eaeaea; box-shadow: 0 2px 8px rgba(0,0,0,0.04); background: #ffffff;">
+        <div class="card-body py-3 px-4">
+            <form method="GET" action="{% url 'scout_management' %}" id="scoutFilterForm" class="d-flex flex-wrap align-items-center gap-3 mb-0">
+                <div class="d-flex align-items-center text-secondary fw-semibold" style="font-size: 0.95rem;">
+                    <i class="fas fa-filter text-primary me-2"></i> Filter Alerts By:
+                </div>
+
+                <!-- Group Selector (ONLY shown for MasterSuperAdmin) -->
+                {% if is_superadmin %}
+                <div>
+                    <select name="group" onchange="this.form.submit()" class="form-select form-select-sm shadow-sm" style="border-radius: 8px; font-weight: 500; border-color: #dee2e6; min-width: 170px;">
+                        <option value="all" {% if all_selected %}selected{% endif %}>All Groups</option>
+                        {% for group in groups %}
+                        <option value="{{ group.id }}" {% if group.is_selected %}selected{% endif %}>{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                {% if not all_selected %}
+                <input type="hidden" name="group" value="{{ selected_group_id }}">
+                {% endif %}
+                {% endif %}
+
+                <!-- Factory Selector -->
+                <div>
+                    {% if is_superadmin and not all_selected %}
+                    <input type="hidden" name="group" value="{{ selected_group_id }}">
+                    {% endif %}
+                    <select name="factory" onchange="this.form.submit()" class="form-select form-select-sm shadow-sm" style="border-radius: 8px; font-weight: 500; border-color: #dee2e6; min-width: 170px;">
+                        <option value="all" {% if all_factories_selected %}selected{% endif %}>All Factories</option>
+                        {% for f in factories %}
+                        <option value="{{ f.id }}" {% if f.is_selected %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Division Selector -->
+                <div>
+                    <select name="division" onchange="this.form.submit()" class="form-select form-select-sm shadow-sm" style="border-radius: 8px; font-weight: 500; border-color: #dee2e6; min-width: 170px;">
+                        <option value="all" {% if all_divisions_selected %}selected{% endif %}>All Divisions</option>
+                        {% for d in divisions %}
+                        <option value="{{ d.id }}" {% if d.is_selected %}selected{% endif %}>{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Reset Filter button if any filter is active -->
+                {% if not all_selected or not all_factories_selected or not all_divisions_selected %}
+                <a href="{% url 'scout_management' %}" class="btn btn-sm btn-outline-secondary ms-auto d-flex align-items-center" style="border-radius: 8px; font-weight: 500;">
+                    <i class="fas fa-undo me-1"></i> Reset Filters
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
     {% if messages %}
     {% for message in messages %}
     <div class="alert alert-info">{{ message }}</div>

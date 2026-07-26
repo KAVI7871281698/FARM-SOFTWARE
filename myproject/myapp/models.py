@@ -727,7 +727,8 @@ def create_scout_on_critical_health(sender, instance, created, **kwargs):
     """
     Automatically create and assign a Scout when NDVIRecord shows 'Critical' or 'Moderate' health status.
     """
-    if instance.health_status in ['Critical', 'Moderate']:
+    status_val = str(instance.health_status).strip()
+    if status_val in ['Critical', 'Moderate', 'Need attention', 'Need Attention', 'moderate', 'critical', 'need attention']:
         # Check if there's already an active scout (Pending or Assigned) for this plot
         active_scouts_exist = Scout.objects.filter(
             plot=instance.plot, 
@@ -736,8 +737,8 @@ def create_scout_on_critical_health(sender, instance, created, **kwargs):
         
         if not active_scouts_exist:
             # Determine Priority based on health status
-            priority = 'High' if instance.health_status == 'Critical' else 'Medium'
-            alert_reason = f"Automated Scout Alert: Plot Health Status dropped to {instance.health_status}."
+            priority = 'High' if status_val in ['Critical', 'Need attention', 'Need Attention', 'critical', 'need attention'] else 'Medium'
+            alert_reason = f"Automated Scout Alert: Plot Health Status dropped to {status_val}."
             
             # Create Scout
             scout = Scout.objects.create(
