@@ -333,19 +333,20 @@ def filter_by_factory(queryset, factory_path, request):
 def get_filter_context(request):
     logged_group_id = request.session.get('group_id')
     role_id_str = str(request.session.get('role_id', ''))
-    role_name_str = str(request.session.get('role_name', '')).lower().replace(' ', '')
-    is_superadmin = (role_id_str == '1' or 'superadmin' in role_name_str or 'mastersuperadmin' in role_name_str)
+    is_superadmin = (role_id_str == '1')
     
     try:
-        if is_superadmin or not logged_group_id:
+        if is_superadmin:
             groups = list(Group.objects.all())
-        else:
+        elif logged_group_id:
             groups = list(Group.objects.filter(id=logged_group_id))
+        else:
+            groups = []
     except Exception as e:
         groups = []
         
-    if not is_superadmin and logged_group_id:
-        selected_group_id = str(logged_group_id)
+    if not is_superadmin:
+        selected_group_id = str(logged_group_id) if logged_group_id else ''
         all_selected = False
     else:
         selected_group_id = request.GET.get('group', 'all')

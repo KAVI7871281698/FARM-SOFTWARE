@@ -130,7 +130,9 @@
         <form method="GET" action="{% url 'ndvi_dashboard' %}" style="margin: 0;">
             <select name="group" onchange="this.form.submit()"
                 style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: #333; background-color: white; outline: none; cursor: pointer;">
+                {% if request.session.role_id == 1 or request.session.role_id == '1' %}
                 <option value="all" {% if all_selected %}selected{% endif %}>All Groups</option>
+                {% endif %}
                 {% for group in groups %}
                 <option value="{{ group.id }}" {% if group.is_selected %}selected{% endif %}>{{ group.name }}</option>
                 {% endfor %}

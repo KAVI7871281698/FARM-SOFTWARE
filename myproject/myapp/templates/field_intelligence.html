@@ -13,7 +13,9 @@
     {% elif groups|length > 1 %}
     <form method="GET" action="{% url 'field_intelligence' %}" style="margin: 0;">
         <select name="group" onchange="this.form.submit()" class="premium-select">
+            {% if request.session.role_id == 1 or request.session.role_id == '1' %}
             <option value="all" {% if all_selected %}selected{% endif %}>All Groups</option>
+            {% endif %}
             {% for group in groups %}
             <option value="{{ group.id }}" {% if group.is_selected %}selected{% endif %}>{{ group.name }}</option>
             {% endfor %}
