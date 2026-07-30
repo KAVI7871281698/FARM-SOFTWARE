@@ -217,24 +217,83 @@ def mobile_index_handler(request):
         work_assigns = WorkAssign.objects.filter(officer_id=officer_id).select_related('section', 'village')
         
         village_ids = [wa.village_id for wa in work_assigns if wa.village_id]
-        
-        all_plots = Plot.objects.filter(village_id__in=village_ids).values(
-            'id', 'plot_code', 'farmer__name', 'farmer__phone', 'crop_type__crop_name',
-            'variety__variety_name', 'area_acre', 'status', 'soil_type__soil_name',
-            'latitude', 'longitude', 'center_lt_ln', 'planting_date', 'village_id'
+
+        from django.db.models import Prefetch
+        latest_ndvi_pf = Prefetch(
+            'ndvi_records',
+            queryset=NDVIRecord.objects.order_by('-date_recorded'),
+            to_attr='pf_ndvi'
         )
+        latest_scout_pf = Prefetch(
+            'scouting_logs',
+            queryset=ScoutingLog.objects.order_by('-created_at'),
+            to_attr='pf_scouting'
+        )
+
+        all_plots = Plot.objects.filter(village_id__in=village_ids).select_related(
+            'farmer', 'crop_type', 'variety', 'soil_type'
+        ).prefetch_related(latest_ndvi_pf, latest_scout_pf)
         
         plots_by_village = {}
         for p in all_plots:
-            vid = p['village_id']
+            vid = p.village_id
             if vid not in plots_by_village:
                 plots_by_village[vid] = []
+
+            # Latest NDVI health
+            ndvi_list = getattr(p, 'pf_ndvi', [])
+            latest_ndvi = ndvi_list[0] if ndvi_list else None
+            if latest_ndvi:
+                health_data = {
+                    'health_status': latest_ndvi.health_status or '-',
+                    'ndvi_value': str(latest_ndvi.ndvi_value) if latest_ndvi.ndvi_value is not None else '-',
+                    'ndvi_date': str(latest_ndvi.date_recorded) if latest_ndvi.date_recorded else '-',
+                    'good_percent': str(latest_ndvi.good_percent) if latest_ndvi.good_percent is not None else '-',
+                    'mod_percent': str(latest_ndvi.mod_percent) if latest_ndvi.mod_percent is not None else '-',
+                    'attn_percent': str(latest_ndvi.attn_percent) if latest_ndvi.attn_percent is not None else '-',
+                }
+            else:
+                health_data = {
+                    'health_status': 'No Data',
+                    'ndvi_value': '-',
+                    'ndvi_date': '-',
+                    'good_percent': '-',
+                    'mod_percent': '-',
+                    'attn_percent': '-',
+                }
+
+            # Latest Scouting
+            scout_list = getattr(p, 'pf_scouting', [])
+            latest_scout = scout_list[0] if scout_list else None
+            if latest_scout:
+                scouting_data = {
+                    'scouting_date': latest_scout.created_at.strftime('%Y-%m-%d') if latest_scout.created_at else '-',
+                    'growth_stage': latest_scout.growth_stage or '-',
+                    'pest_presence': latest_scout.pest_presence,
+                    'pest_type': latest_scout.pest_type or '-',
+                    'pest_severity': latest_scout.pest_severity or '-',
+                    'disease_presence': latest_scout.disease_presence,
+                    'disease_type': latest_scout.disease_type or '-',
+                }
+            else:
+                scouting_data = {
+                    'scouting_date': '-',
+                    'growth_stage': '-',
+                    'pest_presence': False,
+                    'pest_type': '-',
+                    'pest_severity': '-',
+                    'disease_presence': False,
+                    'disease_type': '-',
+                }
+
             plots_by_village[vid].append({
-                'id': p['id'], 'plot_code': p['plot_code'], 'farmer_name': p['farmer__name'],
-                'farmer_phone': p['farmer__phone'], 'crop_name': p['crop_type__crop_name'],
-                'variety_name': p['variety__variety_name'], 'area_acre': str(p['area_acre']) if p['area_acre'] is not None else None,
-                'status': p['status'], 'soil_name': p['soil_type__soil_name'],
-                'latitude': p['latitude'], 'longitude': p['longitude'], 'center_lt_ln': p['center_lt_ln'], 'date_planted': str(p['planting_date']) if p['planting_date'] else None,
+                'id': p.id, 'plot_code': p.plot_code, 'farmer_name': p.farmer.name if p.farmer else None,
+                'farmer_phone': p.farmer.phone if p.farmer else None, 'crop_name': p.crop_type.crop_name if p.crop_type else None,
+                'variety_name': p.variety.variety_name if p.variety else None, 'area_acre': str(p.area_acre) if p.area_acre is not None else None,
+                'status': p.status, 'soil_name': p.soil_type.soil_name if p.soil_type else None,
+                'latitude': p.latitude, 'longitude': p.longitude, 'center_lt_ln': p.center_lt_ln, 'date_planted': str(p.planting_date) if p.planting_date else None,
+                'health': health_data,
+                'scouting': scouting_data,
             })
             
         data = []
