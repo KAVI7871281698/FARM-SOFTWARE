@@ -879,9 +879,21 @@ def api_field_intelligence_plots(request):
     if not officer:
         return JsonResponse({"status": "error", "message": "Invalid officer_id"}, status=400)
     
-    from django.db.models import Q
+    from django.db.models import Q, Prefetch
     import json
     
+    # Prefetch latest NDVI and latest ScoutingLog per plot for performance
+    latest_ndvi_prefetch = Prefetch(
+        'ndvi_records',
+        queryset=NDVIRecord.objects.order_by('-date_recorded'),
+        to_attr='prefetched_ndvi'
+    )
+    latest_scouting_prefetch = Prefetch(
+        'scouting_logs',
+        queryset=ScoutingLog.objects.order_by('-created_at'),
+        to_attr='prefetched_scouting'
+    )
+
     base_plots = Plot.objects.filter(
         Q(center_lt_ln__isnull=False) | 
         (Q(latitude__isnull=False) & Q(longitude__isnull=False))
@@ -890,11 +902,11 @@ def api_field_intelligence_plots(request):
     # Filter by factories allowed for the officer
     is_superadmin = (str(officer.role_id) == '1') if getattr(officer, 'role_id', None) else False
     if is_superadmin:
-        plots = base_plots.select_related('division', 'section', 'village', 'farmer', 'soil_type')
+        plots = base_plots.select_related('division', 'section', 'village', 'farmer', 'soil_type').prefetch_related(latest_ndvi_prefetch, latest_scouting_prefetch)
     else:
         fids = [int(x.strip()) for x in str(officer.factory_ids).split(',') if x.strip().isdigit()] if getattr(officer, 'factory_ids', None) else []
         if fids:
-            plots = base_plots.filter(farmer__section__division__factory_name_id__in=fids).select_related('division', 'section', 'village', 'farmer', 'soil_type')
+            plots = base_plots.filter(farmer__section__division__factory_name_id__in=fids).select_related('division', 'section', 'village', 'farmer', 'soil_type').prefetch_related(latest_ndvi_prefetch, latest_scouting_prefetch)
         else:
             plots = base_plots.none()
         
@@ -927,6 +939,66 @@ def api_field_intelligence_plots(request):
             
             if lat is None or lon is None:
                 continue
+
+            # Get latest NDVI health status
+            ndvi_list = getattr(p, 'prefetched_ndvi', [])
+            latest_ndvi = ndvi_list[0] if ndvi_list else None
+
+            health_data = {}
+            if latest_ndvi:
+                health_data = {
+                    'health_status': latest_ndvi.health_status or '-',
+                    'ndvi_value': str(latest_ndvi.ndvi_value) if latest_ndvi.ndvi_value is not None else '-',
+                    'ndvi_date': str(latest_ndvi.date_recorded) if latest_ndvi.date_recorded else '-',
+                    'crop_age_days': latest_ndvi.crop_age_days,
+                    'stage': latest_ndvi.stage or '-',
+                    'good_percent': str(latest_ndvi.good_percent) if latest_ndvi.good_percent is not None else '-',
+                    'mod_percent': str(latest_ndvi.mod_percent) if latest_ndvi.mod_percent is not None else '-',
+                    'attn_percent': str(latest_ndvi.attn_percent) if latest_ndvi.attn_percent is not None else '-',
+                }
+            else:
+                health_data = {
+                    'health_status': 'No Data',
+                    'ndvi_value': '-',
+                    'ndvi_date': '-',
+                    'crop_age_days': None,
+                    'stage': '-',
+                    'good_percent': '-',
+                    'mod_percent': '-',
+                    'attn_percent': '-',
+                }
+
+            # Get latest scouting log
+            scouting_list = getattr(p, 'prefetched_scouting', [])
+            latest_scout = scouting_list[0] if scouting_list else None
+
+            scouting_data = {}
+            if latest_scout:
+                scouting_data = {
+                    'scouting_date': latest_scout.created_at.strftime('%Y-%m-%d') if latest_scout.created_at else '-',
+                    'growth_stage': latest_scout.growth_stage or '-',
+                    'plant_height': latest_scout.plant_height or '-',
+                    'pest_presence': latest_scout.pest_presence,
+                    'pest_type': latest_scout.pest_type or '-',
+                    'pest_severity': latest_scout.pest_severity or '-',
+                    'disease_presence': latest_scout.disease_presence,
+                    'disease_type': latest_scout.disease_type or '-',
+                    'water_sufficiency': latest_scout.water_sufficiency or '-',
+                    'nutrient_deficiency': latest_scout.nutrient_deficiency,
+                }
+            else:
+                scouting_data = {
+                    'scouting_date': '-',
+                    'growth_stage': '-',
+                    'plant_height': '-',
+                    'pest_presence': False,
+                    'pest_type': '-',
+                    'pest_severity': '-',
+                    'disease_presence': False,
+                    'disease_type': '-',
+                    'water_sufficiency': '-',
+                    'nutrient_deficiency': False,
+                }
             
             plots_data.append({
                 'id': p.id,
@@ -940,7 +1012,9 @@ def api_field_intelligence_plots(request):
                 'planting_date': str(p.planting_date) if p.planting_date else '-',
                 'acres': str(p.area_acre) if p.area_acre else '-',
                 'soil_type': p.soil_type.soil_name if p.soil_type else '-',
-                'status': p.status or '-'
+                'status': p.status or '-',
+                'health': health_data,
+                'scouting': scouting_data,
             })
         except (ValueError, TypeError, IndexError):
             continue
