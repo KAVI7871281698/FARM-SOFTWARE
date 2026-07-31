@@ -1468,31 +1468,43 @@ function switchTrack(trackName) {
                     label: 'Good',
                     data: htHealthData['Good'] || [10, 15, 20, 30, 26, 22, 28, 48, 26, 20, 58, 34, 88, 48, 46, 50],
                     borderColor: '#10b981',
-                    backgroundColor: '#10b981',
-                    borderWidth: 2,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2,
+                    fill: true,
                     tension: 0.4
                 },
                 {
                     label: 'Moderate',
                     data: htHealthData['Moderate'] || [0, 2, 18, 42, 55, 125, 154, 208, 215, 184, 225, 195, 175, 220, 190, 205],
                     borderColor: '#f59e0b',
-                    backgroundColor: '#f59e0b',
-                    borderWidth: 2,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#f59e0b',
+                    pointBorderWidth: 2,
+                    fill: true,
                     tension: 0.4
                 },
                 {
                     label: 'Need attention',
                     data: htHealthData['Need Attention'] || [null, null, null, null, 0, 25, 36, 44, 112, 140, 94, 138, 105, 125, 145, 126],
                     borderColor: '#ef4444',
-                    backgroundColor: '#ef4444',
-                    borderWidth: 2,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#ef4444',
+                    pointBorderWidth: 2,
                     spanGaps: true,
+                    fill: true,
                     tension: 0.4
                 }
             ]
@@ -1500,6 +1512,10 @@ function switchTrack(trackName) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
                 legend: {
                     position: 'top',
@@ -1507,36 +1523,51 @@ function switchTrack(trackName) {
                         usePointStyle: true,
                         pointStyle: 'circle',
                         padding: 20,
-                        font: { family: 'Outfit', size: 13 }
+                        font: { family: 'Outfit', size: 13, weight: '500' }
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1e293b',
+                    bodyColor: '#475569',
+                    borderColor: '#e2e8f0',
+                    borderWidth: 1,
                     padding: 12,
                     cornerRadius: 8,
-                    titleFont: { family: 'Outfit' },
-                    bodyFont: { family: 'Outfit' }
+                    titleFont: { family: 'Outfit', size: 14, weight: '600' },
+                    bodyFont: { family: 'Outfit', size: 13 },
+                    usePointStyle: true,
+                    boxPadding: 6,
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.dataset.label}: ${context.parsed.y} Plots`;
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 231,
-                    ticks: { stepSize: 11 },
                     border: { display: false },
+                    grid: {
+                        color: '#f1f5f9',
+                        drawBorder: false,
+                    },
                     title: {
                         display: true,
-                        text: 'Number of plots',
-                        font: { family: 'Outfit' }
+                        text: 'Number of Plots',
+                        font: { family: 'Outfit', size: 12, weight: '500' },
+                        color: '#64748b'
                     }
                 },
                 x: {
                     border: { display: false },
                     grid: { display: false },
                     ticks: {
-                        maxRotation: 20,
-                        minRotation: 20,
-                        font: { size: 10 }
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: { family: 'Outfit', size: 11 },
+                        color: '#64748b'
                     }
                 }
             }
@@ -1555,60 +1586,80 @@ function switchTrack(trackName) {
                     label: 'Germination',
                     data: htStageData['Germination'] || [0, 2, 28, 62, 60, 110, 121, 181, 165, 110, 50, 12, null, null, null, null],
                     borderColor: '#3b82f6',
-                    backgroundColor: '#3b82f6',
-                    borderWidth: 2,
-                    pointRadius: 8,
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
                     pointStyle: 'circle',
-                    pointBackgroundColor: '#3b82f6',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#3b82f6',
+                    pointBorderWidth: 2,
                     spanGaps: true,
+                    fill: true,
                     tension: 0.4
                 },
                 {
                     label: 'Early Tiller',
                     data: htStageData['Early Tiller'] || [null, null, null, 0, 10, 55, 90, 115, 140, 165, 209, 185, 100, 50, 0, 0],
                     borderColor: '#db2777',
-                    backgroundColor: '#db2777',
-                    borderWidth: 2,
-                    pointRadius: 8,
-                    pointStyle: 'triangle',
-                    pointBackgroundColor: '#db2777',
+                    backgroundColor: 'rgba(219, 39, 119, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#db2777',
+                    pointBorderWidth: 2,
                     spanGaps: true,
+                    fill: true,
                     tension: 0.4
                 },
                 {
                     label: 'Tillering',
                     data: htStageData['Tillering'] || [null, null, null, null, null, 0, 0, 15, 50, 75, 115, 140, 195, 209, 165, 165],
                     borderColor: '#14b8a6',
-                    backgroundColor: '#14b8a6',
-                    borderWidth: 2,
-                    pointRadius: 8,
-                    pointStyle: 'rect',
-                    pointBackgroundColor: '#14b8a6',
+                    backgroundColor: 'rgba(20, 184, 166, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#14b8a6',
+                    pointBorderWidth: 2,
                     spanGaps: true,
+                    fill: true,
                     tension: 0.4
                 },
                 {
                     label: 'Grand growth',
                     data: htStageData['Grand growth'] || [null, null, null, null, null, null, null, null, null, 0, 15, 40, 90, 130, 209, 209],
                     borderColor: '#ea580c',
-                    backgroundColor: '#ea580c',
-                    borderWidth: 2,
-                    pointRadius: 8,
+                    backgroundColor: 'rgba(234, 88, 12, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
                     pointStyle: 'circle',
-                    pointBackgroundColor: '#ea580c',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#ea580c',
+                    pointBorderWidth: 2,
                     spanGaps: true,
+                    fill: true,
                     tension: 0.4
                 },
                 {
                     label: 'Maturity',
                     data: htStageData['Maturity'] || [null, null, null, null, null, null, null, null, null, null, null, null, 0, 20, 55, 80],
                     borderColor: '#475569',
-                    backgroundColor: '#334155',
-                    borderWidth: 2,
-                    pointRadius: 8,
-                    pointStyle: 'rectRot',
-                    pointBackgroundColor: '#334155',
+                    backgroundColor: 'rgba(71, 85, 105, 0.15)',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#475569',
+                    pointBorderWidth: 2,
                     spanGaps: true,
+                    fill: true,
                     tension: 0.4
                 }
             ]
@@ -1616,43 +1667,62 @@ function switchTrack(trackName) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
                 legend: {
                     position: 'top',
                     labels: {
                         usePointStyle: true,
+                        pointStyle: 'circle',
                         padding: 20,
-                        font: { family: 'Outfit', size: 13 }
+                        font: { family: 'Outfit', size: 13, weight: '500' }
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1e293b',
+                    bodyColor: '#475569',
+                    borderColor: '#e2e8f0',
+                    borderWidth: 1,
                     padding: 12,
                     cornerRadius: 8,
-                    titleFont: { family: 'Outfit' },
-                    bodyFont: { family: 'Outfit' },
-                    usePointStyle: true
+                    titleFont: { family: 'Outfit', size: 14, weight: '600' },
+                    bodyFont: { family: 'Outfit', size: 13 },
+                    usePointStyle: true,
+                    boxPadding: 6,
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.dataset.label}: ${context.parsed.y} Plots`;
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 209,
-                    ticks: { stepSize: 11 },
                     border: { display: false },
+                    grid: {
+                        color: '#f1f5f9',
+                        drawBorder: false,
+                    },
                     title: {
                         display: true,
-                        text: 'Number of plots',
-                        font: { family: 'Outfit' }
+                        text: 'Number of Plots',
+                        font: { family: 'Outfit', size: 12, weight: '500' },
+                        color: '#64748b'
                     }
                 },
                 x: {
                     border: { display: false },
                     grid: { display: false },
                     ticks: {
-                        maxRotation: 20,
-                        minRotation: 20,
-                        font: { size: 10 }
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: { family: 'Outfit', size: 11 },
+                        color: '#64748b'
                     }
                 }
             }
