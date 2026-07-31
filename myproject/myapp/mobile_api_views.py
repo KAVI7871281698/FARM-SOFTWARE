@@ -965,7 +965,7 @@ def api_field_intelligence_plots(request):
     else:
         fids = [int(x.strip()) for x in str(officer.factory_ids).split(',') if x.strip().isdigit()] if getattr(officer, 'factory_ids', None) else []
         if fids:
-            plots = base_plots.filter(farmer__section__division__factory_name_id__in=fids).select_related('division', 'section', 'village', 'farmer', 'soil_type').prefetch_related(latest_ndvi_prefetch, latest_scouting_prefetch)
+            plots = base_plots.filter(Q(factory_id__in=fids) | Q(farmer__section__division__factory_name_id__in=fids)).select_related('division', 'section', 'village', 'farmer', 'soil_type').prefetch_related(latest_ndvi_prefetch, latest_scouting_prefetch)
         else:
             plots = base_plots.none()
         
@@ -1379,7 +1379,7 @@ def api_mobile_dashboard(request):
     else:
         fids = [int(x.strip()) for x in str(officer.factory_ids).split(',') if getattr(officer, 'factory_ids', None) and x.strip().isdigit()]
         if fids:
-            all_plots = Plot.objects.filter(farmer__section__division__factory_name_id__in=fids)
+            all_plots = Plot.objects.filter(Q(factory_id__in=fids) | Q(farmer__section__division__factory_name_id__in=fids))
         else:
             work_assigns = WorkAssign.objects.filter(officer_id=officer.id)
             village_ids = [wa.village_id for wa in work_assigns if wa.village_id]
