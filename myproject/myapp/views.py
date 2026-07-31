@@ -724,7 +724,15 @@ def dashboard(request):
         latest_scout = scout_dict.get(p_id)
         
         if latest_ndvi:
-            health_status = latest_ndvi.health_status
+            ndvi_h = latest_ndvi.health_status
+            if ndvi_h == 'Good':
+                health_status = 'Healthy'
+            elif ndvi_h == 'Moderate':
+                health_status = 'Moderate'
+            elif ndvi_h in ['Need Attention', 'Critical']:
+                health_status = 'Critical'
+            else:
+                health_status = 'Healthy'
         if latest_scout:
             if latest_scout.disease_presence:
                 health_status = 'Critical'
@@ -2619,7 +2627,15 @@ def ndvi_dashboard(request):
         
         if latest_ndvi:
             ndvi_display = str(latest_ndvi['ndvi_value'])
-            health_status = latest_ndvi['health_status']
+            ndvi_h = latest_ndvi['health_status']
+            if ndvi_h == 'Good':
+                health_status = 'Healthy'
+            elif ndvi_h == 'Moderate':
+                health_status = 'Moderate'
+            elif ndvi_h in ['Need Attention', 'Critical']:
+                health_status = 'Critical'
+            else:
+                health_status = 'Healthy'
             date_display = str(latest_ndvi['date_recorded'])
             good_pct = float(latest_ndvi['good_percent'] or 0)
             mod_pct = float(latest_ndvi['mod_percent'] or 0)
@@ -2633,8 +2649,11 @@ def ndvi_dashboard(request):
             if date_display == 'No records':
                 date_display = str(latest_scout['created_at'].date())
                 
-        if health_status in health_counts:
+        # Only count health for mapped plots to avoid inflating Healthy count
+        is_mapped = plot.status in ['Mapped', 'mapped'] or (plot.boundaries and plot.boundaries != '')
+        if is_mapped and health_status in health_counts:
             health_counts[health_status] += 1
+
         
         lat = None
         lng = None
