@@ -725,11 +725,11 @@ def dashboard(request):
         
         if latest_ndvi:
             ndvi_h = latest_ndvi.health_status
-            if ndvi_h == 'Good':
+            if ndvi_h and ndvi_h.strip().title() == 'Good':
                 health_status = 'Healthy'
-            elif ndvi_h == 'Moderate':
+            elif ndvi_h and ndvi_h.strip().title() == 'Moderate':
                 health_status = 'Moderate'
-            elif ndvi_h in ['Need Attention', 'Critical']:
+            elif ndvi_h and ndvi_h.strip().title() in ['Need Attention', 'Critical']:
                 health_status = 'Critical'
             else:
                 health_status = 'Healthy'
@@ -2632,7 +2632,7 @@ def ndvi_dashboard(request):
                 health_status = 'Healthy'
             elif ndvi_h == 'Moderate':
                 health_status = 'Moderate'
-            elif ndvi_h in ['Need Attention', 'Critical']:
+            elif ndvi_h and ndvi_h.strip().title() in ['Need Attention', 'Critical']:
                 health_status = 'Critical'
             else:
                 health_status = 'Healthy'
