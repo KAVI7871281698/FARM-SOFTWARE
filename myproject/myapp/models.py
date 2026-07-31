@@ -214,6 +214,26 @@ class Plot(models.Model):
                 self.plot_code = f"PLT-{last_id + 1:04d}"
             else:
                 self.plot_code = "PLT-0001"
+                
+        if not self.officer and self.section_id:
+            # Try to assign an officer based on the section
+            # Officer.section_ids is a comma separated string
+            assigned = False
+            for off in Officer.objects.exclude(section_ids__isnull=True).exclude(section_ids=''):
+                s_ids = [s.strip() for s in str(off.section_ids).split(',')]
+                if str(self.section_id) in s_ids:
+                    self.officer = off
+                    assigned = True
+                    break
+            
+            # Fallback to division_name matching
+            if not assigned and self.division_name:
+                for off in Officer.objects.exclude(division_names__isnull=True).exclude(division_names=''):
+                    d_names = [d.strip() for d in str(off.division_names).split(',')]
+                    if self.division_name in d_names:
+                        self.officer = off
+                        break
+
         super().save(*args, **kwargs)
 
     def __str__(self):
