@@ -604,18 +604,18 @@ def dashboard(request):
             officers_count = sum(1 for o in Officer.objects.all() if any(div_id in valid_div_ids for div_id in (o.division_ids or "").split(',')))
 
     # Calculate real data metrics for the dashboard
-    from django.db.models import Avg, Q, OuterRef, Subquery
+    from django.db.models import Avg, Q, OuterRef, Subquery, Count
     if selected_section_id != 'all':
-        plots_qs = Plot.objects.filter(farmer__section_id=selected_section_id)
+        plots_qs = Plot.objects.filter(Q(section_id=selected_section_id) | Q(farmer__section_id=selected_section_id))
     elif selected_division_id != 'all':
-        plots_qs = Plot.objects.filter(farmer__section__division_id=selected_division_id)
+        plots_qs = Plot.objects.filter(Q(division_id=selected_division_id) | Q(farmer__section__division_id=selected_division_id))
     elif selected_factory_id != 'all':
-        plots_qs = Plot.objects.filter(farmer__section__division__factory_name_id=selected_factory_id)
+        plots_qs = Plot.objects.filter(Q(factory_id=selected_factory_id) | Q(farmer__section__division__factory_name_id=selected_factory_id))
     elif not all_selected:
-        plots_qs = Plot.objects.filter(farmer__section__division__factory_name__group_id=selected_group_id)
+        plots_qs = Plot.objects.filter(Q(group_id=selected_group_id) | Q(farmer__section__division__factory_name__group_id=selected_group_id))
     elif not is_superadmin:
         allowed_f_ids = [f.id for f in factories]
-        plots_qs = Plot.objects.filter(farmer__section__division__factory_name_id__in=allowed_f_ids)
+        plots_qs = Plot.objects.filter(Q(factory_id__in=allowed_f_ids) | Q(farmer__section__division__factory_name_id__in=allowed_f_ids))
     else:
         plots_qs = Plot.objects.all()
 
