@@ -607,6 +607,9 @@
                 marker = L.marker(center, { icon: icon }).addTo(featureGroup);
 
                 imgOverlay = L.imageOverlay(imageUrl, poly.getBounds(), { opacity: 0 }).addTo(featureGroup);
+                imgOverlay.on('error', function() {
+                    imgOverlay._imageError = true;
+                });
 
                 handlePopup(poly);
                 handlePopup(marker);
@@ -625,6 +628,10 @@
                 const imgBounds = [[plot.lat - d, plot.lng - d], [plot.lat + d, plot.lng + d]];
                 imgOverlay = L.imageOverlay(imageUrl, imgBounds, { opacity: 0 }).addTo(featureGroup);
                 
+                imgOverlay.on('error', function() {
+                    imgOverlay._imageError = true;
+                });
+
                 handlePopup(marker);
                 plotMarkersAndImages.push({ marker, imgOverlay, polygon: null });
                 bounds.push([plot.lat, plot.lng]);
@@ -640,7 +647,7 @@
             const showImage = zoomLevel >= 15; // Show images at zoom 15+
             
             plotMarkersAndImages.forEach(item => {
-                if (showImage) {
+                if (showImage && item.imgOverlay && !item.imgOverlay._imageError) {
                     if (item.marker) item.marker.setOpacity(0);
                     if (item.polygon) item.polygon.setStyle({ fillOpacity: 0, weight: 0 }); 
                     if (item.imgOverlay) item.imgOverlay.setOpacity(1);
