@@ -309,9 +309,21 @@
     }
 
     .card-attention {
+        --icon-bg: #fee2e2;
+        --icon-color: #ef4444;
+        --icon-shadow: rgba(239, 68, 68, 0.2);
+    }
+
+    .card-good {
+        --icon-bg: #d1fae5;
+        --icon-color: #10b981;
+        --icon-shadow: rgba(16, 185, 129, 0.2);
+    }
+
+    .card-moderate {
         --icon-bg: #fef3c7;
-        --icon-color: #d97706;
-        --icon-shadow: rgba(217, 119, 6, 0.2);
+        --icon-color: #f59e0b;
+        --icon-shadow: rgba(245, 158, 11, 0.2);
     }
 
     .card-danger {
@@ -874,6 +886,22 @@
         <div class="metric-value">{{ unmapped|default_if_none:"0" }}</div>
     </div>
 
+    <div class="metric-card-premium card-good">
+        <div class="metric-header">
+            <span class="metric-title">Good Plots</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-leaf"></i></div>
+        </div>
+        <div class="metric-value">{{ good_plots|default_if_none:"0" }}</div>
+    </div>
+
+    <div class="metric-card-premium card-moderate">
+        <div class="metric-header">
+            <span class="metric-title">Moderate Plots</span>
+            <div class="metric-icon-wrapper"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        </div>
+        <div class="metric-value">{{ moderate_plots|default_if_none:"0" }}</div>
+    </div>
+
     <div class="metric-card-premium card-attention">
         <div class="metric-header">
             <span class="metric-title">Need Attention</span>
@@ -881,7 +909,6 @@
         </div>
         <div class="metric-value">{{ need_attention|default_if_none:"0" }}</div>
     </div>
-
 
 
     <div class="metric-card-premium card-overdue">

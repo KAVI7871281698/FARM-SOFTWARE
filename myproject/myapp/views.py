@@ -756,6 +756,8 @@ def dashboard(request):
         'unmapped': unmapped,
         'avg_ndvi': avg_ndvi,
         'need_attention': need_attention,
+        'good_plots': health_counts['Healthy'],
+        'moderate_plots': health_counts['Moderate'],
         'damage_reports': damage_reports,
         'overdue_scouts': overdue_scouts,
         'groups_count': groups_count,
