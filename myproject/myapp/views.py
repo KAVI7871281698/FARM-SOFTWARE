@@ -648,7 +648,7 @@ def dashboard(request):
     scout_assigned = scout_stats_agg['assigned']
     scout_status_data = [scout_completed, scout_pending, scout_assigned]
 
-    damage_reports = (
+    damage_reports = (      
         Scout.objects.filter(plot__in=plots_qs).filter(Q(priority='High') | Q(alert_reason__icontains='Disease') | Q(alert_reason__icontains='Damage')).values('plot').distinct().count()
         + ScoutingLog.objects.filter(plot__in=plots_qs).filter(Q(disease_presence=True) | Q(pest_presence=True) | ~Q(pest_type='') | ~Q(disease_type='')).values('plot').distinct().count()
     )
