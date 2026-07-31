@@ -882,13 +882,7 @@
         <div class="metric-value">{{ need_attention|default_if_none:"0" }}</div>
     </div>
 
-    <div class="metric-card-premium card-danger">
-        <div class="metric-header">
-            <span class="metric-title">Damage Reports</span>
-            <div class="metric-icon-wrapper"><i class="fa-solid fa-file-circle-xmark"></i></div>
-        </div>
-        <div class="metric-value">{{ damage_reports|default_if_none:"0" }}</div>
-    </div>
+
 
     <div class="metric-card-premium card-overdue">
         <div class="metric-header">
@@ -898,16 +892,7 @@
         <div class="metric-value">{{ overdue_scouts|default_if_none:"0" }}</div>
     </div>
 
-    <a href="{% url 'work_assigns' %}?group={{ request.GET.group|default:'all' }}&factory={{ active_factory_id|default:'all' }}&division={{ request.GET.division|default:'all' }}&section={{ request.GET.section|default:'all' }}"
-        style="text-decoration: none; display: block;">
-        <div class="metric-card-premium card-work">
-            <div class="metric-header">
-                <span class="metric-title">My Work Assigns</span>
-                <div class="metric-icon-wrapper"><i class="fa-solid fa-briefcase"></i></div>
-            </div>
-            <div class="metric-value">{{ work_assigns_count|default_if_none:"0" }}</div>
-        </div>
-    </a>
+
 </div>
 
 <h2 class="premium-section-title">Hierarchy Overview</h2>
