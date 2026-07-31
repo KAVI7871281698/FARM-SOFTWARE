@@ -19,7 +19,8 @@ def sync_scouts():
             continue
             
         status_val = str(latest.health_status).strip()
-        if status_val in ['Critical', 'Need attention', 'Need Attention', 'critical', 'need attention']:
+        is_mapped = plot.status in ['Mapped', 'mapped'] or bool(plot.boundaries)
+        if is_mapped and status_val in ['Critical', 'Need attention', 'Need Attention', 'critical', 'need attention']:
             active_scout = Scout.objects.filter(
                 plot=plot,
                 status__in=['Pending Assignment', 'Assigned']
