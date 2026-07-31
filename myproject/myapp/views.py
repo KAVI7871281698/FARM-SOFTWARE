@@ -715,8 +715,10 @@ def dashboard(request):
     scout_dict = {s.plot_id: s for s in latest_scouts}
     ndvi_dict = {n.plot_id: n for n in latest_ndvis}
     
+    mapped_plot_ids = set(plots_qs.filter(Q(status='Mapped') | Q(status='mapped') | (Q(boundaries__isnull=False) & ~Q(boundaries=''))).values_list('id', flat=True))
+
     health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
-    for p_id in plots_qs.values_list('id', flat=True):
+    for p_id in mapped_plot_ids:
         health_status = 'Healthy'
         latest_ndvi = ndvi_dict.get(p_id)
         latest_scout = scout_dict.get(p_id)
@@ -755,7 +757,7 @@ def dashboard(request):
         'mapped': mapped,
         'unmapped': unmapped,
         'avg_ndvi': avg_ndvi,
-        'need_attention': need_attention,
+        'need_attention': health_counts['Critical'],
         'good_plots': health_counts['Healthy'],
         'moderate_plots': health_counts['Moderate'],
         'damage_reports': damage_reports,
