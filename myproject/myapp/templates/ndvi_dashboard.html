@@ -606,7 +606,9 @@
                 });
                 marker = L.marker(center, { icon: icon }).addTo(featureGroup);
 
-                imgOverlay = L.imageOverlay(imageUrl, poly.getBounds(), { opacity: 0 }).addTo(featureGroup);
+                // Use padded bounds to account for typical satellite image export buffers (e.g., 10% padding)
+                const imageBounds = poly.getBounds().pad(0.1);
+                imgOverlay = L.imageOverlay(imageUrl, imageBounds, { opacity: 0 }).addTo(featureGroup);
                 imgOverlay.on('error', function() {
                     imgOverlay._imageError = true;
                 });
@@ -649,7 +651,7 @@
             plotMarkersAndImages.forEach(item => {
                 if (showImage && item.imgOverlay && !item.imgOverlay._imageError) {
                     if (item.marker) item.marker.setOpacity(0);
-                    if (item.polygon) item.polygon.setStyle({ fillOpacity: 0, weight: 0 }); 
+                    if (item.polygon) item.polygon.setStyle({ fillOpacity: 0, weight: 2 }); 
                     if (item.imgOverlay) item.imgOverlay.setOpacity(1);
                 } else {
                     if (item.marker) item.marker.setOpacity(1);
