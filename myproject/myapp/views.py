@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult, NDVIRecord
 from django.core.paginator import Paginator
 import pandas as pd
 from io import BytesIO
@@ -1124,14 +1124,48 @@ def reports(request):
         
     all_villages_selected = (selected_village_id == 'all')
 
-    if request.GET.get('action') == 'export_plots':
-        plots_qs = filter_plots_by_hierarchy(Plot.objects.all(), filter_ctx).select_related('farmer', 'crop_type', 'variety', 'soil_type')
+    plots_qs = filter_plots_by_hierarchy(Plot.objects.all(), filter_ctx).select_related('farmer', 'crop_type', 'variety', 'soil_type')
+    
+    if selected_village_id != 'all':
+        plots_qs = plots_qs.filter(village_id=selected_village_id)
         
-        if selected_village_id != 'all':
-            plots_qs = plots_qs.filter(village_id=selected_village_id)
+    ndvi_records = NDVIRecord.objects.filter(plot__in=plots_qs).order_by('-date_recorded')
+    ndvi_dict = {}
+    for nr in ndvi_records:
+        if nr.plot_id not in ndvi_dict:
+            ndvi_dict[nr.plot_id] = nr
             
+    good_count = 0
+    moderate_count = 0
+    attention_count = 0
+    
+    classified_plots = []
+    for p in plots_qs:
+        status = 'Unknown'
+        latest_ndvi = ndvi_dict.get(p.id)
+        if latest_ndvi and latest_ndvi.health_status:
+            h = latest_ndvi.health_status.strip().title()
+            if h == 'Good':
+                status = 'Good'
+            elif h == 'Moderate':
+                status = 'Moderate'
+            elif h in ['Need Attention', 'Critical']:
+                status = 'Need Attention'
+        
+        if status == 'Good': good_count += 1
+        elif status == 'Moderate': moderate_count += 1
+        elif status == 'Need Attention': attention_count += 1
+        
+        p.computed_health_status = status
+        classified_plots.append(p)
+        
+    selected_status = request.GET.get('health_status', 'all')
+    if selected_status != 'all':
+        classified_plots = [p for p in classified_plots if p.computed_health_status == selected_status]
+
+    if request.GET.get('action') == 'export_plots':
         data = []
-        for p in plots_qs:
+        for p in classified_plots:
             data.append({
                 'Plot ID': p.plot_code,
                 'Farmer Name': p.farmer.name if p.farmer else '',
@@ -1142,7 +1176,8 @@ def reports(request):
                 'Area (Acres)': float(p.area_acre) if p.area_acre else 0,
                 'Planting Date': p.planting_date.strftime('%Y-%m-%d') if p.planting_date else '',
                 'Soil Type': p.soil_type.soil_name if p.soil_type else '',
-                'Status': p.status,
+                'Health Status': p.computed_health_status,
+                'Mapping Status': p.status,
             })
             
         df = pd.DataFrame(data)
@@ -1155,11 +1190,20 @@ def reports(request):
         response['Content-Disposition'] = 'attachment; filename="plot_report.xlsx"'
         return response
 
+    paginator = Paginator(classified_plots, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
         **filter_ctx,
         'villages': villages,
         'selected_village_id': selected_village_id,
         'all_villages_selected': all_villages_selected,
+        'plots': page_obj,
+        'good_count': good_count,
+        'moderate_count': moderate_count,
+        'attention_count': attention_count,
+        'selected_status': selected_status,
     }
     return render(request, 'reports.html', context)
 

@@ -8,9 +8,32 @@
     <h2>Data Reports</h2>
 </div>
 
+<!-- Health Status Grids -->
+<div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <div onclick="setHealthStatus('Good')" class="metric-card {% if selected_status == 'Good' %}active-card{% endif %}" style="cursor: pointer; border: {% if selected_status == 'Good' %}2px solid var(--primary-color){% else %}none{% endif %};">
+        <div class="metric-title">Good Plots</div>
+        <div class="metric-value" style="color: var(--primary-color);">{{ good_count }}</div>
+        <i class="fa-solid fa-seedling metric-icon" style="color: rgba(46, 125, 50, 0.1);"></i>
+    </div>
+    
+    <div onclick="setHealthStatus('Moderate')" class="metric-card warning {% if selected_status == 'Moderate' %}active-card{% endif %}" style="cursor: pointer; border: {% if selected_status == 'Moderate' %}2px solid var(--warning){% else %}none{% endif %};">
+        <div class="metric-title">Moderate Plots</div>
+        <div class="metric-value" style="color: var(--warning);">{{ moderate_count }}</div>
+        <i class="fa-solid fa-leaf metric-icon" style="color: rgba(245, 124, 0, 0.1);"></i>
+    </div>
+    
+    <div onclick="setHealthStatus('Need Attention')" class="metric-card danger {% if selected_status == 'Need Attention' %}active-card{% endif %}" style="cursor: pointer; border: {% if selected_status == 'Need Attention' %}2px solid var(--danger){% else %}none{% endif %};">
+        <div class="metric-title">Need Attention Plots</div>
+        <div class="metric-value" style="color: var(--danger);">{{ attention_count }}</div>
+        <i class="fa-solid fa-triangle-exclamation metric-icon" style="color: rgba(211, 47, 47, 0.1);"></i>
+    </div>
+</div>
+
 <!-- Filter Bar -->
 <div class="filter-card mb-4" style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 2rem;">
     <form method="GET" action="{% url 'reports' %}" id="reportFilterForm">
+        <input type="hidden" name="health_status" id="healthStatusInput" value="{{ selected_status }}">
+        
         <div class="filter-header-title" style="margin-bottom: 1rem; font-weight: 600; color: var(--text-dark);">
             <i class="fa-solid fa-filter"></i>
             <span>Filter Data</span>
@@ -83,6 +106,11 @@
         </div>
         
         <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 10px;">
+            {% if selected_status != 'all' %}
+            <button type="button" onclick="setHealthStatus('all')" style="background: transparent; color: var(--text-muted); border: 1px solid #ddd; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';">
+                Clear Status Filter
+            </button>
+            {% endif %}
             <button type="button" onclick="document.getElementById('actionInput').value='export_plots'; this.form.submit(); document.getElementById('actionInput').value='';" style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';">
                 <i class="fa-solid fa-file-excel"></i> Download Plot Data
             </button>
@@ -92,8 +120,51 @@
 </div>
 
 <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-    <h3 style="margin-bottom: 1rem;">Available Reports</h3>
-    <p style="color: var(--text-muted);">Select filters above and click download to export data to Excel. The downloaded file will only contain records matching the selected Factory, Division, Section, and Village.</p>
+    <h3 style="margin-bottom: 1.5rem;">Plot Data {% if selected_status != 'all' %}({{ selected_status }}){% endif %}</h3>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 800px;">
+            <thead style="background: var(--primary-light); color: var(--primary-color);">
+                <tr>
+                    <th style="padding: 1rem;">Plot ID</th>
+                    <th style="padding: 1rem;">Farmer</th>
+                    <th style="padding: 1rem;">Village</th>
+                    <th style="padding: 1rem;">Crop (Variety)</th>
+                    <th style="padding: 1rem;">Area (Acres)</th>
+                    <th style="padding: 1rem;">Health Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plot in plots %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem;">{{ plot.plot_code|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ plot.farmer.name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ plot.village_name|default:'-' }}</td>
+                    <td style="padding: 1rem;">
+                        {{ plot.crop_type.crop_name|default:'-' }}
+                        {% if plot.variety %} ({{ plot.variety.variety_name }}){% endif %}
+                    </td>
+                    <td style="padding: 1rem;">{{ plot.area_acre|default:'0' }}</td>
+                    <td style="padding: 1rem;">
+                        {% if plot.computed_health_status == 'Good' %}
+                        <span style="background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Good</span>
+                        {% elif plot.computed_health_status == 'Moderate' %}
+                        <span style="background: #fff3e0; color: #e65100; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Moderate</span>
+                        {% elif plot.computed_health_status == 'Need Attention' %}
+                        <span style="background: #ffebee; color: #d32f2f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Need Attention</span>
+                        {% else %}
+                        <span style="background: #f5f5f5; color: #757575; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Unknown</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 1rem; text-align: center; color: var(--text-muted);">No plots found for the selected filters.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'pagination.html' with items=plots %}
 </div>
 
 {% endblock %}
@@ -109,5 +180,10 @@
             });
         }
     });
+
+    function setHealthStatus(status) {
+        document.getElementById('healthStatusInput').value = status;
+        document.getElementById('reportFilterForm').submit();
+    }
 </script>
 {% endblock %}
