@@ -465,17 +465,18 @@ def get_filter_context(request):
     }
 
 def filter_plots_by_hierarchy(plots_qs, filter_ctx):
+    from django.db.models import Q
     if filter_ctx['selected_section_id'] != 'all':
-        return plots_qs.filter(farmer__section_id=filter_ctx['selected_section_id'])
+        return plots_qs.filter(Q(section_id=filter_ctx['selected_section_id']) | Q(farmer__section_id=filter_ctx['selected_section_id']))
     elif filter_ctx['selected_division_id'] != 'all':
-        return plots_qs.filter(farmer__section__division_id=filter_ctx['selected_division_id'])
+        return plots_qs.filter(Q(division_id=filter_ctx['selected_division_id']) | Q(farmer__section__division_id=filter_ctx['selected_division_id']))
     elif filter_ctx['selected_factory_id'] != 'all':
-        return plots_qs.filter(farmer__section__division__factory_name_id=filter_ctx['selected_factory_id'])
+        return plots_qs.filter(Q(factory_id=filter_ctx['selected_factory_id']) | Q(farmer__section__division__factory_name_id=filter_ctx['selected_factory_id']))
     elif not filter_ctx['all_selected']:
-        return plots_qs.filter(farmer__section__division__factory_name__group_id=filter_ctx['selected_group_id'])
+        return plots_qs.filter(Q(group_id=filter_ctx['selected_group_id']) | Q(farmer__section__division__factory_name__group_id=filter_ctx['selected_group_id']))
     elif not filter_ctx['is_superadmin']:
         allowed_f_ids = [f.id for f in filter_ctx['factories']]
-        return plots_qs.filter(farmer__section__division__factory_name_id__in=allowed_f_ids)
+        return plots_qs.filter(Q(factory_id__in=allowed_f_ids) | Q(farmer__section__division__factory_name_id__in=allowed_f_ids))
     return plots_qs
 
 def dashboard(request):
