@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult
 from django.core.paginator import Paginator
+import pandas as pd
+from io import BytesIO
 
 import json
 
@@ -1100,7 +1102,66 @@ def delete_scout_log(request, id):
     return redirect('scout_logs')
 
 def reports(request):
-    return render(request, 'reports.html')
+    filter_ctx = get_filter_context(request)
+    
+    # Also fetch villages based on the selected section (or all if all)
+    if filter_ctx.get('selected_section_id', 'all') != 'all':
+        villages = list(Village.objects.filter(section_id=filter_ctx['selected_section_id']))
+    elif filter_ctx.get('selected_division_id', 'all') != 'all':
+        villages = list(Village.objects.filter(section__division_id=filter_ctx['selected_division_id']))
+    elif filter_ctx.get('selected_factory_id', 'all') != 'all':
+        villages = list(Village.objects.filter(section__division__factory_name_id=filter_ctx['selected_factory_id']))
+    else:
+        # depend on group or all
+        if not filter_ctx.get('all_selected', True):
+            villages = list(Village.objects.filter(section__division__factory_name__group_id=filter_ctx.get('selected_group_id')))
+        else:
+            villages = list(Village.objects.all())
+            
+    selected_village_id = request.GET.get('village', 'all')
+    for v in villages:
+        v.is_selected = (str(v.id) == selected_village_id)
+        
+    all_villages_selected = (selected_village_id == 'all')
+
+    if request.GET.get('action') == 'export_plots':
+        plots_qs = filter_plots_by_hierarchy(Plot.objects.all(), filter_ctx).select_related('farmer', 'crop_type', 'variety', 'soil_type')
+        
+        if selected_village_id != 'all':
+            plots_qs = plots_qs.filter(village_id=selected_village_id)
+            
+        data = []
+        for p in plots_qs:
+            data.append({
+                'Plot ID': p.plot_code,
+                'Farmer Name': p.farmer.name if p.farmer else '',
+                'Division': p.division_name or '',
+                'Section': p.section_name or '',
+                'Village': p.village_name or '',
+                'Crop Variety': f"{p.crop_type.crop_name if p.crop_type else ''} ({p.variety.variety_name if p.variety else ''})",
+                'Area (Acres)': float(p.area_acre) if p.area_acre else 0,
+                'Planting Date': p.planting_date.strftime('%Y-%m-%d') if p.planting_date else '',
+                'Soil Type': p.soil_type.soil_name if p.soil_type else '',
+                'Status': p.status,
+            })
+            
+        df = pd.DataFrame(data)
+        excel_file = BytesIO()
+        with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+            
+        excel_file.seek(0)
+        response = HttpResponse(excel_file.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="plot_report.xlsx"'
+        return response
+
+    context = {
+        **filter_ctx,
+        'villages': villages,
+        'selected_village_id': selected_village_id,
+        'all_villages_selected': all_villages_selected,
+    }
+    return render(request, 'reports.html', context)
 
 def settings(request):
     return render(request, 'settings.html')

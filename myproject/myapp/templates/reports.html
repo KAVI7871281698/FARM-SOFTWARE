@@ -4,68 +4,110 @@
 {% block header_title %}Reports{% endblock %}
 
 {% block content %}
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-            <i class="fa-solid fa-file-pdf" style="font-size: 3rem; color: var(--danger); margin-bottom: 1rem;"></i>
-            <h3 style="font-size: 1.1rem; color: #333;">Weekly Crop Health</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Generated on May 28, 2026</p>
-        </div>
-        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-            <i class="fa-solid fa-file-excel" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
-            <h3 style="font-size: 1.1rem; color: #333;">Plot Yield Estimates</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Generated on May 15, 2026</p>
-        </div>
-        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-            <i class="fa-solid fa-file-contract" style="font-size: 3rem; color: var(--info); margin-bottom: 1rem;"></i>
-            <h3 style="font-size: 1.1rem; color: #333;">Scouting Summary</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Generated on May 01, 2026</p>
-        </div>
-    </div>
+<div class="surveys-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Data Reports</h2>
+</div>
 
-    <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
-            <h3>Recent Damage Reports</h3>
-            <button style="background: none; border: 1px solid #ddd; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 500; font-family: 'Outfit';">Export All</button>
+<!-- Filter Bar -->
+<div class="filter-card mb-4" style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 2rem;">
+    <form method="GET" action="{% url 'reports' %}" id="reportFilterForm">
+        <div class="filter-header-title" style="margin-bottom: 1rem; font-weight: 600; color: var(--text-dark);">
+            <i class="fa-solid fa-filter"></i>
+            <span>Filter Data</span>
         </div>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 600px;">
-                <thead style="background: var(--primary-light); color: var(--primary-color);">
-                    <tr>
-                        <th style="padding: 1rem;">Date</th>
-                        <th style="padding: 1rem;">Plot ID</th>
-                        <th style="padding: 1rem;">Issue Type</th>
-                        <th style="padding: 1rem;">Severity</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 1rem;">27 May 2026</td>
-                        <td style="padding: 1rem;">#P-102</td>
-                        <td style="padding: 1rem;">Aphid Infestation</td>
-                        <td style="padding: 1rem;"><span style="color: var(--danger); font-weight: bold;">High</span></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 1rem;">22 May 2026</td>
-                        <td style="padding: 1rem;">#P-103</td>
-                        <td style="padding: 1rem;">Water Logging</td>
-                        <td style="padding: 1rem;"><span style="color: var(--warning); font-weight: bold;">Medium</span></td>
-                    </tr>
-                </tbody>
-            </table>
+
+        <div class="filter-controls-wrapper" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            <!-- Group Selector (ONLY shown for SuperAdmin) -->
+            {% if request.session.role_id == 1 or request.session.role_id == '1' %}
+            <div class="filter-item" style="flex: 1; min-width: 200px;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Group</label>
+                <select name="group" onchange="this.form.submit()" class="filter-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                    <option value="all" {% if all_selected %}selected{% endif %}>All Groups</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}" {% if group.is_selected %}selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% else %}
+            {% if not all_selected %}
+            <input type="hidden" name="group" value="{{ selected_group_id }}">
+            {% endif %}
+            {% endif %}
+
+            <!-- Factory Selector -->
+            <div class="filter-item" style="flex: 1; min-width: 200px;">
+                {% if is_superadmin and not all_selected %}
+                <input type="hidden" name="group" value="{{ selected_group_id }}">
+                {% endif %}
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Factory</label>
+                <select name="factory" onchange="this.form.submit()" class="filter-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                    <option value="all" {% if all_factories_selected %}selected{% endif %}>All Factories</option>
+                    {% for f in factories %}
+                    <option value="{{ f.id }}" {% if f.is_selected %}selected{% endif %}>{{ f.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Division Selector -->
+            <div class="filter-item" style="flex: 1; min-width: 200px;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Division</label>
+                <select name="division" onchange="this.form.submit()" class="filter-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                    <option value="all" {% if all_divisions_selected %}selected{% endif %}>All Divisions</option>
+                    {% for d in divisions %}
+                    <option value="{{ d.id }}" {% if d.is_selected %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Section Selector -->
+            <div class="filter-item" style="flex: 1; min-width: 200px;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Section</label>
+                <select name="section" onchange="this.form.submit()" class="filter-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                    <option value="all" {% if all_sections_selected %}selected{% endif %}>All Sections</option>
+                    {% for s in sections %}
+                    <option value="{{ s.id }}" {% if s.is_selected %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Village Selector -->
+            <div class="filter-item" style="flex: 1; min-width: 200px;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Village</label>
+                <select name="village" onchange="this.form.submit()" class="filter-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit';">
+                    <option value="all" {% if all_villages_selected %}selected{% endif %}>All Villages</option>
+                    {% for v in villages %}
+                    <option value="{{ v.id }}" {% if v.is_selected %}selected{% endif %}>{{ v.village_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
-    </div>
+        
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" onclick="document.getElementById('actionInput').value='export_plots'; this.form.submit(); document.getElementById('actionInput').value='';" style="background: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';">
+                <i class="fa-solid fa-file-excel"></i> Download Plot Data
+            </button>
+            <input type="hidden" name="action" id="actionInput" value="">
+        </div>
+    </form>
+</div>
+
+<div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+    <h3 style="margin-bottom: 1rem;">Available Reports</h3>
+    <p style="color: var(--text-muted);">Select filters above and click download to export data to Excel. The downloaded file will only contain records matching the selected Factory, Division, Section, and Village.</p>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuToggle = document.getElementById('menuToggle');
-            const sidebar = document.querySelector('.sidebar');
-            if(menuToggle && sidebar) {
-                menuToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('open');
-                });
-            }
-        });
-    </script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if(menuToggle && sidebar) {
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('open');
+            });
+        }
+    });
+</script>
 {% endblock %}
