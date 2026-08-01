@@ -134,14 +134,23 @@
 <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
     <h3 style="margin-bottom: 1.5rem;">Plot Data {% if selected_status != 'all' %}({{ selected_status }}){% endif %}</h3>
     <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 800px;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 1400px;">
             <thead style="background: var(--primary-light); color: var(--primary-color);">
                 <tr>
                     <th style="padding: 1rem;">Plot ID</th>
                     <th style="padding: 1rem;">Farmer</th>
+                    <th style="padding: 1rem;">Group</th>
+                    <th style="padding: 1rem;">Factory</th>
+                    <th style="padding: 1rem;">Division</th>
+                    <th style="padding: 1rem;">Section</th>
                     <th style="padding: 1rem;">Village</th>
+                    <th style="padding: 1rem;">Officer</th>
                     <th style="padding: 1rem;">Crop (Variety)</th>
                     <th style="padding: 1rem;">Area (Acres)</th>
+                    <th style="padding: 1rem;">NDVI Date</th>
+                    <th style="padding: 1rem;">NDVI Value</th>
+                    <th style="padding: 1rem;">Stage</th>
+                    <th style="padding: 1rem;">Crop Age</th>
                     <th style="padding: 1rem;">Health Status</th>
                 </tr>
             </thead>
@@ -150,12 +159,25 @@
                 <tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 1rem;">{{ plot.plot_code|default:'-' }}</td>
                     <td style="padding: 1rem;">{{ plot.farmer.name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ plot.computed_group|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ plot.computed_factory|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ plot.division_name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ plot.section_name|default:'-' }}</td>
                     <td style="padding: 1rem;">{{ plot.village_name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ plot.officer_assigned|default:'-' }}</td>
                     <td style="padding: 1rem;">
                         {{ plot.crop_type.crop_name|default:'-' }}
                         {% if plot.variety %} ({{ plot.variety.variety_name }}){% endif %}
                     </td>
                     <td style="padding: 1rem;">{{ plot.area_acre|default:'0' }}</td>
+                    <td style="padding: 1rem;">{{ plot.latest_ndvi_date|default:'-' }}</td>
+                    <td style="padding: 1rem;">
+                        {% if plot.latest_ndvi_value %}
+                        <span style="font-weight: 600;">{{ plot.latest_ndvi_value }}</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td style="padding: 1rem;">{{ plot.latest_ndvi_stage|default:'-' }}</td>
+                    <td style="padding: 1rem;">{% if plot.latest_ndvi_crop_age %}{{ plot.latest_ndvi_crop_age }} days{% else %}-{% endif %}</td>
                     <td style="padding: 1rem;">
                         {% if plot.computed_health_status == 'Good' %}
                         <span style="background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Good</span>
@@ -170,7 +192,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" style="padding: 1rem; text-align: center; color: var(--text-muted);">No plots found for the selected filters.</td>
+                    <td colspan="15" style="padding: 1rem; text-align: center; color: var(--text-muted);">No plots found for the selected filters.</td>
                 </tr>
                 {% endfor %}
             </tbody>

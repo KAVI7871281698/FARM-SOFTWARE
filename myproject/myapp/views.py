@@ -1125,7 +1125,10 @@ def reports(request):
         
     all_villages_selected = (selected_village_id == 'all')
 
-    plots_qs = filter_plots_by_hierarchy(Plot.objects.all(), filter_ctx).select_related('farmer', 'crop_type', 'variety', 'soil_type')
+    plots_qs = filter_plots_by_hierarchy(Plot.objects.all(), filter_ctx).select_related(
+        'farmer', 'crop_type', 'variety', 'soil_type', 'officer',
+        'farmer__section__division__factory_name__group'
+    )
     
     if selected_village_id != 'all':
         plots_qs = plots_qs.filter(village_id=selected_village_id)
@@ -1135,6 +1138,11 @@ def reports(request):
     
     scout_dict = {s.plot_id: s for s in latest_scouts}
     ndvi_dict = {n.plot_id: n for n in latest_ndvis}
+    
+    # Pre-fetch work assigns for officers if plot.officer is missing
+    villages_ids = {p.village_id for p in plots_qs if p.village_id}
+    work_assigns = WorkAssign.objects.filter(village_id__in=villages_ids).select_related('officer')
+    wa_dict = {wa.village_id: wa.officer.name for wa in work_assigns if wa.officer}
             
     good_count = 0
     moderate_count = 0
@@ -1183,6 +1191,32 @@ def reports(request):
             elif status == 'Need Attention': attention_count += 1
             
         p.computed_health_status = status
+        
+        # Additional data for UI and Export
+        p.officer_assigned = p.officer.name if p.officer else wa_dict.get(p.village_id, '')
+        
+        # Safe group/factory fetching
+        farmer_sec = getattr(p, 'farmer', None) and getattr(p.farmer, 'section', None)
+        farmer_div = getattr(farmer_sec, 'division', None) if farmer_sec else None
+        farmer_fac = getattr(farmer_div, 'factory_name', None) if farmer_div else None
+        farmer_grp = getattr(farmer_fac, 'group', None) if farmer_fac else None
+        
+        p.computed_group = p.group_name or (farmer_grp.name if farmer_grp else '')
+        p.computed_factory = p.factory_name or (farmer_fac.name if farmer_fac else '')
+        
+        # NDVI fields
+        latest_ndvi = ndvi_dict.get(p.id)
+        if latest_ndvi:
+            p.latest_ndvi_date = latest_ndvi.date_recorded.strftime('%Y-%m-%d') if latest_ndvi.date_recorded else ''
+            p.latest_ndvi_value = float(latest_ndvi.ndvi_value) if latest_ndvi.ndvi_value else ''
+            p.latest_ndvi_stage = latest_ndvi.stage or ''
+            p.latest_ndvi_crop_age = latest_ndvi.crop_age_days or ''
+        else:
+            p.latest_ndvi_date = ''
+            p.latest_ndvi_value = ''
+            p.latest_ndvi_stage = ''
+            p.latest_ndvi_crop_age = ''
+            
         classified_plots.append(p)
         
     selected_status = request.GET.get('health_status', 'all')
@@ -1200,15 +1234,22 @@ def reports(request):
             data.append({
                 'Plot ID': p.plot_code,
                 'Farmer Name': p.farmer.name if p.farmer else '',
+                'Group': p.computed_group,
+                'Factory': p.computed_factory,
                 'Division': p.division_name or '',
                 'Section': p.section_name or '',
                 'Village': p.village_name or '',
+                'Officer': p.officer_assigned,
                 'Crop Variety': f"{p.crop_type.crop_name if p.crop_type else ''} ({p.variety.variety_name if p.variety else ''})",
                 'Area (Acres)': float(p.area_acre) if p.area_acre else 0,
                 'Planting Date': p.planting_date.strftime('%Y-%m-%d') if p.planting_date else '',
                 'Soil Type': p.soil_type.soil_name if p.soil_type else '',
-                'Health Status': p.computed_health_status,
                 'Mapping Status': p.status,
+                'Health Status': p.computed_health_status,
+                'NDVI Date': p.latest_ndvi_date,
+                'NDVI Value': p.latest_ndvi_value,
+                'NDVI Stage': p.latest_ndvi_stage,
+                'Crop Age (Days)': p.latest_ndvi_crop_age,
             })
             
         df = pd.DataFrame(data)
