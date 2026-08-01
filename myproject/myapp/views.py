@@ -1304,26 +1304,26 @@ def reports(request):
                 })
         else:
             for p in classified_plots:
-            data.append({
-                'Plot ID': p.plot_code,
-                'Farmer Name': p.farmer.name if p.farmer else '',
-                'Group': p.computed_group,
-                'Factory': p.computed_factory,
-                'Division': p.division_name or '',
-                'Section': p.section_name or '',
-                'Village': p.village_name or '',
-                'Officer': p.officer_assigned,
-                'Crop Variety': f"{p.crop_type.crop_name if p.crop_type else ''} ({p.variety.variety_name if p.variety else ''})",
-                'Area (Acres)': float(p.area_acre) if p.area_acre else 0,
-                'Planting Date': p.planting_date.strftime('%Y-%m-%d') if p.planting_date else '',
-                'Soil Type': p.soil_type.soil_name if p.soil_type else '',
-                'Mapping Status': p.status,
-                'Health Status': p.computed_health_status,
-                'NDVI Date': p.latest_ndvi_date,
-                'NDVI Value': p.latest_ndvi_value,
-                'NDVI Stage': p.latest_ndvi_stage,
-                'Crop Age (Days)': p.latest_ndvi_crop_age,
-            })
+                data.append({
+                    'Plot ID': p.plot_code,
+                    'Farmer Name': p.farmer.name if p.farmer else '',
+                    'Group': p.computed_group,
+                    'Factory': p.computed_factory,
+                    'Division': p.division_name or '',
+                    'Section': p.section_name or '',
+                    'Village': p.village_name or '',
+                    'Officer': p.officer_assigned,
+                    'Crop Variety': f"{p.crop_type.crop_name if p.crop_type else ''} ({p.variety.variety_name if p.variety else ''})",
+                    'Area (Acres)': float(p.area_acre) if p.area_acre else 0,
+                    'Planting Date': p.planting_date.strftime('%Y-%m-%d') if p.planting_date else '',
+                    'Soil Type': p.soil_type.soil_name if p.soil_type else '',
+                    'Mapping Status': p.status,
+                    'Health Status': p.computed_health_status,
+                    'NDVI Date': p.latest_ndvi_date,
+                    'NDVI Value': p.latest_ndvi_value,
+                    'NDVI Stage': p.latest_ndvi_stage,
+                    'Crop Age (Days)': p.latest_ndvi_crop_age,
+                })
             
         df = pd.DataFrame(data)
         excel_file = BytesIO()
