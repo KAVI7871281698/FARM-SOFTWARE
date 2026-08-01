@@ -1129,39 +1129,69 @@ def reports(request):
     if selected_village_id != 'all':
         plots_qs = plots_qs.filter(village_id=selected_village_id)
         
-    ndvi_records = NDVIRecord.objects.filter(plot__in=plots_qs).order_by('-date_recorded')
-    ndvi_dict = {}
-    for nr in ndvi_records:
-        if nr.plot_id not in ndvi_dict:
-            ndvi_dict[nr.plot_id] = nr
+    latest_scouts = ScoutingLog.objects.filter(plot__in=plots_qs).order_by('plot', '-created_at').distinct('plot')
+    latest_ndvis = NDVIRecord.objects.filter(plot__in=plots_qs).order_by('plot', '-date_recorded').distinct('plot')
+    
+    scout_dict = {s.plot_id: s for s in latest_scouts}
+    ndvi_dict = {n.plot_id: n for n in latest_ndvis}
             
     good_count = 0
     moderate_count = 0
     attention_count = 0
+    mapped_count = 0
+    unmapped_count = 0
     
     classified_plots = []
     for p in plots_qs:
+        is_mapped = False
+        if p.status and p.status.lower() == 'mapped':
+            is_mapped = True
+        elif bool(p.boundaries):
+            is_mapped = True
+            
+        if is_mapped:
+            mapped_count += 1
+            p.mapping_status = 'Mapped'
+        else:
+            unmapped_count += 1
+            p.mapping_status = 'Unmapped'
+            
         status = 'Unknown'
-        latest_ndvi = ndvi_dict.get(p.id)
-        if latest_ndvi and latest_ndvi.health_status:
-            h = latest_ndvi.health_status.strip().title()
-            if h == 'Good':
-                status = 'Good'
-            elif h == 'Moderate':
-                status = 'Moderate'
-            elif h in ['Need Attention', 'Critical']:
-                status = 'Need Attention'
-        
-        if status == 'Good': good_count += 1
-        elif status == 'Moderate': moderate_count += 1
-        elif status == 'Need Attention': attention_count += 1
-        
+        if is_mapped:
+            status = 'Good'
+            latest_ndvi = ndvi_dict.get(p.id)
+            latest_scout = scout_dict.get(p.id)
+            
+            if latest_ndvi:
+                ndvi_h = latest_ndvi.health_status
+                if ndvi_h and ndvi_h.strip().title() == 'Good':
+                    status = 'Good'
+                elif ndvi_h and ndvi_h.strip().title() == 'Moderate':
+                    status = 'Moderate'
+                elif ndvi_h and ndvi_h.strip().title() in ['Need Attention', 'Critical']:
+                    status = 'Need Attention'
+                    
+            if latest_scout:
+                if latest_scout.disease_presence:
+                    status = 'Need Attention'
+                elif latest_scout.pest_presence or latest_scout.water_stress_symptoms or getattr(latest_scout, 'nutrient_deficiency', False):
+                    status = 'Moderate'
+                    
+            if status == 'Good': good_count += 1
+            elif status == 'Moderate': moderate_count += 1
+            elif status == 'Need Attention': attention_count += 1
+            
         p.computed_health_status = status
         classified_plots.append(p)
         
     selected_status = request.GET.get('health_status', 'all')
     if selected_status != 'all':
-        classified_plots = [p for p in classified_plots if p.computed_health_status == selected_status]
+        if selected_status == 'Mapped':
+            classified_plots = [p for p in classified_plots if p.mapping_status == 'Mapped']
+        elif selected_status == 'Unmapped':
+            classified_plots = [p for p in classified_plots if p.mapping_status == 'Unmapped']
+        else:
+            classified_plots = [p for p in classified_plots if p.computed_health_status == selected_status]
 
     if request.GET.get('action') == 'export_plots':
         data = []
@@ -1203,6 +1233,8 @@ def reports(request):
         'good_count': good_count,
         'moderate_count': moderate_count,
         'attention_count': attention_count,
+        'mapped_count': mapped_count,
+        'unmapped_count': unmapped_count,
         'selected_status': selected_status,
     }
     return render(request, 'reports.html', context)

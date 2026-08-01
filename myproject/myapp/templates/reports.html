@@ -9,7 +9,19 @@
 </div>
 
 <!-- Health Status Grids -->
-<div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+<div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div onclick="setHealthStatus('Mapped')" class="metric-card {% if selected_status == 'Mapped' %}active-card{% endif %}" style="cursor: pointer; border: {% if selected_status == 'Mapped' %}2px solid var(--info){% else %}none{% endif %};">
+        <div class="metric-title">Mapped Plots</div>
+        <div class="metric-value" style="color: var(--info);">{{ mapped_count }}</div>
+        <i class="fa-solid fa-map-location-dot metric-icon" style="color: rgba(2, 136, 209, 0.1);"></i>
+    </div>
+
+    <div onclick="setHealthStatus('Unmapped')" class="metric-card {% if selected_status == 'Unmapped' %}active-card{% endif %}" style="cursor: pointer; border: {% if selected_status == 'Unmapped' %}2px solid var(--text-muted){% else %}none{% endif %};">
+        <div class="metric-title">Unmapped Plots</div>
+        <div class="metric-value" style="color: var(--text-muted);">{{ unmapped_count }}</div>
+        <i class="fa-solid fa-map metric-icon" style="color: rgba(102, 102, 102, 0.1);"></i>
+    </div>
+
     <div onclick="setHealthStatus('Good')" class="metric-card {% if selected_status == 'Good' %}active-card{% endif %}" style="cursor: pointer; border: {% if selected_status == 'Good' %}2px solid var(--primary-color){% else %}none{% endif %};">
         <div class="metric-title">Good Plots</div>
         <div class="metric-value" style="color: var(--primary-color);">{{ good_count }}</div>
