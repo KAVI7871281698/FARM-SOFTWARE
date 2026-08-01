@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
-from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult, NDVIRecord
+from .models import Role, Officer, Section, Village, Farmer, Variety, Crop, Group, Factory, Division, WorkAssign, Plot, SoilType, ScoutingLog, Survey, SurveyResult,ScoutResult, NDVIRecord, Scout, ScoutAssignment, ScoutSurveyReport
 from django.core.paginator import Paginator
 import pandas as pd
 from io import BytesIO
@@ -1220,7 +1220,52 @@ def reports(request):
         classified_plots.append(p)
         
     selected_status = request.GET.get('health_status', 'all')
-    if selected_status != 'all':
+    
+    # Process Scout data unconditionally to get count, but details only if selected
+    scouts_qs = Scout.objects.filter(plot__in=plots_qs).select_related(
+        'plot', 'plot__farmer', 'plot__farmer__section__division__factory_name__group',
+        'assignment', 'assignment__officer', 'survey_report'
+    ).order_by('-created_at')
+    
+    scout_count = scouts_qs.count()
+    
+    scout_list = []
+    if selected_status == 'Scout':
+        # Fetch Scout Results
+        scout_ids = [s.scout_id for s in scouts_qs if s.scout_id]
+        scout_results_dict = {}
+        if scout_ids:
+            sr_qs = ScoutResult.objects.filter(previous_scout_id__in=scout_ids)
+            for sr in sr_qs:
+                scout_results_dict[sr.previous_scout_id] = sr
+                
+        for s in scouts_qs:
+            p = s.plot
+            farmer_sec = getattr(p, 'farmer', None) and getattr(p.farmer, 'section', None)
+            farmer_div = getattr(farmer_sec, 'division', None) if farmer_sec else None
+            farmer_fac = getattr(farmer_div, 'factory_name', None) if farmer_div else None
+            farmer_grp = getattr(farmer_fac, 'group', None) if farmer_fac else None
+            
+            c_group = p.group_name or (farmer_grp.name if farmer_grp else '')
+            c_factory = p.factory_name or (farmer_fac.name if farmer_fac else '')
+            
+            # Assigned Officer - either from Scout assignment, Plot officer, or WorkAssign
+            s_officer = ''
+            if hasattr(s, 'assignment') and s.assignment and s.assignment.officer:
+                s_officer = s.assignment.officer.name
+            else:
+                s_officer = p.officer.name if p.officer else wa_dict.get(p.village_id, '')
+                
+            sr = scout_results_dict.get(s.scout_id)
+            
+            s.computed_group = c_group
+            s.computed_factory = c_factory
+            s.computed_officer = s_officer
+            s.scout_result = sr
+            
+            scout_list.append(s)
+
+    if selected_status != 'all' and selected_status != 'Scout':
         if selected_status == 'Mapped':
             classified_plots = [p for p in classified_plots if p.mapping_status == 'Mapped']
         elif selected_status == 'Unmapped':
@@ -1230,7 +1275,35 @@ def reports(request):
 
     if request.GET.get('action') == 'export_plots':
         data = []
-        for p in classified_plots:
+        if selected_status == 'Scout':
+            for s in scout_list:
+                p = s.plot
+                sr = s.scout_result
+                srep = getattr(s, 'survey_report', None)
+                
+                data.append({
+                    'Scout ID': s.scout_id,
+                    'Plot ID': p.plot_code,
+                    'Farmer Name': p.farmer.name if p.farmer else '',
+                    'Group': s.computed_group,
+                    'Factory': s.computed_factory,
+                    'Division': p.division_name or '',
+                    'Section': p.section_name or '',
+                    'Village': p.village_name or '',
+                    'Assigned Officer': s.computed_officer,
+                    'Alert Reason': s.alert_reason,
+                    'Priority': s.priority,
+                    'Scout Status': s.status,
+                    'Created At': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '',
+                    'Observations (Survey)': srep.observations if srep else '',
+                    'Recommendation (Survey)': srep.recommendation if srep else '',
+                    'Rec. Adopted (Result)': sr.recommendation_adopted if sr else '',
+                    'Problem Status (Result)': sr.current_problem_status if sr else '',
+                    'Crop Status (Result)': sr.current_crop_status if sr else '',
+                    'Seek Expert (Result)': 'Yes' if sr and sr.seek_expert_help else 'No',
+                })
+        else:
+            for p in classified_plots:
             data.append({
                 'Plot ID': p.plot_code,
                 'Farmer Name': p.farmer.name if p.farmer else '',
@@ -1259,10 +1332,15 @@ def reports(request):
             
         excel_file.seek(0)
         response = HttpResponse(excel_file.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="plot_report.xlsx"'
+        filename = "scout_report.xlsx" if selected_status == 'Scout' else "plot_report.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
-    paginator = Paginator(classified_plots, 50)
+    if selected_status == 'Scout':
+        paginator = Paginator(scout_list, 50)
+    else:
+        paginator = Paginator(classified_plots, 50)
+        
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -1277,6 +1355,7 @@ def reports(request):
         'attention_count': attention_count,
         'mapped_count': mapped_count,
         'unmapped_count': unmapped_count,
+        'scout_count': scout_count,
         'selected_status': selected_status,
     }
     return render(request, 'reports.html', context)

@@ -39,6 +39,12 @@
         <div class="metric-value" style="color: var(--danger);">{{ attention_count }}</div>
         <i class="fa-solid fa-triangle-exclamation metric-icon" style="color: rgba(211, 47, 47, 0.1);"></i>
     </div>
+
+    <div onclick="setHealthStatus('Scout')" class="metric-card {% if selected_status == 'Scout' %}active-card{% endif %}" style="cursor: pointer; border: {% if selected_status == 'Scout' %}2px solid var(--primary-color){% else %}none{% endif %};">
+        <div class="metric-title">Scout Reports</div>
+        <div class="metric-value" style="color: var(--primary-color);">{{ scout_count }}</div>
+        <i class="fa-solid fa-binoculars metric-icon" style="color: rgba(46, 125, 50, 0.1);"></i>
+    </div>
 </div>
 
 <!-- Filter Bar -->
@@ -132,11 +138,27 @@
 </div>
 
 <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-    <h3 style="margin-bottom: 1.5rem;">Plot Data {% if selected_status != 'all' %}({{ selected_status }}){% endif %}</h3>
+    <h3 style="margin-bottom: 1.5rem;">{% if selected_status == 'Scout' %}Scout Data{% else %}Plot Data{% endif %} {% if selected_status != 'all' %}({{ selected_status }}){% endif %}</h3>
     <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 1400px;">
             <thead style="background: var(--primary-light); color: var(--primary-color);">
                 <tr>
+                    {% if selected_status == 'Scout' %}
+                    <th style="padding: 1rem;">Scout ID</th>
+                    <th style="padding: 1rem;">Plot ID</th>
+                    <th style="padding: 1rem;">Farmer</th>
+                    <th style="padding: 1rem;">Group</th>
+                    <th style="padding: 1rem;">Factory</th>
+                    <th style="padding: 1rem;">Division</th>
+                    <th style="padding: 1rem;">Section</th>
+                    <th style="padding: 1rem;">Village</th>
+                    <th style="padding: 1rem;">Officer</th>
+                    <th style="padding: 1rem;">Alert Reason</th>
+                    <th style="padding: 1rem;">Priority</th>
+                    <th style="padding: 1rem;">Status</th>
+                    <th style="padding: 1rem;">Rec. Adopted</th>
+                    <th style="padding: 1rem;">Prob. Status</th>
+                    {% else %}
                     <th style="padding: 1rem;">Plot ID</th>
                     <th style="padding: 1rem;">Farmer</th>
                     <th style="padding: 1rem;">Group</th>
@@ -152,9 +174,34 @@
                     <th style="padding: 1rem;">Stage</th>
                     <th style="padding: 1rem;">Crop Age</th>
                     <th style="padding: 1rem;">Health Status</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
+                {% if selected_status == 'Scout' %}
+                {% for scout in plots %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem;">{{ scout.scout_id|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.plot.plot_code|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.plot.farmer.name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.computed_group|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.computed_factory|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.plot.division_name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.plot.section_name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.plot.village_name|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.computed_officer|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.alert_reason|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.priority|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.status|default:'-' }}</td>
+                    <td style="padding: 1rem;">{% if scout.scout_result and scout.scout_result.recommendation_adopted %}Yes{% else %}No{% endif %}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.current_problem_status|default:'-' }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="15" style="padding: 1rem; text-align: center; color: var(--text-muted);">No scout reports found for the selected filters.</td>
+                </tr>
+                {% endfor %}
+                {% else %}
                 {% for plot in plots %}
                 <tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 1rem;">{{ plot.plot_code|default:'-' }}</td>
@@ -195,6 +242,7 @@
                     <td colspan="15" style="padding: 1rem; text-align: center; color: var(--text-muted);">No plots found for the selected filters.</td>
                 </tr>
                 {% endfor %}
+                {% endif %}
             </tbody>
         </table>
     </div>
