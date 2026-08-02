@@ -3042,12 +3042,16 @@ def compare_ndvi_data(request):
         latest_ndvi = latest_ndvi_by_plot.get(p['id'])
         if latest_ndvi:
             status = latest_ndvi['health_status']
-            if status in ['Good', 'Healthy']:
-                data[name]['healthy'] += 1
-            elif status == 'Moderate':
-                data[name]['moderate'] += 1
-            elif status in ['Need Attention', 'Critical']:
-                data[name]['critical'] += 1
+            if status:
+                status_clean = status.strip().title()
+                if status_clean in ['Good', 'Healthy']:
+                    data[name]['healthy'] += 1
+                elif status_clean == 'Moderate':
+                    data[name]['moderate'] += 1
+                elif status_clean in ['Need Attention', 'Critical']:
+                    data[name]['critical'] += 1
+                else:
+                    data[name]['critical'] += 1
                 
     labels = sorted(list(data.keys()))
     healthy_data = [data[l]['healthy'] for l in labels]
