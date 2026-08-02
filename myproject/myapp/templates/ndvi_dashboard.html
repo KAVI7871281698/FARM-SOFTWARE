@@ -22,7 +22,7 @@
     }
 
     #map {
-        height: 500px;
+        height: 600px;
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
@@ -347,24 +347,8 @@
 
 <div class="row mb-5">
     <!-- Interactive Map -->
-    <div class="col-md-8">
+    <div class="col-md-12">
         <div id="map"></div>
-    </div>
-
-    <!-- Plot List -->
-    <div class="col-md-4" style="height: 500px; overflow-y: auto;">
-        <h4>Plot Health Status</h4>
-        {% for plot in plots %}
-        <div class="plot-card">
-            <h5>{{ plot.plot_code }}</h5>
-            <p class="mb-1">Farmer: {{ plot.farmer }}</p>
-            <p class="mb-1">NDVI: <strong>{{ plot.ndvi_value }}</strong></p>
-            <p class="mb-0">Status: <span class="status-{{ plot.health_status }}">{{ plot.health_status }}</span></p>
-            <p class="text-muted small mt-2 mb-0">Last updated: {{ plot.date }}</p>
-        </div>
-        {% empty %}
-        <p class="text-muted">No plot data available with location coordinates for the current filter.</p>
-        {% endfor %}
     </div>
 </div>
 {% endblock %}
@@ -527,9 +511,17 @@
 
                 layer.on('mouseover', function (e) {
                     const popupContent = `
-                        <div style="min-width: 200px;">
+                        <div style="min-width: 250px;">
                             <b>${plot.plot_code}</b><br>
-                            Farmer: ${plot.farmer}<br>
+                            Farmer: ${plot.farmer || 'N/A'}<br>
+                            Group: ${plot.group_name || plot.group || 'N/A'}<br>
+                            Factory: ${plot.factory_name || plot.factory || 'N/A'}<br>
+                            Division: ${plot.division_name || plot.division || 'N/A'}<br>
+                            Section: ${plot.section_name || plot.section || 'N/A'}<br>
+                            Village: ${plot.village || 'N/A'}<br>
+                            Officer: ${plot.officer_name || plot.officer || 'N/A'}<br>
+                            Planting Date: ${plot.planting_date || 'N/A'}<br>
+                            Acres: ${plot.acres || plot.acre || 'N/A'}<br>
                             NDVI Status: <span style="color:${color}; font-weight:bold;">${plot.health_status}</span><br>
                             <hr style="margin:8px 0;">
                             <div id="${popupId}" style="font-size: 0.9em; background: #f8f9fa; padding: 5px; border-radius: 4px; color: #333;">
