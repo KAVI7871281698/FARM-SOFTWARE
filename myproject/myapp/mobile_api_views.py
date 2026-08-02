@@ -141,9 +141,16 @@ def mobile_index_handler(request):
         if str(survey_view).lower() == 'true':
             from django.core.paginator import Paginator
             from django.db.models import Q
-            surveys = Survey.objects.filter(
-                Q(officer__user_id=officer_id) | Q(officer_id=officer_id)
-            ).distinct().select_related('plot', 'plot__farmer').prefetch_related('results').order_by('-id')
+            
+            officer = Officer.objects.filter(id=officer_id).first()
+            is_superadmin = (str(officer.role_id) in ['1', '2', '3']) if getattr(officer, 'role_id', None) else False
+            
+            if is_superadmin:
+                surveys = Survey.objects.all().distinct().select_related('plot', 'plot__farmer').prefetch_related('results').order_by('-id')
+            else:
+                surveys = Survey.objects.filter(
+                    Q(officer__user_id=officer_id) | Q(officer_id=officer_id)
+                ).distinct().select_related('plot', 'plot__farmer').prefetch_related('results').order_by('-id')
 
             # Pagination params
             page = request.POST.get('page') or 1
@@ -1108,10 +1115,16 @@ def api_surveys(request):
         
     from django.db.models import Q
     from django.core.paginator import Paginator
-
-    surveys = Survey.objects.filter(
-        Q(officer__user_id=officer_id) | Q(officer_id=officer_id)
-    ).order_by('-id').select_related('plot', 'plot__farmer').prefetch_related('results')
+    
+    officer = Officer.objects.filter(id=officer_id).first()
+    is_superadmin = (str(officer.role_id) in ['1', '2', '3']) if getattr(officer, 'role_id', None) else False
+    
+    if is_superadmin:
+        surveys = Survey.objects.all().order_by('-id').select_related('plot', 'plot__farmer').prefetch_related('results')
+    else:
+        surveys = Survey.objects.filter(
+            Q(officer__user_id=officer_id) | Q(officer_id=officer_id)
+        ).order_by('-id').select_related('plot', 'plot__farmer').prefetch_related('results')
 
     # Pagination params
     page = request.GET.get('page') or request.POST.get('page') or 1
@@ -1280,8 +1293,14 @@ def api_scouts(request):
             if ln: officer.longitude = ln
             if device_id: officer.device_id = device_id
             officer.save()
-        
-    assignments = ScoutAssignment.objects.filter(officer_id=officer_id).select_related('scout', 'scout__plot', 'scout__plot__farmer')
+            
+    officer_obj = Officer.objects.filter(id=officer_id).first()
+    is_superadmin = (str(officer_obj.role_id) in ['1', '2', '3']) if getattr(officer_obj, 'role_id', None) else False
+    
+    if is_superadmin:
+        assignments = ScoutAssignment.objects.all().select_related('scout', 'scout__plot', 'scout__plot__farmer')
+    else:
+        assignments = ScoutAssignment.objects.filter(officer_id=officer_id).select_related('scout', 'scout__plot', 'scout__plot__farmer')
     
     scouts_data = []
     for assignment in assignments:
