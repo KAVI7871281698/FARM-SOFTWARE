@@ -960,7 +960,7 @@ def api_field_intelligence_plots(request):
     )
     
     # Filter by factories allowed for the officer
-    is_superadmin = (str(officer.role_id) == '1') if getattr(officer, 'role_id', None) else False
+    is_superadmin = (str(officer.role_id) in ['1', '2', '3']) if getattr(officer, 'role_id', None) else False
     if is_superadmin:
         plots = base_plots.select_related('division', 'section', 'village', 'farmer', 'soil_type').prefetch_related(latest_ndvi_prefetch, latest_scouting_prefetch)
     else:
@@ -1375,7 +1375,7 @@ def api_mobile_dashboard(request):
         return JsonResponse({"status": "error", "message": "Invalid officer_id"}, status=400)
     
     # Filter by factories allowed for the officer
-    is_superadmin = (str(officer.role_id) == '1') if getattr(officer, 'role_id', None) else False
+    is_superadmin = (str(officer.role_id) in ['1', '2', '3']) if getattr(officer, 'role_id', None) else False
     if is_superadmin:
         all_plots = Plot.objects.all()
     else:
