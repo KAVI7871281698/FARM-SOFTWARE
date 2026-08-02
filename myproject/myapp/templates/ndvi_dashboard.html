@@ -323,13 +323,7 @@
         </div>
     </div>
 
-    <!-- Survey Completion -->
-    <div class="chart-card">
-        <h3>Survey Completion</h3>
-        <div class="chart-container">
-            <canvas id="surveyCompletionChart"></canvas>
-        </div>
-    </div>
+
 </div>
 
 <div class="dashboard-header">
@@ -433,50 +427,7 @@
         }
     });
 
-    // Survey Completion
-    const surveyData = JSON.parse('{{ survey_completion_data_json|safe }}');
-    const surveyPerc = '{{ survey_perc }}' + '%';
-    const ctxSurvey = document.getElementById('surveyCompletionChart').getContext('2d');
-    new Chart(ctxSurvey, {
-        type: 'doughnut',
-        data: {
-            labels: ['Completed', 'Remaining'],
-            datasets: [{
-                data: surveyData,
-                backgroundColor: ['#0288d1', '#e0e0e0'],
-                borderWidth: 0,
-                circumference: 180,
-                rotation: 270
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '80%',
-            plugins: {
-                legend: { position: 'bottom' },
-                tooltip: { enabled: false }
-            }
-        },
-        plugins: [{
-            id: 'textCenter',
-            beforeDraw: function (chart) {
-                var width = chart.width,
-                    height = chart.height,
-                    ctx = chart.ctx;
-                ctx.restore();
-                var fontSize = (height / 114).toFixed(2);
-                ctx.font = "bold " + fontSize + "em Outfit";
-                ctx.textBaseline = "middle";
-                ctx.fillStyle = "#333";
-                var text = surveyPerc,
-                    textX = Math.round((width - ctx.measureText(text).width) / 2),
-                    textY = height / 1.5;
-                ctx.fillText(text, textX, textY);
-                ctx.save();
-            }
-        }]
-    });
+
 </script>
 
 <script>
