@@ -2787,7 +2787,7 @@ def ndvi_dashboard(request):
     selected_section_id = filter_ctx['selected_section_id']
     is_superadmin = filter_ctx['is_superadmin']
     # Base Plot Query with Filters
-    plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).select_related('farmer').defer('boundary_image').distinct()
+    plots_query = Plot.objects.filter(Q(center_lt_ln__isnull=False) | Q(boundaries__isnull=False)).select_related('farmer', 'group', 'factory', 'division', 'section', 'village', 'officer').defer('boundary_image').distinct()
     
     plots_query = filter_plots_by_hierarchy(plots_query, filter_ctx)
     plots = list(plots_query)
