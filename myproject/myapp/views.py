@@ -3010,39 +3010,49 @@ def ndvi_dashboard(request):
 
 def compare_ndvi_data(request):
     from django.http import JsonResponse
-    from django.db.models import Avg, F, Count, Q
     
     level = request.GET.get('level', 'division')
     
-    qs = NDVIRecord.objects.all()
-    
-    if level == 'factory':
-        qs = qs.annotate(name=F('plot__factory_name'))
-    elif level == 'division':
-        qs = qs.annotate(name=F('plot__division_name'))
-    elif level == 'section':
-        qs = qs.annotate(name=F('plot__section_name'))
-    elif level == 'village':
-        qs = qs.annotate(name=F('plot__village_name'))
-    else:
+    if level not in ['factory', 'division', 'section', 'village']:
         return JsonResponse({'error': 'Invalid level'}, status=400)
-        
-    data = qs.values('name').annotate(
-        healthy_count=Count('id', filter=Q(health_status='Good') | Q(health_status='Healthy')),
-        moderate_count=Count('id', filter=Q(health_status='Moderate')),
-        critical_count=Count('id', filter=Q(health_status='Need Attention') | Q(health_status='Critical'))
-    ).exclude(name__isnull=True).exclude(name='').order_by('name')
     
-    labels = []
-    healthy_data = []
-    moderate_data = []
-    critical_data = []
+    # Get all plots
+    plots = Plot.objects.all().values('id', 'factory_name', 'division_name', 'section_name', 'village_name')
     
-    for item in data:
-        labels.append(item['name'])
-        healthy_data.append(item['healthy_count'])
-        moderate_data.append(item['moderate_count'])
-        critical_data.append(item['critical_count'])
+    # Get latest NDVI records for all plots
+    all_ndvis = NDVIRecord.objects.all().values(
+        'plot_id', 'health_status', 'date_recorded'
+    ).order_by('plot_id', '-date_recorded')
+    
+    latest_ndvi_by_plot = {}
+    for n in all_ndvis:
+        if n['plot_id'] not in latest_ndvi_by_plot:
+            latest_ndvi_by_plot[n['plot_id']] = n
+            
+    data = {}
+    
+    for p in plots:
+        name = p.get(f'{level}_name')
+        if not name:
+            continue
+            
+        if name not in data:
+            data[name] = {'healthy': 0, 'moderate': 0, 'critical': 0}
+            
+        latest_ndvi = latest_ndvi_by_plot.get(p['id'])
+        if latest_ndvi:
+            status = latest_ndvi['health_status']
+            if status in ['Good', 'Healthy']:
+                data[name]['healthy'] += 1
+            elif status == 'Moderate':
+                data[name]['moderate'] += 1
+            elif status in ['Need Attention', 'Critical']:
+                data[name]['critical'] += 1
+                
+    labels = sorted(list(data.keys()))
+    healthy_data = [data[l]['healthy'] for l in labels]
+    moderate_data = [data[l]['moderate'] for l in labels]
+    critical_data = [data[l]['critical'] for l in labels]
         
     return JsonResponse({
         'labels': labels,
