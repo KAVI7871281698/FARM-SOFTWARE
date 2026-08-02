@@ -294,7 +294,7 @@ def mobile_index_handler(request):
                 'latitude': p.latitude, 'longitude': p.longitude, 'center_lt_ln': p.center_lt_ln, 'date_planted': str(p.planting_date) if p.planting_date else None,
                 'health': health_data,
                 'scouting': scouting_data,
-                'image_url': f'/media/{p.plot_code}.png' if p.plot_code else None,
+                'image_url': request.build_absolute_uri(f'/media/{p.plot_code}.png') if p.plot_code else None,
             })
             
         data = []
@@ -1075,7 +1075,7 @@ def api_field_intelligence_plots(request):
                 'status': p.status or '-',
                 'health': health_data,
                 'scouting': scouting_data,
-                'image_url': f'/media/{p.plot_code}.png' if p.plot_code else None,
+                'image_url': request.build_absolute_uri(f'/media/{p.plot_code}.png') if p.plot_code else None,
             })
         except (ValueError, TypeError, IndexError):
             continue
