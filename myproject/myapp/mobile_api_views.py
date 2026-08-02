@@ -1074,6 +1074,7 @@ def api_field_intelligence_plots(request):
                 'status': p.status or '-',
                 'health': health_data,
                 'scouting': scouting_data,
+                'image_url': f'/media/{p.plot_code}.png' if p.plot_code else None,
             })
         except (ValueError, TypeError, IndexError):
             continue
