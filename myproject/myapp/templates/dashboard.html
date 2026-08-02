@@ -1762,13 +1762,29 @@ function switchTrack(trackName) {
         type: 'bar',
         data: {
             labels: [],
-            datasets: [{
-                label: 'Average NDVI',
-                data: [],
-                backgroundColor: '#10b981',
-                borderWidth: 0,
-                borderRadius: 4
-            }]
+            datasets: [
+                {
+                    label: 'Good',
+                    data: [],
+                    backgroundColor: '#10b981', // green
+                    borderWidth: 0,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Moderate',
+                    data: [],
+                    backgroundColor: '#f59e0b', // yellow/orange
+                    borderWidth: 0,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Need Attention',
+                    data: [],
+                    backgroundColor: '#ef4444', // red
+                    borderWidth: 0,
+                    borderRadius: 4
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -1788,23 +1804,27 @@ function switchTrack(trackName) {
                     padding: 12,
                     cornerRadius: 8,
                     titleFont: { family: 'Outfit' },
-                    bodyFont: { family: 'Outfit' }
+                    bodyFont: { family: 'Outfit' },
+                    mode: 'index',
+                    intersect: false
                 }
             },
             scales: {
+                x: {
+                    stacked: true,
+                    grid: { display: false },
+                    border: { display: false }
+                },
                 y: {
+                    stacked: true,
                     beginAtZero: true,
-                    ticks: { stepSize: 0.1 },
+                    ticks: { stepSize: 1 },
                     border: { display: false },
                     title: {
                         display: true,
-                        text: 'Average NDVI',
+                        text: 'Number of Plots',
                         font: { family: 'Outfit' }
                     }
-                },
-                x: {
-                    grid: { display: false },
-                    border: { display: false }
                 }
             }
         }
@@ -1817,7 +1837,9 @@ function switchTrack(trackName) {
             .then(data => {
                 if(data.labels) {
                     compareChart.data.labels = data.labels;
-                    compareChart.data.datasets[0].data = data.avg_ndvis;
+                    compareChart.data.datasets[0].data = data.healthy;
+                    compareChart.data.datasets[1].data = data.moderate;
+                    compareChart.data.datasets[2].data = data.critical;
                     compareChart.update();
                 }
             })

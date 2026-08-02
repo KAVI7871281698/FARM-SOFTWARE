@@ -3010,7 +3010,7 @@ def ndvi_dashboard(request):
 
 def compare_ndvi_data(request):
     from django.http import JsonResponse
-    from django.db.models import Avg, F
+    from django.db.models import Avg, F, Count, Q
     
     level = request.GET.get('level', 'division')
     
@@ -3028,20 +3028,27 @@ def compare_ndvi_data(request):
         return JsonResponse({'error': 'Invalid level'}, status=400)
         
     data = qs.values('name').annotate(
-        avg_ndvi=Avg('ndvi_mean')
-
+        healthy_count=Count('id', filter=Q(health_status='Good') | Q(health_status='Healthy')),
+        moderate_count=Count('id', filter=Q(health_status='Moderate')),
+        critical_count=Count('id', filter=Q(health_status='Need Attention') | Q(health_status='Critical'))
     ).exclude(name__isnull=True).exclude(name='').order_by('name')
     
     labels = []
-    avg_ndvis = []
+    healthy_data = []
+    moderate_data = []
+    critical_data = []
     
     for item in data:
         labels.append(item['name'])
-        avg_ndvis.append(round(float(item['avg_ndvi'] or 0), 4))
+        healthy_data.append(item['healthy_count'])
+        moderate_data.append(item['moderate_count'])
+        critical_data.append(item['critical_count'])
         
     return JsonResponse({
         'labels': labels,
-        'avg_ndvis': avg_ndvis
+        'healthy': healthy_data,
+        'moderate': moderate_data,
+        'critical': critical_data
     })
 
 def scout_result_view(request):
