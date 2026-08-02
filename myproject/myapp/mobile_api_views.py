@@ -214,7 +214,12 @@ def mobile_index_handler(request):
         if ln: update_fields['longitude'] = ln
         if update_fields:
             WorkAssign.objects.filter(officer_id=officer_id).update(**update_fields)
-        work_assigns = WorkAssign.objects.filter(officer_id=officer_id).select_related('section', 'village')
+        officer = Officer.objects.filter(id=officer_id).first()
+        is_superadmin = (str(officer.role_id) in ['1', '2', '3']) if getattr(officer, 'role_id', None) else False
+        if is_superadmin:
+            work_assigns = WorkAssign.objects.all().select_related('section', 'village')
+        else:
+            work_assigns = WorkAssign.objects.filter(officer_id=officer_id).select_related('section', 'village')
         
         village_ids = [wa.village_id for wa in work_assigns if wa.village_id]
 
