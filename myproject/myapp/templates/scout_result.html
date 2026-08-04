@@ -110,6 +110,118 @@
                 </tr>
                 {% empty %}
                 <tr>
+{% extends 'base.html' %}
+
+{% block title %}Scout Results{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    body {
+        background-color: #f4f6f9;
+    }
+
+    .table-container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block header_title %}Scout Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📋 Scout Results</h2>
+        <div>
+            <a href="{% url 'scout_management' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Scout Management
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-info">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="table-container">
+        <div style="margin-bottom: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="delete-selected-btn" style="background: #f57c00; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-trash-can"></i> Delete Selected</button>
+            <button type="button" class="delete-all-btn" style="background: #d32f2f; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Outfit';"><i class="fa-solid fa-dumpster-fire"></i> Delete All</button>
+            </div>
+            <table class="table table-hover" data-model="ScoutResult">
+            <thead class="table-dark">
+                <tr>
+                    <th style="padding: 1rem; width: 40px;"><input type="checkbox" class="select-all-checkbox"></th>
+                    <th>ID</th>
+                    <th>Previous Scout ID</th>
+                    <th>Farmer Name</th>
+                    <th>Plot ID</th>
+                    <th>Recommendation Adopted</th>
+                    <th>Problem Status</th>
+                    <th>Crop Status</th>
+                    <th>Expert Help</th>
+                    <th>Plant Population</th>
+                    <th>Pest</th>
+                    <th>Disease</th>
+                    <th>Water</th>
+                    <th>Weed</th>
+                    <th>Nutrition</th>
+                    <th>Soil</th>
+                    <th>Farmer Neg</th>
+                    <th>Next Follow Up</th>
+                    <th>Created At</th>
+                    <th>Photos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr>
+                    <td style="padding: 1rem;"><input type="checkbox" class="row-checkbox" value="{{ result.id }}"></td>
+                    <td>{{ result.id }}</td>
+                    <td>{{ result.previous_scout_id|default:"-" }}</td>
+                    <td>{{ result.farmer_name|default:"-" }}</td>
+                    <td>{{ result.plot_id|default:"-" }}</td>
+                    <td>
+                        {% if result.recommendation_adopted %}
+                        <span class="badge bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge bg-danger">No</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ result.current_problem_status|default:"-" }}</td>
+                    <td>{{ result.current_crop_status|default:"-" }}</td>
+                    <td>
+                        {% if result.seek_expert_help %}
+                        <span class="badge bg-warning text-dark">Yes</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ result.plant_population|default:"-" }}</td>
+                    <td>{{ result.pest|default:"-" }}</td>
+                    <td>{{ result.disease|default:"-" }}</td>
+                    <td>{{ result.water|default:"-" }}</td>
+                    <td>{{ result.weed|default:"-" }}</td>
+                    <td>{{ result.nutrition|default:"-" }}</td>
+                    <td>{{ result.soil_related|default:"-" }}</td>
+                    <td>{{ result.farmer_neg|default:"-" }}</td>
+                    <td>{{ result.next_follow_up_date|date:"M d, Y"|default:"-" }}</td>
+                    <td>{{ result.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info view-photos-btn" data-photos="{{ result.field_photos|default:'[]' }}" onclick="viewPhotos(this)">
+                            <i class="fas fa-images"></i> View
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
                     <td colspan="20" class="text-center">No scout results found.</td>
                 </tr>
                 {% endfor %}
@@ -175,7 +287,7 @@
                 let active = index === 0 ? 'active' : '';
                 modalHtml += `
                     <div class="carousel-item ${active}">
-                        <img src="${photo}" class="d-block w-100" style="max-height: 500px; object-fit: contain;">
+                        <img src="${photo}" class="d-block w-100" style="max-height: 70vh; object-fit: contain;">
                     </div>
                 `;
             });
@@ -199,6 +311,11 @@
             
             modalHtml += `
                                 </div>
+                            </div>
+                            <div class="modal-footer d-flex justify-content-center">
+                                <button type="button" class="btn btn-secondary px-5" data-bs-dismiss="modal">
+                                    <i class="fas fa-arrow-left"></i> Go Back / Close
+                                </button>
                             </div>
                         </div>
                     </div>
