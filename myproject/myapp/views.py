@@ -1301,6 +1301,15 @@ def reports(request):
                     'Problem Status (Result)': sr.current_problem_status if sr else '',
                     'Crop Status (Result)': sr.current_crop_status if sr else '',
                     'Seek Expert (Result)': 'Yes' if sr and sr.seek_expert_help else 'No',
+                    'Plant Population': sr.plant_population if sr else '',
+                    'Pest': sr.pest if sr else '',
+                    'Disease': sr.disease if sr else '',
+                    'Water': sr.water if sr else '',
+                    'Weed': sr.weed if sr else '',
+                    'Nutrition': sr.nutrition if sr else '',
+                    'Soil Related': sr.soil_related if sr else '',
+                    'Farmer Neg': sr.farmer_neg if sr else '',
+                    'Next Follow Up Date': sr.next_follow_up_date.strftime('%Y-%m-%d') if sr and sr.next_follow_up_date else '',
                 })
         else:
             for p in classified_plots:
