@@ -1402,7 +1402,7 @@ def api_add_scout_result(request):
                     'nutrition': scout_result.nutrition,
                     'soil_related': scout_result.soil_related,
                     'farmer_neg': scout_result.farmer_neg,
-                    'next_follow_up_date': scout_result.next_follow_up_date.strftime('%Y-%m-%d') if scout_result.next_follow_up_date else None,
+                    'next_follow_up_date': str(scout_result.next_follow_up_date) if scout_result.next_follow_up_date else None,
                     'field_photos': scout_result.field_photos,
                     'created_at': scout_result.created_at.strftime('%Y-%m-%d %H:%M:%S') if scout_result.created_at else None
                 }
