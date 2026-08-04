@@ -124,14 +124,29 @@
             // Get raw string which might look like "['/media/photo.jpg']" or "None" or "[]"
             let rawData = buttonElement.getAttribute('data-photos');
             
-            // If it's exactly None, treat it as empty array
-            if (!rawData || rawData === 'None') {
-                rawData = '[]';
+            // If it's empty, None, or empty array, return early
+            if (!rawData || rawData === 'None' || rawData === '[]') {
+                alert("No photos available for this scout result.");
+                return;
             }
             
-            // Convert Python string representation to valid JSON
-            let parsedData = rawData.replace(/'/g, '"');
-            let photos = JSON.parse(parsedData);
+            let photos = [];
+            try {
+                // Try JSON parse with single quotes replaced
+                let parsedData = rawData.replace(/'/g, '"');
+                // Also remove any Python unicode prefixes if they exist (e.g., [u"url"])
+                parsedData = parsedData.replace(/u"/g, '"');
+                photos = JSON.parse(parsedData);
+            } catch (err) {
+                // Fallback: manually strip brackets and split
+                console.warn("JSON parse failed, using fallback manual split", err);
+                let cleanData = rawData.replace(/^\[|\]$/g, '').trim();
+                if (cleanData) {
+                    photos = cleanData.split(',').map(s => {
+                        return s.trim().replace(/^['"]|['"]$/g, '');
+                    }).filter(s => s.length > 0);
+                }
+            }
             
             if (!photos || photos.length === 0) {
                 alert("No photos available for this scout result.");
