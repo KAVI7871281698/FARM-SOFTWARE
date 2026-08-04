@@ -103,7 +103,7 @@
                     <td>{{ result.next_follow_up_date|date:"M d, Y"|default:"-" }}</td>
                     <td>{{ result.created_at|date:"M d, Y" }}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-info" onclick="viewPhotos('{{ result.field_photos|escapejs }}')">
+                        <button class="btn btn-sm btn-outline-info view-photos-btn" data-photos="{{ result.field_photos|default:'[]' }}" onclick="viewPhotos(this)">
                             <i class="fas fa-images"></i> View
                         </button>
                     </td>
@@ -119,11 +119,19 @@
 </div>
 
 <script>
-    function viewPhotos(photosData) {
+    function viewPhotos(buttonElement) {
         try {
-            // Parse photos (Django sometimes serializes list with single quotes)
-            let parsedData = photosData.replace(/'/g, '"');
-            let photos = JSON.parse(parsedData || '[]');
+            // Get raw string which might look like "['/media/photo.jpg']" or "None" or "[]"
+            let rawData = buttonElement.getAttribute('data-photos');
+            
+            // If it's exactly None, treat it as empty array
+            if (!rawData || rawData === 'None') {
+                rawData = '[]';
+            }
+            
+            // Convert Python string representation to valid JSON
+            let parsedData = rawData.replace(/'/g, '"');
+            let photos = JSON.parse(parsedData);
             
             if (!photos || photos.length === 0) {
                 alert("No photos available for this scout result.");
