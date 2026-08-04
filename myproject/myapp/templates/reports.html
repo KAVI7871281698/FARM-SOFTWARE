@@ -158,6 +158,17 @@
                     <th style="padding: 1rem;">Status</th>
                     <th style="padding: 1rem;">Rec. Adopted</th>
                     <th style="padding: 1rem;">Prob. Status</th>
+                    <th style="padding: 1rem;">Crop Status</th>
+                    <th style="padding: 1rem;">Expert Help</th>
+                    <th style="padding: 1rem;">Plant Population</th>
+                    <th style="padding: 1rem;">Pest</th>
+                    <th style="padding: 1rem;">Disease</th>
+                    <th style="padding: 1rem;">Water</th>
+                    <th style="padding: 1rem;">Weed</th>
+                    <th style="padding: 1rem;">Nutrition</th>
+                    <th style="padding: 1rem;">Soil</th>
+                    <th style="padding: 1rem;">Farmer Neg</th>
+                    <th style="padding: 1rem;">Next Follow Up</th>
                     {% else %}
                     <th style="padding: 1rem;">Plot ID</th>
                     <th style="padding: 1rem;">Farmer</th>
@@ -195,10 +206,21 @@
                     <td style="padding: 1rem;">{{ scout.status|default:'-' }}</td>
                     <td style="padding: 1rem;">{% if scout.scout_result and scout.scout_result.recommendation_adopted %}Yes{% else %}No{% endif %}</td>
                     <td style="padding: 1rem;">{{ scout.scout_result.current_problem_status|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.current_crop_status|default:'-' }}</td>
+                    <td style="padding: 1rem;">{% if scout.scout_result and scout.scout_result.seek_expert_help %}Yes{% else %}No{% endif %}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.plant_population|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.pest|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.disease|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.water|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.weed|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.nutrition|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.soil_related|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.farmer_neg|default:'-' }}</td>
+                    <td style="padding: 1rem;">{{ scout.scout_result.next_follow_up_date|date:"M d, Y"|default:'-' }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="15" style="padding: 1rem; text-align: center; color: var(--text-muted);">No scout reports found for the selected filters.</td>
+                    <td colspan="26" style="padding: 1rem; text-align: center; color: var(--text-muted);">No scout reports found for the selected filters.</td>
                 </tr>
                 {% endfor %}
                 {% else %}
