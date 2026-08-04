@@ -1352,8 +1352,11 @@ def api_add_scout_result(request):
             next_follow_up_date_str = request.POST.get('next_follow_up_date', '')
             next_follow_up_date = next_follow_up_date_str if next_follow_up_date_str else None
             
-            # Extract photos (base64 strings or URLs typically sent from mobile)
+            # Extract photos
+            from django.core.files.storage import default_storage
             field_photos = []
+            
+            # Handle base64 or URL strings from POST (if any)
             for key in request.POST.keys():
                 key_lower = key.lower()
                 if 'photo' in key_lower or 'image' in key_lower or 'pic' in key_lower:
@@ -1361,6 +1364,15 @@ def api_add_scout_result(request):
                         if str(val).strip():
                             field_photos.append(val)
                             
+            # Handle actual file uploads from FILES
+            for key in request.FILES.keys():
+                key_lower = key.lower()
+                if 'photo' in key_lower or 'image' in key_lower or 'pic' in key_lower:
+                    for uploaded_file in request.FILES.getlist(key):
+                        file_name = default_storage.save(f'scout_photos/{uploaded_file.name}', uploaded_file)
+                        file_url = default_storage.url(file_name)
+                        field_photos.append(file_url)
+                        
             # Create the record in DB
             scout_result = ScoutResult.objects.create(
                 previous_scout_id=previous_scout_id,

@@ -120,8 +120,77 @@
 
 <script>
     function viewPhotos(photosData) {
-        // Functionality to view photos, we'll implement later as user requested.
-        alert("Photos functionality will be implemented soon!");
+        try {
+            // Parse photos (Django sometimes serializes list with single quotes)
+            let parsedData = photosData.replace(/'/g, '"');
+            let photos = JSON.parse(parsedData || '[]');
+            
+            if (!photos || photos.length === 0) {
+                alert("No photos available for this scout result.");
+                return;
+            }
+            
+            let modalHtml = `
+                <div class="modal fade" id="photoModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Scout Photos</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body bg-dark text-center">
+                                <div id="carouselPhotos" class="carousel slide" data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+            `;
+            
+            photos.forEach((photo, index) => {
+                let active = index === 0 ? 'active' : '';
+                modalHtml += `
+                    <div class="carousel-item ${active}">
+                        <img src="${photo}" class="d-block w-100" style="max-height: 500px; object-fit: contain;">
+                    </div>
+                `;
+            });
+            
+            modalHtml += `
+                                    </div>
+            `;
+            
+            if (photos.length > 1) {
+                modalHtml += `
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselPhotos" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carouselPhotos" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                `;
+            }
+            
+            modalHtml += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            let existingModal = document.getElementById('photoModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            let modal = new bootstrap.Modal(document.getElementById('photoModal'));
+            modal.show();
+            
+        } catch(e) {
+            console.error("Photos Parse Error: ", e);
+            alert("Error loading photos. Invalid data format.");
+        }
     }
 </script>
 {% endblock %}
