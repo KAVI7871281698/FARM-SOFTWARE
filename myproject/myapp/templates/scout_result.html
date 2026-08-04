@@ -55,6 +55,15 @@
                     <th>Problem Status</th>
                     <th>Crop Status</th>
                     <th>Expert Help</th>
+                    <th>Plant Population</th>
+                    <th>Pest</th>
+                    <th>Disease</th>
+                    <th>Water</th>
+                    <th>Weed</th>
+                    <th>Nutrition</th>
+                    <th>Soil</th>
+                    <th>Farmer Neg</th>
+                    <th>Next Follow Up</th>
                     <th>Created At</th>
                     <th>Photos</th>
                 </tr>
@@ -62,7 +71,7 @@
             <tbody>
                 {% for result in results %}
                 <tr>
-                    <td style="padding: 1rem;"><input type="checkbox" class="row-checkbox" value="{{ message.id }}"></td>
+                    <td style="padding: 1rem;"><input type="checkbox" class="row-checkbox" value="{{ result.id }}"></td>
                     <td>{{ result.id }}</td>
                     <td>{{ result.previous_scout_id|default:"-" }}</td>
                     <td>{{ result.farmer_name|default:"-" }}</td>
@@ -83,6 +92,15 @@
                         <span class="badge bg-secondary">No</span>
                         {% endif %}
                     </td>
+                    <td>{{ result.plant_population|default:"-" }}</td>
+                    <td>{{ result.pest|default:"-" }}</td>
+                    <td>{{ result.disease|default:"-" }}</td>
+                    <td>{{ result.water|default:"-" }}</td>
+                    <td>{{ result.weed|default:"-" }}</td>
+                    <td>{{ result.nutrition|default:"-" }}</td>
+                    <td>{{ result.soil_related|default:"-" }}</td>
+                    <td>{{ result.farmer_neg|default:"-" }}</td>
+                    <td>{{ result.next_follow_up_date|date:"M d, Y"|default:"-" }}</td>
                     <td>{{ result.created_at|date:"M d, Y" }}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-info" onclick="viewPhotos('{{ result.field_photos|escapejs }}')">
@@ -92,7 +110,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="11" class="text-center">No scout results found.</td>
+                    <td colspan="20" class="text-center">No scout results found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

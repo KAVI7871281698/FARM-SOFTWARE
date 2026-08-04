@@ -1341,6 +1341,17 @@ def api_add_scout_result(request):
             seek_help_str = request.POST.get('seek_expert_help', 'false').strip().lower()
             seek_help = seek_help_str in ['true', '1', 'yes']
             
+            plant_population = request.POST.get('plant_population', '')
+            pest = request.POST.get('pest', '')
+            disease = request.POST.get('disease', '')
+            water = request.POST.get('water', '')
+            weed = request.POST.get('weed', '')
+            nutrition = request.POST.get('nutrition', '')
+            soil_related = request.POST.get('soil_related', '')
+            farmer_neg = request.POST.get('farmer_neg', '')
+            next_follow_up_date_str = request.POST.get('next_follow_up_date', '')
+            next_follow_up_date = next_follow_up_date_str if next_follow_up_date_str else None
+            
             # Extract photos (base64 strings or URLs typically sent from mobile)
             field_photos = []
             for key in request.POST.keys():
@@ -1359,6 +1370,15 @@ def api_add_scout_result(request):
                 current_problem_status=current_prob,
                 current_crop_status=current_crop,
                 seek_expert_help=seek_help,
+                plant_population=plant_population,
+                pest=pest,
+                disease=disease,
+                water=water,
+                weed=weed,
+                nutrition=nutrition,
+                soil_related=soil_related,
+                farmer_neg=farmer_neg,
+                next_follow_up_date=next_follow_up_date,
                 field_photos=field_photos if field_photos else None
             )
             
@@ -1374,6 +1394,15 @@ def api_add_scout_result(request):
                     'current_problem_status': scout_result.current_problem_status,
                     'current_crop_status': scout_result.current_crop_status,
                     'seek_expert_help': scout_result.seek_expert_help,
+                    'plant_population': scout_result.plant_population,
+                    'pest': scout_result.pest,
+                    'disease': scout_result.disease,
+                    'water': scout_result.water,
+                    'weed': scout_result.weed,
+                    'nutrition': scout_result.nutrition,
+                    'soil_related': scout_result.soil_related,
+                    'farmer_neg': scout_result.farmer_neg,
+                    'next_follow_up_date': scout_result.next_follow_up_date.strftime('%Y-%m-%d') if scout_result.next_follow_up_date else None,
                     'field_photos': scout_result.field_photos,
                     'created_at': scout_result.created_at.strftime('%Y-%m-%d %H:%M:%S') if scout_result.created_at else None
                 }
