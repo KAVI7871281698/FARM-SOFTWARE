@@ -148,6 +148,11 @@
                 }
             }
             
+            // Ensure photos is an array (if JSON parsed a single string URL)
+            if (photos && !Array.isArray(photos)) {
+                photos = [photos];
+            }
+            
             if (!photos || photos.length === 0) {
                 alert("No photos available for this scout result.");
                 return;
