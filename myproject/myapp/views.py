@@ -663,7 +663,7 @@ def dashboard(request):
     six_months_ago = today.replace(day=1) - timedelta(days=5*30)
     six_months_ago = six_months_ago.replace(day=1)
     
-    ndvi_records_values = NDVIRecord.objects.filter(plot__in=plots_qs, date_recorded__gte=six_months_ago).values('date_recorded', 'ndvi_value', 'health_status', 'stage')
+    ndvi_records_values = NDVIRecord.objects.filter(plot__in=plots_qs, date_recorded__gte=six_months_ago).order_by('date_recorded').values('plot_id', 'date_recorded', 'ndvi_value', 'health_status', 'stage')
     
     monthly_ndvi = {}
     for i in range(5, -1, -1):
@@ -697,20 +697,29 @@ def dashboard(request):
     ht_health_data = { 'Good': [0]*len(unique_dates), 'Moderate': [0]*len(unique_dates), 'Need Attention': [0]*len(unique_dates) }
     ht_stage_data = { 'Germination': [0]*len(unique_dates), 'Early Tiller': [0]*len(unique_dates), 'Tillering': [0]*len(unique_dates), 'Grand growth': [0]*len(unique_dates), 'Maturity': [0]*len(unique_dates) }
     
-    date_to_index = {d: i for i, d in enumerate(unique_dates)}
+    plot_health_state = {}
+    plot_stage_state = {}
     
-    for rec in ndvi_records_values:
-        d = rec['date_recorded']
-        if d in date_to_index:
-            idx = date_to_index[d]
-            h = rec['health_status']
-            if h == 'Good': ht_health_data['Good'][idx] += 1
-            elif h == 'Moderate': ht_health_data['Moderate'][idx] += 1
-            elif h == 'Need Attention': ht_health_data['Need Attention'][idx] += 1
+    record_idx = 0
+    records_list = list(ndvi_records_values)
+    
+    for i, target_date in enumerate(unique_dates):
+        # Apply all records up to this target_date
+        while record_idx < len(records_list) and records_list[record_idx]['date_recorded'] <= target_date:
+            rec = records_list[record_idx]
+            plot_health_state[rec['plot_id']] = rec['health_status']
+            plot_stage_state[rec['plot_id']] = rec['stage']
+            record_idx += 1
             
-            s = rec['stage']
+        # Tally the current state of all tracked plots as of target_date
+        for pid, h in plot_health_state.items():
+            if h == 'Good': ht_health_data['Good'][i] += 1
+            elif h == 'Moderate': ht_health_data['Moderate'][i] += 1
+            elif h == 'Need Attention': ht_health_data['Need Attention'][i] += 1
+            
+        for pid, s in plot_stage_state.items():
             if s in ht_stage_data:
-                ht_stage_data[s][idx] += 1
+                ht_stage_data[s][i] += 1
 
     latest_scouts = ScoutingLog.objects.filter(plot__in=plots_qs).order_by('plot', '-created_at').distinct('plot')
     latest_ndvis = NDVIRecord.objects.filter(plot__in=plots_qs).order_by('plot', '-date_recorded').distinct('plot')
