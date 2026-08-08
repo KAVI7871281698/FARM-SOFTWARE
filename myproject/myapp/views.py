@@ -690,7 +690,7 @@ def dashboard(request):
 
     # Fortnightly trend for Health and Stage
     unique_dates = sorted(list(unique_dates))
-    unique_dates = unique_dates[-15:] if len(unique_dates) > 15 else unique_dates
+    unique_dates = unique_dates[-7:] if len(unique_dates) > 7 else unique_dates
     
     ht_labels = [d.strftime('%Y-%m-%d') for d in unique_dates]
     
