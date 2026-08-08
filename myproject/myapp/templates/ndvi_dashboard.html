@@ -549,8 +549,9 @@
                 });
                 marker = L.marker(center, { icon: icon }).addTo(featureGroup);
 
-                // Match image bounds exactly with the polygon bounds without padding
-                const imageBounds = poly.getBounds();
+                // The image file has transparent padding around the actual NDVI pixels.
+                // We need to stretch the image bounds so the NDVI pixels match the polygon.
+                const imageBounds = poly.getBounds().pad(0.18); // Increased padding to stretch the image
                 imgOverlay = L.imageOverlay(imageUrl, imageBounds, { opacity: 0 }).addTo(featureGroup);
                 imgOverlay.on('error', function() {
                     imgOverlay._imageError = true;
