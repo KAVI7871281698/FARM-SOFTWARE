@@ -663,7 +663,10 @@ def dashboard(request):
     six_months_ago = today.replace(day=1) - timedelta(days=5*30)
     six_months_ago = six_months_ago.replace(day=1)
     
-    ndvi_records_values = NDVIRecord.objects.filter(plot__in=plots_qs, date_recorded__gte=six_months_ago).order_by('date_recorded').values('plot_id', 'date_recorded', 'ndvi_value', 'health_status', 'stage')
+    mapped_plot_ids = list(plots_qs.filter(Q(status='Mapped') | Q(status='mapped') | (Q(boundaries__isnull=False) & ~Q(boundaries=''))).values_list('id', flat=True))
+
+    ndvi_records_values = NDVIRecord.objects.filter(plot_id__in=mapped_plot_ids, date_recorded__gte=six_months_ago).order_by('date_recorded').values('plot_id', 'date_recorded', 'ndvi_value', 'health_status', 'stage')
+    scout_records_values = ScoutingLog.objects.filter(plot_id__in=mapped_plot_ids, created_at__gte=six_months_ago).order_by('created_at').values('plot_id', 'created_at', 'disease_presence', 'pest_presence', 'water_stress_symptoms', 'nutrient_deficiency')
     
     monthly_ndvi = {}
     for i in range(5, -1, -1):
@@ -697,25 +700,52 @@ def dashboard(request):
     ht_health_data = { 'Good': [0]*len(unique_dates), 'Moderate': [0]*len(unique_dates), 'Need Attention': [0]*len(unique_dates) }
     ht_stage_data = { 'Germination': [0]*len(unique_dates), 'Early Tiller': [0]*len(unique_dates), 'Tillering': [0]*len(unique_dates), 'Grand growth': [0]*len(unique_dates), 'Maturity': [0]*len(unique_dates) }
     
-    plot_health_state = {}
+    plot_ndvi_state = {}
+    plot_scout_state = {}
     plot_stage_state = {}
     
     record_idx = 0
+    scout_idx = 0
     records_list = list(ndvi_records_values)
+    scouts_list = list(scout_records_values)
     
     for i, target_date in enumerate(unique_dates):
         # Apply all records up to this target_date
         while record_idx < len(records_list) and records_list[record_idx]['date_recorded'] <= target_date:
             rec = records_list[record_idx]
-            plot_health_state[rec['plot_id']] = rec['health_status']
+            plot_ndvi_state[rec['plot_id']] = rec['health_status']
             plot_stage_state[rec['plot_id']] = rec['stage']
             record_idx += 1
             
-        # Tally the current state of all tracked plots as of target_date
-        for pid, h in plot_health_state.items():
-            if h == 'Good': ht_health_data['Good'][i] += 1
-            elif h == 'Moderate': ht_health_data['Moderate'][i] += 1
-            elif h == 'Need Attention': ht_health_data['Need Attention'][i] += 1
+        # Apply all Scout records up to this target_date
+        while scout_idx < len(scouts_list) and scouts_list[scout_idx]['created_at'].date() <= target_date:
+            rec = scouts_list[scout_idx]
+            plot_scout_state[rec['plot_id']] = rec
+            scout_idx += 1
+            
+        # Tally the current state of all mapped plots as of target_date
+        for pid in mapped_plot_ids:
+            health_status = 'Good'
+            ndvi_h = plot_ndvi_state.get(pid)
+            latest_scout = plot_scout_state.get(pid)
+            
+            if ndvi_h:
+                if ndvi_h.strip().title() == 'Good':
+                    health_status = 'Good'
+                elif ndvi_h.strip().title() == 'Moderate':
+                    health_status = 'Moderate'
+                elif ndvi_h.strip().title() in ['Need Attention', 'Critical']:
+                    health_status = 'Need Attention'
+            
+            if latest_scout:
+                if latest_scout.get('disease_presence'):
+                    health_status = 'Need Attention'
+                elif latest_scout.get('pest_presence') or latest_scout.get('water_stress_symptoms') or latest_scout.get('nutrient_deficiency'):
+                    health_status = 'Moderate'
+                    
+            if health_status == 'Good': ht_health_data['Good'][i] += 1
+            elif health_status == 'Moderate': ht_health_data['Moderate'][i] += 1
+            elif health_status == 'Need Attention': ht_health_data['Need Attention'][i] += 1
             
         for pid, s in plot_stage_state.items():
             if s in ht_stage_data:
@@ -727,10 +757,10 @@ def dashboard(request):
     scout_dict = {s.plot_id: s for s in latest_scouts}
     ndvi_dict = {n.plot_id: n for n in latest_ndvis}
     
-    mapped_plot_ids = set(plots_qs.filter(Q(status='Mapped') | Q(status='mapped') | (Q(boundaries__isnull=False) & ~Q(boundaries=''))).values_list('id', flat=True))
+    mapped_plot_ids_set = set(mapped_plot_ids)
 
     health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
-    for p_id in mapped_plot_ids:
+    for p_id in mapped_plot_ids_set:
         health_status = 'Healthy'
         latest_ndvi = ndvi_dict.get(p_id)
         latest_scout = scout_dict.get(p_id)
