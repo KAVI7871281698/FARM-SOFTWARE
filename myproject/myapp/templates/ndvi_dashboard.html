@@ -549,8 +549,8 @@
                 });
                 marker = L.marker(center, { icon: icon }).addTo(featureGroup);
 
-                // Use padded bounds to account for typical satellite image export buffers (e.g., 10% padding)
-                const imageBounds = poly.getBounds().pad(0.1);
+                // Match image bounds exactly with the polygon bounds without padding
+                const imageBounds = poly.getBounds();
                 imgOverlay = L.imageOverlay(imageUrl, imageBounds, { opacity: 0 }).addTo(featureGroup);
                 imgOverlay.on('error', function() {
                     imgOverlay._imageError = true;
