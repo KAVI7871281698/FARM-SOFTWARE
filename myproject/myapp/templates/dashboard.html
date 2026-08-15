@@ -1694,12 +1694,13 @@ function initFieldMap() {
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.15)',
                     borderWidth: 3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ffffff',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#10b981',
                     pointBorderColor: '#10b981',
                     pointBorderWidth: 2,
-                    fill: true,
+                    fill: false,
                     tension: 0.4
                 },
                 {
@@ -1708,12 +1709,13 @@ function initFieldMap() {
                     borderColor: '#f59e0b',
                     backgroundColor: 'rgba(245, 158, 11, 0.15)',
                     borderWidth: 3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ffffff',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#f59e0b',
                     pointBorderColor: '#f59e0b',
                     pointBorderWidth: 2,
-                    fill: true,
+                    fill: false,
                     tension: 0.4
                 },
                 {
@@ -1722,13 +1724,14 @@ function initFieldMap() {
                     borderColor: '#ef4444',
                     backgroundColor: 'rgba(239, 68, 68, 0.15)',
                     borderWidth: 3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ffffff',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointStyle: 'circle',
+                    pointBackgroundColor: '#ef4444',
                     pointBorderColor: '#ef4444',
                     pointBorderWidth: 2,
                     spanGaps: true,
-                    fill: true,
+                    fill: false,
                     tension: 0.4
                 }
             ]
@@ -1771,7 +1774,6 @@ function initFieldMap() {
             },
             scales: {
                 y: {
-                    stacked: true,
                     beginAtZero: true,
                     border: { display: false },
                     grid: {
