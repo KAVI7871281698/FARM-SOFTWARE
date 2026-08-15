@@ -981,7 +981,6 @@
         <div class="ht-tab" id="tab-stage-summary" onclick="switchHtTab('stage-summary')"><i class="fa-regular fa-calendar-check"></i> Stage summary</div>
         <div class="ht-tab" id="tab-field-cards" onclick="switchHtTab('field-cards')"><i class="fa-solid fa-map-location-dot"></i> Field cards</div>
         <div class="ht-tab" id="tab-ndvi-trend" onclick="switchHtTab('ndvi-trend')"><i class="fa-solid fa-chart-area"></i> NDVI Trend</div>
-        <div class="ht-tab" id="tab-field-map" onclick="switchHtTab('field-map')"><i class="fa-solid fa-map"></i> Field Map</div>
         <div class="ht-tab"><i class="fa-solid fa-brain"></i> AI Insights</div>
         <div class="ht-tab"><i class="fa-solid fa-download"></i> Export table</div>
     </div>
@@ -1140,18 +1139,6 @@
             <canvas id="ndviTrendTabChart"></canvas>
         </div>
     </div>
-
-    <!-- View: Field Map -->
-    <div id="view-field-map" style="display: none;">
-        <div class="ht-chart-header">
-            <div>
-                <h3 class="ht-chart-title">Field Map</h3>
-                <p class="ht-chart-subtitle">Geospatial overview of plots colored by health status.</p>
-            </div>
-        </div>
-        <div id="plots-map-container" style="height: 500px; width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; position: relative;">
-            <div id="plotsMap" style="height: 100%; width: 100%;"></div>
-        </div>
     </div>
 </div>
 
@@ -1166,7 +1153,6 @@ function switchHtTab(tabName) {
     document.getElementById('view-stage-summary').style.display = 'none';
     document.getElementById('view-field-cards').style.display = 'none';
     document.getElementById('view-ndvi-trend').style.display = 'none';
-    document.getElementById('view-field-map').style.display = 'none';
     
     // Activate clicked tab & view
     if (tabName === 'health-trend') {
@@ -1187,16 +1173,6 @@ function switchHtTab(tabName) {
         document.getElementById('tab-ndvi-trend').classList.add('active');
         document.getElementById('view-ndvi-trend').style.display = 'block';
         initNdviTrendChart();
-    } else if (tabName === 'field-map') {
-        document.getElementById('tab-field-map').classList.add('active');
-        document.getElementById('view-field-map').style.display = 'block';
-        setTimeout(() => {
-            if (window.plotsMapObj) {
-                window.plotsMapObj.invalidateSize();
-            } else {
-                initFieldMap();
-            }
-        }, 100);
     }
 }
 
