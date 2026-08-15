@@ -828,7 +828,7 @@ def dashboard(request):
             'id': p_id,
             'code': p.plot_code or str(p_id),
             'farmer': p.farmer.name if p.farmer else 'Unknown',
-            'crop': p.crop_type.name if p.crop_type else 'Unknown',
+            'crop': p.crop_type.crop_name if p.crop_type else 'Unknown',
             'health': health_status,
             'stage': stage,
             'boundaries': p.boundaries if p.boundaries else None,
