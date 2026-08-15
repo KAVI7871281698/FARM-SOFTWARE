@@ -24,31 +24,6 @@
             </select>
         </form>
         {% endif %}
-
-        <!-- Factory Selector -->
-        {% if user_factories|length == 1 %}
-        <span class="premium-badge">
-            <i class="fa-solid fa-industry" style="color: #16a34a; margin-right: 6px;"></i> {{ user_factories.0.name }}
-        </span>
-        {% elif user_factories|length > 1 %}
-        <form method="GET" action="{% url 'dashboard' %}" style="margin: 0;">
-            <select name="factory" onchange="this.form.submit()" class="premium-select">
-                {% if active_factory_id == 'all' %}
-                <option value="all" selected>All My Factories</option>
-                {% else %}
-                <option value="all">All My Factories</option>
-                {% endif %}
-
-                {% for f in user_factories %}
-                {% if active_factory_id == f.id|stringformat:"s" %}
-                <option value="{{ f.id }}" selected>{{ f.name }}</option>
-                {% else %}
-                <option value="{{ f.id }}">{{ f.name }}</option>
-                {% endif %}
-                {% endfor %}
-            </select>
-        </form>
-        {% endif %}
     </div>
 </span>
 {% endblock %}
