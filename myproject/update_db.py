@@ -10,6 +10,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
 django.setup()
 
 from myapp.models import Plot, Crop, Variety, Factory, SoilType
+from django.db.models.signals import post_save
+try:
+    from myapp.models import create_surveys_on_plot_creation
+except ImportError:
+    pass
 
 def safe_str(val):
     if pd.isna(val) or val == 'nan':
@@ -25,6 +30,12 @@ def safe_str(val):
 def run():
     print("Starting data update...")
     
+    try:
+        post_save.disconnect(create_surveys_on_plot_creation, sender=Plot)
+        print("Disconnected post_save signal on Plot.")
+    except Exception as e:
+        print("Failed to disconnect signal:", e)
+        
     # 1. Update Factory information from 007- plots_rows.csv
     file_007 = "007- plots_rows.csv"
     if os.path.exists(file_007):
