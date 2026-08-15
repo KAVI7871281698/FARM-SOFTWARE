@@ -760,6 +760,56 @@ def dashboard(request):
     mapped_plot_ids_set = set(mapped_plot_ids)
 
     health_counts = {'Healthy': 0, 'Moderate': 0, 'Critical': 0}
+    stage_summary_counts = {}
+    dashboard_plots_json = []
+    
+    # We will pick up to 300 mapped plots to display in cards/map to avoid browser freeze
+    plots_for_cards = plots_qs.select_related('farmer', 'crop_type').filter(id__in=list(mapped_plot_ids_set)[:300])
+
+    for p in plots_for_cards:
+        p_id = p.id
+        health_status = 'Healthy'
+        stage = 'Unknown'
+        latest_ndvi = ndvi_dict.get(p_id)
+        latest_scout = scout_dict.get(p_id)
+        
+        if latest_ndvi:
+            stage = latest_ndvi.stage or 'Unknown'
+            ndvi_h = latest_ndvi.health_status
+            if ndvi_h and ndvi_h.strip().title() == 'Good':
+                health_status = 'Healthy'
+            elif ndvi_h and ndvi_h.strip().title() == 'Moderate':
+                health_status = 'Moderate'
+            elif ndvi_h and ndvi_h.strip().title() in ['Need Attention', 'Critical']:
+                health_status = 'Critical'
+            else:
+                health_status = 'Healthy'
+        if latest_scout:
+            if latest_scout.disease_presence:
+                health_status = 'Critical'
+            elif latest_scout.pest_presence or latest_scout.water_stress_symptoms or latest_scout.nutrient_deficiency:
+                health_status = 'Moderate'
+
+        if stage not in stage_summary_counts:
+            stage_summary_counts[stage] = 0
+        stage_summary_counts[stage] += 1
+        
+        boundaries = p.boundaries
+        if not boundaries:
+            # Fallback if boundaries are missing but lat/lng are there
+            pass
+
+        dashboard_plots_json.append({
+            'id': p_id,
+            'code': p.plot_code or str(p_id),
+            'farmer': p.farmer.name if p.farmer else 'Unknown',
+            'crop': p.crop_type.name if p.crop_type else 'Unknown',
+            'health': health_status,
+            'stage': stage,
+            'boundaries': boundaries,
+            'area': str(p.area_acre) if p.area_acre else '0'
+        })
+        
     for p_id in mapped_plot_ids_set:
         health_status = 'Healthy'
         latest_ndvi = ndvi_dict.get(p_id)
@@ -832,7 +882,9 @@ def dashboard(request):
         'survey_perc': survey_completed_perc,
         'ht_labels_json': json.dumps(ht_labels),
         'ht_health_data_json': json.dumps(ht_health_data),
-        'ht_stage_data_json': json.dumps(ht_stage_data)
+        'ht_stage_data_json': json.dumps(ht_stage_data),
+        'dashboard_plots_json': json.dumps(dashboard_plots_json, default=str),
+        'stage_summary_counts_json': json.dumps(stage_summary_counts)
     }
     hierarchy_data = []
     active_groups = groups if all_selected else [g for g in groups if str(g.id) == selected_group_id]
@@ -913,10 +965,11 @@ def officers(request):
     return render(request, 'officers.html', {'officers': page_obj})
 
 from django.db.models import Q
+from .models import FieldMapping
 
 def field_intelligence(request):
     if request.method == 'POST':
-        from .models import FieldMapping
+
         farmer_id = request.POST.get('farmer_id')
         plot_id = request.POST.get('plot_id')
         boundary = request.POST.get('boundary') # JSON string

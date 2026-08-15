@@ -978,10 +978,10 @@
     <div class="ht-tabs">
         <div class="ht-tab active" id="tab-health-trend" onclick="switchHtTab('health-trend')"><i class="fa-solid fa-chart-line"></i> Health Trend</div>
         <div class="ht-tab" id="tab-compare" onclick="switchHtTab('compare')"><i class="fa-solid fa-code-compare"></i> Compare</div>
-        <div class="ht-tab"><i class="fa-regular fa-calendar-check"></i> Stage summary</div>
-        <div class="ht-tab"><i class="fa-solid fa-map-location-dot"></i> Field cards</div>
-        <div class="ht-tab"><i class="fa-solid fa-chart-area"></i> NDVI Trend</div>
-        <div class="ht-tab"><i class="fa-solid fa-map"></i> Field Map</div>
+        <div class="ht-tab" id="tab-stage-summary" onclick="switchHtTab('stage-summary')"><i class="fa-regular fa-calendar-check"></i> Stage summary</div>
+        <div class="ht-tab" id="tab-field-cards" onclick="switchHtTab('field-cards')"><i class="fa-solid fa-map-location-dot"></i> Field cards</div>
+        <div class="ht-tab" id="tab-ndvi-trend" onclick="switchHtTab('ndvi-trend')"><i class="fa-solid fa-chart-area"></i> NDVI Trend</div>
+        <div class="ht-tab" id="tab-field-map" onclick="switchHtTab('field-map')"><i class="fa-solid fa-map"></i> Field Map</div>
         <div class="ht-tab"><i class="fa-solid fa-brain"></i> AI Insights</div>
         <div class="ht-tab"><i class="fa-solid fa-download"></i> Export table</div>
     </div>
@@ -1101,6 +1101,58 @@
             <canvas id="compareHealthChart"></canvas>
         </div>
     </div>
+
+    <!-- View: Stage Summary -->
+    <div id="view-stage-summary" style="display: none;">
+        <div class="ht-chart-header">
+            <div>
+                <h3 class="ht-chart-title">Current Stage Summary</h3>
+                <p class="ht-chart-subtitle">Distribution of plots across different crop stages currently.</p>
+            </div>
+        </div>
+        <div style="height: 450px; width: 100%; display: flex; justify-content: center;">
+            <canvas id="stageSummaryPieChart" style="max-height: 400px;"></canvas>
+        </div>
+    </div>
+
+    <!-- View: Field Cards -->
+    <div id="view-field-cards" style="display: none;">
+        <div class="ht-chart-header">
+            <div>
+                <h3 class="ht-chart-title">Field Cards</h3>
+                <p class="ht-chart-subtitle">Detailed view of plots.</p>
+            </div>
+        </div>
+        <div id="field-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-height: 500px; overflow-y: auto; padding-right: 10px;">
+            <!-- Cards will be populated by JS -->
+        </div>
+    </div>
+
+    <!-- View: NDVI Trend -->
+    <div id="view-ndvi-trend" style="display: none;">
+        <div class="ht-chart-header">
+            <div>
+                <h3 class="ht-chart-title">NDVI Trend over Time</h3>
+                <p class="ht-chart-subtitle">Average NDVI values tracking crop vigor.</p>
+            </div>
+        </div>
+        <div style="height: 450px; width: 100%;">
+            <canvas id="ndviTrendTabChart"></canvas>
+        </div>
+    </div>
+
+    <!-- View: Field Map -->
+    <div id="view-field-map" style="display: none;">
+        <div class="ht-chart-header">
+            <div>
+                <h3 class="ht-chart-title">Field Map</h3>
+                <p class="ht-chart-subtitle">Geospatial overview of plots colored by health status.</p>
+            </div>
+        </div>
+        <div id="plots-map-container" style="height: 500px; width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; position: relative;">
+            <div id="plotsMap" style="height: 100%; width: 100%;"></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -1111,6 +1163,10 @@ function switchHtTab(tabName) {
     // Hide all views
     document.getElementById('view-health-trend').style.display = 'none';
     document.getElementById('view-compare').style.display = 'none';
+    document.getElementById('view-stage-summary').style.display = 'none';
+    document.getElementById('view-field-cards').style.display = 'none';
+    document.getElementById('view-ndvi-trend').style.display = 'none';
+    document.getElementById('view-field-map').style.display = 'none';
     
     // Activate clicked tab & view
     if (tabName === 'health-trend') {
@@ -1119,6 +1175,28 @@ function switchHtTab(tabName) {
     } else if (tabName === 'compare') {
         document.getElementById('tab-compare').classList.add('active');
         document.getElementById('view-compare').style.display = 'block';
+    } else if (tabName === 'stage-summary') {
+        document.getElementById('tab-stage-summary').classList.add('active');
+        document.getElementById('view-stage-summary').style.display = 'block';
+        initStageSummaryChart();
+    } else if (tabName === 'field-cards') {
+        document.getElementById('tab-field-cards').classList.add('active');
+        document.getElementById('view-field-cards').style.display = 'block';
+        initFieldCards();
+    } else if (tabName === 'ndvi-trend') {
+        document.getElementById('tab-ndvi-trend').classList.add('active');
+        document.getElementById('view-ndvi-trend').style.display = 'block';
+        initNdviTrendChart();
+    } else if (tabName === 'field-map') {
+        document.getElementById('tab-field-map').classList.add('active');
+        document.getElementById('view-field-map').style.display = 'block';
+        setTimeout(() => {
+            if (window.plotsMapObj) {
+                window.plotsMapObj.invalidateSize();
+            } else {
+                initFieldMap();
+            }
+        }, 100);
     }
 }
 
@@ -1139,6 +1217,174 @@ function switchTrack(trackName) {
         document.getElementById('stage-chart-container').style.display = 'block';
         document.getElementById('track-chart-title').innerText = 'Crop Stage Trend';
         document.getElementById('track-chart-subtitle').innerHTML = 'No. of plots in each growth stage over fortnightly snapshots<br>37 date points - 395 plots tracked (20 skipped, no data nearby)';
+    }
+}
+
+// Include Leaflet CSS/JS dynamically if not present
+if (!document.getElementById('leaflet-css')) {
+    const link = document.createElement('link');
+    link.id = 'leaflet-css';
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+}
+if (!document.getElementById('leaflet-js')) {
+    const script = document.createElement('script');
+    script.id = 'leaflet-js';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    document.head.appendChild(script);
+}
+
+// Data from backend context
+const dashboardPlots = JSON.parse('{{ dashboard_plots_json|escapejs|default:"[]" }}');
+const stageSummaryCounts = JSON.parse('{{ stage_summary_counts_json|escapejs|default:"{}" }}');
+
+let stageSummaryChartObj = null;
+function initStageSummaryChart() {
+    if (stageSummaryChartObj) return;
+    const ctx = document.getElementById('stageSummaryPieChart').getContext('2d');
+    const labels = Object.keys(stageSummaryCounts);
+    const data = Object.values(stageSummaryCounts);
+    
+    if (labels.length === 0) {
+        // Fallback dummy data if no data
+        labels.push('No Data');
+        data.push(1);
+    }
+    
+    stageSummaryChartObj = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+}
+
+function initFieldCards() {
+    const container = document.getElementById('field-cards-container');
+    if (container.innerHTML.trim() !== '' && container.innerHTML.indexOf('No plots') === -1) return;
+    
+    if (!dashboardPlots || dashboardPlots.length === 0) {
+        container.innerHTML = '<p style="color: #64748b; padding: 20px;">No plots available for the current selection.</p>';
+        return;
+    }
+    
+    let html = '';
+    dashboardPlots.forEach(plot => {
+        let healthColor = '#10b981'; // Green
+        let healthIcon = 'fa-check-circle';
+        if (plot.health === 'Critical') { healthColor = '#ef4444'; healthIcon = 'fa-triangle-exclamation'; }
+        else if (plot.health === 'Moderate') { healthColor = '#f59e0b'; healthIcon = 'fa-circle-exclamation'; }
+        
+        html += `
+        <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem;">${plot.farmer}</div>
+                <div style="background: ${healthColor}22; color: ${healthColor}; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid ${healthIcon}"></i> ${plot.health}
+                </div>
+            </div>
+            <div style="font-size: 0.85rem; color: #64748b;"><i class="fa-solid fa-map-pin" style="margin-right: 4px;"></i> Plot Code: ${plot.code}</div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #475569; margin-top: 10px;">
+                <div><span style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase;">Crop</span><br><b>${plot.crop}</b></div>
+                <div><span style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase;">Stage</span><br><b>${plot.stage}</b></div>
+                <div><span style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase;">Area</span><br><b>${plot.area} Ac</b></div>
+            </div>
+        </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+let ndviTrendTabChartObj = null;
+function initNdviTrendChart() {
+    if (ndviTrendTabChartObj) return;
+    const ctx = document.getElementById('ndviTrendTabChart').getContext('2d');
+    const labels = parseJSON('{{ ndvi_trend_labels_json|escapejs }}', []);
+    const data = parseJSON('{{ ndvi_trend_data_json|escapejs }}', []);
+    
+    ndviTrendTabChartObj = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Average NDVI',
+                data: data,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function initFieldMap() {
+    if (window.plotsMapObj) return;
+    
+    if (typeof L === 'undefined') {
+        setTimeout(initFieldMap, 200); // Wait for Leaflet to load
+        return;
+    }
+    
+    window.plotsMapObj = L.map('plotsMap').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(window.plotsMapObj);
+    
+    let bounds = [];
+    
+    if (!dashboardPlots || dashboardPlots.length === 0) return;
+
+    dashboardPlots.forEach(plot => {
+        let color = '#10b981';
+        if (plot.health === 'Critical') color = '#ef4444';
+        else if (plot.health === 'Moderate') color = '#f59e0b';
+        
+        let added = false;
+        
+        // Ensure plot.boundaries is parsed if it's a string
+        let plotBounds = plot.boundaries;
+        if (typeof plotBounds === 'string') {
+            try { plotBounds = JSON.parse(plotBounds); } catch(e) {}
+        }
+
+        if (plotBounds && Array.isArray(plotBounds)) {
+            let latlngs = [];
+            plotBounds.forEach(b => {
+                if (b.lat && b.lng) latlngs.push([b.lat, b.lng]);
+                else if (b.point1 && b.point2) latlngs.push([b.point1, b.point2]);
+            });
+            if (latlngs.length > 2) {
+                L.polygon(latlngs, { color: color, fillOpacity: 0.5 }).bindPopup(`<b>${plot.farmer}</b><br>Health: ${plot.health}`).addTo(window.plotsMapObj);
+                bounds.push(...latlngs);
+                added = true;
+            }
+        }
+        
+        if (!added && plot.lat && plot.lng) {
+            L.circleMarker([plot.lat, plot.lng], { color: color, radius: 8, fillOpacity: 0.8 }).bindPopup(`<b>${plot.farmer}</b><br>Health: ${plot.health}`).addTo(window.plotsMapObj);
+            bounds.push([plot.lat, plot.lng]);
+        }
+    });
+    
+    if (bounds.length > 0) {
+        window.plotsMapObj.fitBounds(bounds);
     }
 }
 </script>
