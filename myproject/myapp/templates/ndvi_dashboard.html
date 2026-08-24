@@ -447,12 +447,12 @@
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri'
     }).addTo(map);
 
+    let plotMarkersAndImages = [];
     const plotData = {{ plot_data_json|safe }};
 
     if (plotData && plotData.length > 0) {
         const bounds = [];
         const featureGroup = L.featureGroup().addTo(map);
-        const plotMarkersAndImages = [];
 
         plotData.forEach(plot => {
             let color = '#28a745';
