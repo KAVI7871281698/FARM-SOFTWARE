@@ -555,9 +555,24 @@
                 });
                 marker = L.marker(center, { icon: icon }).addTo(featureGroup);
 
-                // Image bounds matching polygon exact bounds without stretch padding
-                const imageBounds = poly.getBounds();
+                // Stretch the image bounds to ensure it covers the polygon, 
+                // then clip it exactly to the polygon shape using CSS clip-path to prevent spilling.
+                const imageBounds = poly.getBounds().pad(0.18);
                 imgOverlay = L.imageOverlay(imageUrl, imageBounds, { opacity: 0 }).addTo(featureGroup);
+                
+                imgOverlay.on('load', function() {
+                    const el = imgOverlay.getElement();
+                    if (el && latlngs.length > 0) {
+                        const clipPolygon = latlngs.map(pt => {
+                            const x = (pt[1] - imageBounds.getWest()) / (imageBounds.getEast() - imageBounds.getWest()) * 100;
+                            const y = (imageBounds.getNorth() - pt[0]) / (imageBounds.getNorth() - imageBounds.getSouth()) * 100;
+                            return `${x.toFixed(2)}% ${y.toFixed(2)}%`;
+                        }).join(', ');
+                        el.style.clipPath = `polygon(${clipPolygon})`;
+                        el.style.webkitClipPath = `polygon(${clipPolygon})`;
+                    }
+                });
+
                 imgOverlay.on('error', function() {
                     imgOverlay._imageError = true;
                 });
