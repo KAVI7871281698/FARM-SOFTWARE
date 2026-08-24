@@ -1015,8 +1015,8 @@
             <div class="ht-filter-label">VIEW AS</div>
             <div class="ht-filter-row" style="margin-top: 24px;">
                 <div class="ht-pill-group">
-                    <button class="ht-pill active">Count</button>
-                    <button class="ht-pill">%</button>
+                    <button class="ht-pill active" id="btn-view-count" onclick="switchViewType('count')">Count</button>
+                    <button class="ht-pill" id="btn-view-perc" onclick="switchViewType('perc')">%</button>
                     <button class="ht-pill disabled" disabled>Plant Season (YoY)</button>
                 </div>
             </div>
@@ -1683,7 +1683,7 @@ function initFieldMap() {
     const htHealthData = parseJSON('{{ ht_health_data_json|escapejs }}', { 'Good': [], 'Moderate': [], 'Need Attention': [] });
     const htStageData = parseJSON('{{ ht_stage_data_json|escapejs }}', { 'Germination': [], 'Early Tiller': [], 'Tillering': [], 'Grand growth': [], 'Maturity': [] });
     
-    new Chart(ctxMainHealth, {
+    let mainHealthChartObj = new Chart(ctxMainHealth, {
         type: 'line',
         data: {
             labels: htLabels,
@@ -1804,7 +1804,7 @@ function initFieldMap() {
     // Main Stage Trend Chart
     const ctxMainStage = document.getElementById('mainStageTrendChart').getContext('2d');
     
-    new Chart(ctxMainStage, {
+    let mainStageChartObj = new Chart(ctxMainStage, {
         type: 'line',
         data: {
             labels: htLabels,
@@ -2049,6 +2049,55 @@ function initFieldMap() {
     
     // Initial fetch
     fetchComparisonData();
+
+    function switchViewType(type) {
+        document.getElementById('btn-view-count').classList.toggle('active', type === 'count');
+        document.getElementById('btn-view-perc').classList.toggle('active', type === 'perc');
+        
+        const charts = [mainHealthChartObj, mainStageChartObj];
+        
+        charts.forEach(chart => {
+            if (!chart) return;
+            
+            // Store original data to keep precision
+            if (!chart.originalData) {
+                chart.originalData = chart.data.datasets.map(ds => [...ds.data]);
+            }
+            
+            if (type === 'perc') {
+                for (let i = 0; i < chart.data.labels.length; i++) {
+                    let total = 0;
+                    chart.originalData.forEach(ds => {
+                        if (ds[i] !== null && ds[i] !== undefined) {
+                            total += ds[i];
+                        }
+                    });
+                    
+                    chart.data.datasets.forEach((ds, dsIndex) => {
+                        let val = chart.originalData[dsIndex][i];
+                        if (val !== null && val !== undefined) {
+                            ds.data[i] = total > 0 ? parseFloat(((val / total) * 100).toFixed(1)) : 0;
+                        } else {
+                            ds.data[i] = null;
+                        }
+                    });
+                }
+                chart.options.scales.y.title.text = 'Percentage (%)';
+                chart.options.plugins.tooltip.callbacks.label = function(context) {
+                    return ` ${context.dataset.label}: ${context.parsed.y}%`;
+                };
+            } else {
+                chart.data.datasets.forEach((ds, dsIndex) => {
+                    ds.data = [...chart.originalData[dsIndex]];
+                });
+                chart.options.scales.y.title.text = 'Number of Plots';
+                chart.options.plugins.tooltip.callbacks.label = function(context) {
+                    return ` ${context.dataset.label}: ${context.parsed.y} Plots`;
+                };
+            }
+            chart.update();
+        });
+    }
 </script>
 
 <script>
