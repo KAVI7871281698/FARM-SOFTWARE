@@ -342,7 +342,13 @@
 <div class="row mb-5">
     <!-- Interactive Map -->
     <div class="col-md-12">
-        <div id="map"></div>
+        <div style="position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="mapSearchInput" placeholder="Search Plot Code..." style="padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Outfit', sans-serif; outline: none; width: 200px;" onkeyup="if(event.key === 'Enter') searchMap()">
+                <button onclick="searchMap()" style="padding: 6px 12px; background: #0288D1; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif;"><i class="fa-solid fa-search"></i></button>
+            </div>
+            <div id="map"></div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -549,9 +555,8 @@
                 });
                 marker = L.marker(center, { icon: icon }).addTo(featureGroup);
 
-                // The image file has transparent padding around the actual NDVI pixels.
-                // We need to stretch the image bounds so the NDVI pixels match the polygon.
-                const imageBounds = poly.getBounds().pad(0.18); // Increased padding to stretch the image
+                // Image bounds matching polygon exact bounds without stretch padding
+                const imageBounds = poly.getBounds();
                 imgOverlay = L.imageOverlay(imageUrl, imageBounds, { opacity: 0 }).addTo(featureGroup);
                 imgOverlay.on('error', function() {
                     imgOverlay._imageError = true;
@@ -559,7 +564,7 @@
 
                 handlePopup(poly);
                 handlePopup(marker);
-                plotMarkersAndImages.push({ marker, imgOverlay, polygon: poly });
+                plotMarkersAndImages.push({ marker, imgOverlay, polygon: poly, plot_code: plot.plot_code });
 
                 latlngs.forEach(pt => bounds.push(pt));
             } else if (plot.lat && plot.lng) {
@@ -579,7 +584,7 @@
                 });
 
                 handlePopup(marker);
-                plotMarkersAndImages.push({ marker, imgOverlay, polygon: null });
+                plotMarkersAndImages.push({ marker, imgOverlay, polygon: null, plot_code: plot.plot_code });
                 bounds.push([plot.lat, plot.lng]);
             }
         });
@@ -607,6 +612,31 @@
         
         // Initial check for zoom level
         map.fire('zoomend');
+    }
+
+    function searchMap() {
+        const query = document.getElementById('mapSearchInput').value.toLowerCase().trim();
+        if (!query) return;
+
+        let found = false;
+        plotMarkersAndImages.forEach(item => {
+            if (item.plot_code && item.plot_code.toLowerCase().includes(query)) {
+                let layer = item.polygon || item.marker;
+                if (layer) {
+                    if (item.polygon) {
+                        map.fitBounds(item.polygon.getBounds());
+                    } else if (item.marker) {
+                        map.setView(item.marker.getLatLng(), 18);
+                    }
+                    layer.openPopup();
+                    found = true;
+                }
+            }
+        });
+        
+        if (!found) {
+            alert("Plot not found!");
+        }
     }
 </script>
 {% endblock %}
