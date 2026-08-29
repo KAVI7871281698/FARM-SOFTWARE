@@ -1097,7 +1097,42 @@ def field_intelligence(request):
     return render(request, 'field_intelligence.html', context)
 
 def analytics(request):
-    return render(request, 'analytics.html')
+    from django.db.models import Avg
+    import json
+    
+    plots = filter_by_factory(Plot.objects.exclude(plot_code__isnull=True).exclude(plot_code=''), 'farmer__section__division__factory_name_id', request).order_by('plot_code')
+    
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
+    plot_id = request.GET.get('plot_id', 'all')
+    
+    ndvi_qs = NDVIRecord.objects.filter(plot__in=plots)
+    
+    if plot_id != 'all':
+        ndvi_qs = ndvi_qs.filter(plot_id=plot_id)
+        
+    if start_date:
+        ndvi_qs = ndvi_qs.filter(date_recorded__gte=start_date)
+    if end_date:
+        ndvi_qs = ndvi_qs.filter(date_recorded__lte=end_date)
+        
+    ndvi_qs = ndvi_qs.order_by('date_recorded').values('date_recorded').annotate(avg_ndvi=Avg('ndvi_value'))
+    
+    dates = []
+    ndvi_values = []
+    for record in ndvi_qs:
+        dates.append(record['date_recorded'].strftime('%d %b %Y'))
+        ndvi_values.append(round(float(record['avg_ndvi']), 2))
+        
+    context = {
+        'plots': plots,
+        'start_date': start_date,
+        'end_date': end_date,
+        'selected_plot': plot_id,
+        'ndvi_labels_json': json.dumps(dates),
+        'ndvi_data_json': json.dumps(ndvi_values),
+    }
+    return render(request, 'analytics.html', context)
 
 
 def scouting(request):

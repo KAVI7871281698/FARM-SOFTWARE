@@ -5,25 +5,28 @@
 
 {% block content %}
 <!-- Filters -->
+    <form method="GET" action="{% url 'analytics' %}">
     <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
             <div>
                 <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Date Range</label>
-                <input type="date" style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none;">
+                <input type="date" name="start_date" value="{{ start_date }}" style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none;">
                 <span style="color: var(--text-muted); margin: 0 0.5rem;">to</span>
-                <input type="date" style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none;">
+                <input type="date" name="end_date" value="{{ end_date }}" style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none;">
             </div>
             <div>
                 <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Plot</label>
-                <select style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none; background: white; min-width: 150px;">
+                <select name="plot_id" style="padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-family: 'Outfit'; outline: none; background: white; min-width: 150px;">
                     <option value="all">All Plots</option>
-                    <option value="p101">#P-101</option>
-                    <option value="p102">#P-102</option>
+                    {% for p in plots %}
+                    <option value="{{ p.id }}" {% if selected_plot == p.id|stringformat:"s" %}selected{% endif %}>{{ p.plot_code }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>
-        <button style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: 600; font-family: 'Outfit'; cursor: pointer;"><i class="fa-solid fa-filter"></i> Apply Filters</button>
+        <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: 600; font-family: 'Outfit'; cursor: pointer;"><i class="fa-solid fa-filter"></i> Apply Filters</button>
     </div>
+    </form>
 
     <!-- Charts Grid Row 1 -->
     <div class="charts-grid" style="margin-bottom: 2rem;">
@@ -99,10 +102,10 @@
         new Chart(ctxNdvi, {
             type: 'line',
             data: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+                labels: JSON.parse('{{ ndvi_labels_json|safe }}'),
                 datasets: [{
                     label: 'Current Season NDVI',
-                    data: [0.35, 0.42, 0.55, 0.68, 0.76, 0.81, 0.83, 0.79],
+                    data: JSON.parse('{{ ndvi_data_json|safe }}'),
                     borderColor: '#2e7d32',
                     backgroundColor: 'rgba(46, 125, 50, 0.1)',
                     borderWidth: 3,
