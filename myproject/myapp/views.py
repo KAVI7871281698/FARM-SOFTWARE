@@ -172,16 +172,16 @@ def scout_management(request):
     scouts = Scout.objects.select_related('plot', 'plot__farmer', 'assignment', 'assignment__officer').order_by('-created_at')
     
     if filter_ctx['selected_section_id'] != 'all':
-        scouts = scouts.filter(plot__farmer__section_id=filter_ctx['selected_section_id'])
+        scouts = scouts.filter(Q(plot__section_id=filter_ctx['selected_section_id']) | Q(plot__farmer__section_id=filter_ctx['selected_section_id']))
     elif filter_ctx['selected_division_id'] != 'all':
-        scouts = scouts.filter(plot__farmer__section__division_id=filter_ctx['selected_division_id'])
+        scouts = scouts.filter(Q(plot__division_id=filter_ctx['selected_division_id']) | Q(plot__farmer__section__division_id=filter_ctx['selected_division_id']))
     elif filter_ctx['selected_factory_id'] != 'all':
-        scouts = scouts.filter(plot__farmer__section__division__factory_name_id=filter_ctx['selected_factory_id'])
+        scouts = scouts.filter(Q(plot__factory_id=filter_ctx['selected_factory_id']) | Q(plot__farmer__section__division__factory_name_id=filter_ctx['selected_factory_id']))
     elif not filter_ctx['all_selected']:
-        scouts = scouts.filter(plot__farmer__section__division__factory_name__group_id=filter_ctx['selected_group_id'])
+        scouts = scouts.filter(Q(plot__group_id=filter_ctx['selected_group_id']) | Q(plot__farmer__section__division__factory_name__group_id=filter_ctx['selected_group_id']))
     elif not filter_ctx['is_superadmin']:
         allowed_f_ids = [f.id for f in filter_ctx['factories']]
-        scouts = scouts.filter(plot__farmer__section__division__factory_name_id__in=allowed_f_ids)
+        scouts = scouts.filter(Q(plot__factory_id__in=allowed_f_ids) | Q(plot__farmer__section__division__factory_name_id__in=allowed_f_ids))
 
     officers = Officer.objects.select_related('role', 'group').all()
     
