@@ -647,8 +647,9 @@ def dashboard(request):
     )
     overdue_scouts = scout_stats_agg['overdue']
     scout_completed = scout_stats_agg['completed']
-    scout_pending = Scout.objects.filter(plot__in=plots_qs, status='Pending Assignment').count()
+    scout_pending_db = Scout.objects.filter(plot__in=plots_qs, status='Pending Assignment').count()
     scout_assigned = scout_stats_agg['assigned']
+    scout_pending = max(scout_pending_db, need_attention - scout_assigned - scout_completed)
     scout_status_data = [scout_completed, scout_pending, scout_assigned]
 
     damage_reports = (      
